@@ -4,7 +4,7 @@ import { ref, onValue } from 'firebase/database'
 import { db } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
 import { getDday } from '@/utils/joinCode'
-import { Topbar } from '@/components/ui/Common'
+import { Topbar, BottomTabBar } from '@/components/ui/Common'
 import type { Project } from '@/types'
 
 export default function MainDashboardPage() {
@@ -173,6 +173,7 @@ export default function MainDashboardPage() {
           </>
         )}
       </div>
+      <BottomTabBar />
     </div>
   )
 }
