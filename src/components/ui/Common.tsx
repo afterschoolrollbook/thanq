@@ -1,26 +1,56 @@
-import { useNavigate, useParams } from 'react-router-dom'
+import { useState } from 'react'
+import { useNavigate, useParams, NavLink } from 'react-router-dom'
+import { signOut } from 'firebase/auth'
+import { auth } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
 
 // ─── 앱 탑바 ─────────────────────────────────────────────
 export function Topbar({ projectName }: { projectName?: string }) {
+  const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
+  const [showMenu, setShowMenu] = useState(false)
   const initial = user?.displayName?.charAt(0) ?? '?'
+
+  async function handleLogout() {
+    await signOut(auth)
+    navigate('/login')
+  }
+
   return (
-    <header className="bg-[#185FA5] px-5 py-3.5 flex items-center justify-between">
-      <div className="flex items-center gap-3">
-        <span className="text-white font-bold text-[18px] tracking-tight">ThanQ</span>
+    <header className="sticky top-0 z-30 bg-[#185FA5] px-5 py-3.5 flex items-center justify-between">
+      <div className="flex items-center gap-2.5">
+        <button onClick={() => navigate('/dashboard')} className="text-white font-bold text-[18px] tracking-tight hover:opacity-80">
+          ThanQ
+        </button>
         {projectName && (
           <span className="text-[#B5D4F4] text-[13px] flex items-center gap-1">
-            <i className="ti ti-chevron-right text-[12px]" /> {projectName}
+            <i className="ti ti-chevron-right text-[12px]" />
+            <span className="truncate max-w-[140px]">{projectName}</span>
           </span>
         )}
       </div>
-      <div className="flex items-center gap-2.5">
-        <div className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center relative">
+      <div className="flex items-center gap-2">
+        <button className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center">
           <i className="ti ti-bell text-white text-[16px]" />
-        </div>
-        <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white text-[12px] font-semibold">
-          {initial}
+        </button>
+        <div className="relative">
+          <button onClick={() => setShowMenu(!showMenu)}
+            className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white text-[12px] font-semibold">
+            {initial}
+          </button>
+          {showMenu && (
+            <div className="absolute right-0 top-10 bg-white rounded-[12px] shadow-lg border border-[#E2E8F0] py-1.5 min-w-[150px] z-50">
+              <button onClick={() => { navigate('/dashboard'); setShowMenu(false) }}
+                className="w-full px-4 py-2.5 text-left text-[13px] text-[#1A1A2E] flex items-center gap-2 hover:bg-[#F4F6F9]">
+                <i className="ti ti-layout-dashboard text-[15px] text-[#185FA5]" /> 전체 대시보드
+              </button>
+              <div className="h-px bg-[#E2E8F0] my-1" />
+              <button onClick={handleLogout}
+                className="w-full px-4 py-2.5 text-left text-[13px] text-[#A32D2D] flex items-center gap-2 hover:bg-[#F4F6F9]">
+                <i className="ti ti-logout text-[15px]" /> 로그아웃
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </header>
@@ -55,7 +85,6 @@ export function StepBar({ step }: { step: number }) {
 // ─── 앱 탭바 ─────────────────────────────────────────────
 export function TabBar({ active }: { active: 'home' | 'timeline' | 'my-part' | 'dashboard' | 'comms' }) {
   const { projectId } = useParams()
-  const navigate = useNavigate()
   const tabs = [
     { key: 'home',      icon: 'ti-home',             label: '홈' },
     { key: 'timeline',  icon: 'ti-timeline',         label: '타임라인' },
@@ -64,12 +93,12 @@ export function TabBar({ active }: { active: 'home' | 'timeline' | 'my-part' | '
     { key: 'comms',     icon: 'ti-message-circle',   label: '소통' },
   ] as const
   return (
-    <div className="flex gap-0 px-5 border-b border-[#E2E8F0] bg-white overflow-x-auto">
+    <div className="flex gap-0 border-b border-[#E2E8F0] bg-white overflow-x-auto">
       {tabs.map(({ key, icon, label }) => (
-        <button key={key} onClick={() => navigate(`/p/${projectId}/${key}`)}
+        <NavLink key={key} to={`/p/${projectId}/${key}`}
           className={`px-3.5 py-[11px] text-[13px] border-b-2 whitespace-nowrap flex items-center gap-1.5 transition-colors ${active === key ? 'text-[#185FA5] border-[#185FA5] font-semibold' : 'text-[#64748B] border-transparent hover:text-[#1A1A2E]'}`}>
           <i className={`ti ${icon}`} /> {label}
-        </button>
+        </NavLink>
       ))}
     </div>
   )
