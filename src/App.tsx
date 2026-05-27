@@ -3,6 +3,7 @@ import AuthLayout from '@/components/layout/AuthLayout'
 import AppLayout from '@/components/layout/AppLayout'
 import PrivateRoute from '@/components/auth/PrivateRoute'
 import LoginPage from '@/pages/LoginPage'
+import MainDashboardPage from '@/pages/MainDashboardPage'
 import ProjectsPage from '@/pages/ProjectsPage'
 import FieldSelectPage from '@/pages/FieldSelectPage'
 import CreateProjectPage from '@/pages/CreateProjectPage'
@@ -23,6 +24,7 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
         </Route>
         <Route element={<PrivateRoute />}>
+          <Route path="/dashboard" element={<MainDashboardPage />} />
           <Route path="/projects" element={<ProjectsPage />} />
           <Route path="/onboarding/field" element={<FieldSelectPage />} />
           <Route path="/onboarding/create" element={<CreateProjectPage />} />
@@ -40,8 +42,8 @@ export default function App() {
             <Route path="ptt"        element={<PTTPage />} />
           </Route>
         </Route>
-        <Route path="/" element={<Navigate to="/projects" replace />} />
-        <Route path="*" element={<Navigate to="/projects" replace />} />
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </BrowserRouter>
   )
