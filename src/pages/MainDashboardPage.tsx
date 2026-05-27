@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ref, onValue } from 'firebase/database'
-import { signOut } from 'firebase/auth'
-import { auth, db } from '@/lib/firebase'
+import { db } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
 import { getDday } from '@/utils/joinCode'
+import { Topbar } from '@/components/ui/Common'
 import type { Project } from '@/types'
 
 export default function MainDashboardPage() {
@@ -84,24 +84,8 @@ export default function MainDashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#F4F6F9]">
-      {/* 탑바 */}
-      <header className="bg-[#185FA5] px-5 py-3.5 flex items-center justify-between">
-        <div>
-          <div className="text-white font-bold text-[18px] tracking-tight">ThanQ</div>
-          <div className="text-[#B5D4F4] text-[12px]">현장 운영 통합 플랫폼</div>
-        </div>
-        <div className="flex items-center gap-2.5">
-          <span className="text-[#B5D4F4] text-[12px]">{user?.displayName ?? user?.email}</span>
-          <button onClick={() => signOut(auth).then(() => navigate('/login'))}
-            className="text-[#B5D4F4] text-[11px] border border-[#B5D4F4] rounded px-2 py-1 hover:text-white hover:border-white transition-colors">
-            로그아웃
-          </button>
-        </div>
-      </header>
-
+      <Topbar />
       <div className="max-w-2xl mx-auto px-5 pt-6 pb-10">
-
-        {/* 헤더 */}
         <div className="flex items-center justify-between mb-5">
           <div>
             <h2 className="text-[20px] font-semibold text-[#1A1A2E]">전체 대시보드</h2>
@@ -113,7 +97,6 @@ export default function MainDashboardPage() {
           </button>
         </div>
 
-        {/* KPI 요약 */}
         <div className="grid grid-cols-3 gap-3 mb-5">
           <div className="bg-white border border-[#E2E8F0] rounded-[12px] p-3.5 text-center">
             <div className="text-[22px] font-black text-[#E24B4A]">{live.length}</div>
@@ -129,7 +112,6 @@ export default function MainDashboardPage() {
           </div>
         </div>
 
-        {/* 참여 코드 */}
         <div className="mb-5">
           {!showJoinInput ? (
             <button onClick={() => setShowJoinInput(true)}
