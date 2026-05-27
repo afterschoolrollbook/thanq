@@ -33,7 +33,7 @@ export default function LoginPage() {
       } else {
         await signInWithEmailAndPassword(auth, email, password)
       }
-      navigate('/projects')
+      navigate('/onboarding/field')
     } catch (e: unknown) {
       const code = (e as { code?: string }).code
       if (code === 'auth/wrong-password' || code === 'auth/user-not-found') {
@@ -54,7 +54,7 @@ export default function LoginPage() {
     setLoading(true)
     try {
       await signInWithPopup(auth, new GoogleAuthProvider())
-      navigate('/projects')
+      navigate('/onboarding/field')
     } catch {
       setError('Google 로그인에 실패했습니다.')
     } finally {
