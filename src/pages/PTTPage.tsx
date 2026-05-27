@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { ref, onValue, push, set } from 'firebase/database'
 import { db } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
-import { Topbar, TabBar } from '@/components/ui/Common'
+import { Topbar, BottomTabBar } from '@/components/ui/Common'
 import type { Part } from '@/types'
 
 interface PTTRecord { id: string; senderName: string; senderColor: string; target: string; duration: number; createdAt: string }
@@ -60,7 +60,7 @@ export default function PTTPage() {
   return (
     <div className="min-h-screen bg-[#F4F6F9]">
       <Topbar />
-      <TabBar active="comms" />
+      <BottomTabBar />
       <div className="max-w-2xl mx-auto px-5 pt-5 pb-10">
         <div className="flex items-center justify-between mb-5">
           <div><div className="text-[18px] font-semibold">무전 채널</div><div className="text-[12px] text-[#64748B]">버튼을 누르는 동안 실시간 음성 전송</div></div>
