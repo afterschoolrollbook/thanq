@@ -10,10 +10,8 @@ import SetupPartsPage from '@/pages/SetupPartsPage'
 import ProjectHomePage from '@/pages/ProjectHomePage'
 import MyPartPage from '@/pages/MyPartPage'
 import DashboardPage from '@/pages/DashboardPage'
-import {
-  TimelinePage,
-  CommsPage,
-} from '@/pages/placeholders'
+import TimelinePage from '@/pages/TimelinePage'
+import { CommsPage } from '@/pages/placeholders'
 
 export default function App() {
   return (
