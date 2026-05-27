@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { ref, onValue, update } from 'firebase/database'
 import { db } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
-import { Topbar, TabBar, StatusBadge } from '@/components/ui/Common'
+import { Topbar, StatusBadge } from '@/components/ui/Common'
 import type { Part, CueItem, CheckItem } from '@/types'
 
 export default function MyPartPage() {
@@ -50,7 +50,6 @@ export default function MyPartPage() {
   return (
     <div className="min-h-screen bg-[#F4F6F9]">
       <Topbar />
-      <TabBar active="my-part" />
       <div className="max-w-2xl mx-auto px-5 pt-5 pb-10">
         {!myPart ? (
           <div className="text-center py-20 text-[#64748B] text-[13px]">배정된 파트가 없어요</div>

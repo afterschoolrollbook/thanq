@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { ref, onValue, push, set } from 'firebase/database'
 import { db } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
-import { Topbar, TabBar } from '@/components/ui/Common'
+import { Topbar } from '@/components/ui/Common'
 import type { Notice } from '@/types'
 
 export default function CommsPage() {
@@ -39,7 +39,6 @@ export default function CommsPage() {
   return (
     <div className="min-h-screen bg-[#F4F6F9]">
       <Topbar />
-      <TabBar active="comms" />
       <div className="max-w-2xl mx-auto px-5 pt-5 pb-10">
 
         {/* 헤더 */}

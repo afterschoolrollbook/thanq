@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { ref, onValue } from 'firebase/database'
 import { db } from '@/lib/firebase'
-import { Topbar, TabBar, StatusBadge } from '@/components/ui/Common'
+import { Topbar, StatusBadge } from '@/components/ui/Common'
 import type { Project, Part } from '@/types'
 
 export default function DashboardPage() {
@@ -25,7 +25,6 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#F4F6F9]">
       <Topbar projectName={project?.name} />
-      <TabBar active="dashboard" />
       <div className="max-w-2xl mx-auto px-5 pt-5 pb-10">
 
         {/* 헤더 */}
