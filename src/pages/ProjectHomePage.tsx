@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { ref, onValue } from 'firebase/database'
 import { db } from '@/lib/firebase'
 import { getDday } from '@/utils/joinCode'
-import { Topbar, StatusBadge } from '@/components/ui/Common'
+import { Topbar, StatusBadge, BottomTabBar } from '@/components/ui/Common'
 import type { Project, Part } from '@/types'
 
 export default function ProjectHomePage() {
@@ -32,7 +32,7 @@ export default function ProjectHomePage() {
   return (
     <div className="min-h-screen bg-[#F4F6F9]">
       <Topbar projectName={project.name} />
-      <div className="max-w-2xl mx-auto px-5 pt-5 pb-10">
+      <div className="max-w-2xl mx-auto px-5 pt-5 pb-24">
 
         {/* D-day 바 */}
         <div className="bg-[#E6F1FB] rounded-[10px] px-4 py-3 flex items-center justify-between mb-4">
@@ -107,6 +107,7 @@ export default function ProjectHomePage() {
           </div>
         </div>
       </div>
+      <BottomTabBar />
     </div>
   )
 }

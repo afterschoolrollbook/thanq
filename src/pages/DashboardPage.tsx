@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { ref, onValue } from 'firebase/database'
 import { db } from '@/lib/firebase'
-import { Topbar, StatusBadge } from '@/components/ui/Common'
+import { Topbar, StatusBadge, BottomTabBar } from '@/components/ui/Common'
 import type { Project, Part } from '@/types'
 
 export default function DashboardPage() {
@@ -25,7 +25,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#F4F6F9]">
       <Topbar projectName={project?.name} />
-      <div className="max-w-2xl mx-auto px-5 pt-5 pb-10">
+      <div className="max-w-2xl mx-auto px-5 pt-5 pb-24">
 
         {/* 헤더 */}
         <div className="flex items-center justify-between mb-4">
@@ -102,6 +102,7 @@ export default function DashboardPage() {
           <button className="flex-1 min-w-[120px] h-[42px] rounded-[10px] border border-[#E2E8F0] bg-[#FAFBFC] text-[#1A1A2E] text-[13px] font-semibold flex items-center justify-center gap-1.5"><i className="ti ti-player-pause text-[16px]" /> 일시 중단</button>
         </div>
       </div>
+      <BottomTabBar />
     </div>
   )
 }

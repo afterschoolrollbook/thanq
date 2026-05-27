@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { ref, onValue, update } from 'firebase/database'
 import { db } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
-import { Topbar, StatusBadge } from '@/components/ui/Common'
+import { Topbar, StatusBadge, BottomTabBar } from '@/components/ui/Common'
 import type { Part, CueItem, CheckItem } from '@/types'
 
 export default function MyPartPage() {
@@ -50,7 +50,7 @@ export default function MyPartPage() {
   return (
     <div className="min-h-screen bg-[#F4F6F9]">
       <Topbar />
-      <div className="max-w-2xl mx-auto px-5 pt-5 pb-10">
+      <div className="max-w-2xl mx-auto px-5 pt-5 pb-24">
         {!myPart ? (
           <div className="text-center py-20 text-[#64748B] text-[13px]">배정된 파트가 없어요</div>
         ) : (
@@ -131,6 +131,7 @@ export default function MyPartPage() {
           </>
         )}
       </div>
+      <BottomTabBar />
     </div>
   )
 }
@@ -140,6 +141,7 @@ function Empty({ icon, text }: { icon: string; text: string }) {
     <div className="text-center py-12 text-[#A0AEC0]">
       <i className={`ti ${icon} text-[36px] block mb-2 opacity-30`} />
       <p className="text-[13px]">{text}</p>
+      <BottomTabBar />
     </div>
   )
 }
