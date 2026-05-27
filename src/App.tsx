@@ -9,8 +9,8 @@ import CreateProjectPage from '@/pages/CreateProjectPage'
 import SetupPartsPage from '@/pages/SetupPartsPage'
 import ProjectHomePage from '@/pages/ProjectHomePage'
 import MyPartPage from '@/pages/MyPartPage'
+import DashboardPage from '@/pages/DashboardPage'
 import {
-  DashboardPage,
   TimelinePage,
   CommsPage,
 } from '@/pages/placeholders'
