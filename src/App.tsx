@@ -7,8 +7,8 @@ import ProjectsPage from '@/pages/ProjectsPage'
 import FieldSelectPage from '@/pages/FieldSelectPage'
 import CreateProjectPage from '@/pages/CreateProjectPage'
 import SetupPartsPage from '@/pages/SetupPartsPage'
+import ProjectHomePage from '@/pages/ProjectHomePage'
 import {
-  ProjectHomePage,
   MyPartPage,
   DashboardPage,
   TimelinePage,
