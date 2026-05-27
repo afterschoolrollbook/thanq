@@ -1,0 +1,95 @@
+import { useNavigate, useParams } from 'react-router-dom'
+import { useAuthStore } from '@/store/authStore'
+
+// ─── 앱 탑바 ─────────────────────────────────────────────
+export function Topbar({ projectName }: { projectName?: string }) {
+  const user = useAuthStore((s) => s.user)
+  const initial = user?.displayName?.charAt(0) ?? '?'
+  return (
+    <header className="bg-[#185FA5] px-5 py-3.5 flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <span className="text-white font-bold text-[18px] tracking-tight">ThanQ</span>
+        {projectName && (
+          <span className="text-[#B5D4F4] text-[13px] flex items-center gap-1">
+            <i className="ti ti-chevron-right text-[12px]" /> {projectName}
+          </span>
+        )}
+      </div>
+      <div className="flex items-center gap-2.5">
+        <div className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center relative">
+          <i className="ti ti-bell text-white text-[16px]" />
+        </div>
+        <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white text-[12px] font-semibold">
+          {initial}
+        </div>
+      </div>
+    </header>
+  )
+}
+
+// ─── 스텝바 ──────────────────────────────────────────────
+export function StepBar({ step }: { step: number }) {
+  const steps = ['계정', '분야 선택', '프로젝트', '파트 구성']
+  return (
+    <div className="bg-white border-b border-[#E2E8F0] px-5 py-3.5 flex items-center">
+      {steps.map((label, i) => {
+        const n = i + 1
+        const done = step > n
+        const active = step === n
+        return (
+          <div key={n} className="flex items-center flex-1 last:flex-none">
+            <div className="flex items-center gap-1.5">
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-semibold flex-shrink-0 ${done ? 'bg-[#185FA5] text-white' : active ? 'bg-[#185FA5] text-white outline outline-[3px] outline-[#B5D4F4] outline-offset-1' : 'bg-white border border-[#E2E8F0] text-[#A0AEC0]'}`}>
+                {done ? <i className="ti ti-check text-[11px]" /> : null}
+              </div>
+              <span className={`text-[12px] whitespace-nowrap ${active ? 'text-[#185FA5] font-medium' : 'text-[#64748B]'}`}>{label}</span>
+            </div>
+            {i < steps.length - 1 && <div className="flex-1 h-px bg-[#E2E8F0] mx-2.5" />}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ─── 앱 탭바 ─────────────────────────────────────────────
+export function TabBar({ active }: { active: 'home' | 'timeline' | 'my-part' | 'dashboard' | 'comms' }) {
+  const { projectId } = useParams()
+  const navigate = useNavigate()
+  const tabs = [
+    { key: 'home',      icon: 'ti-home',             label: '홈' },
+    { key: 'timeline',  icon: 'ti-timeline',         label: '타임라인' },
+    { key: 'my-part',   icon: 'ti-checklist',        label: '내 파트' },
+    { key: 'dashboard', icon: 'ti-layout-dashboard', label: '대시보드' },
+    { key: 'comms',     icon: 'ti-message-circle',   label: '소통' },
+  ] as const
+  return (
+    <div className="flex gap-0 px-5 border-b border-[#E2E8F0] bg-white overflow-x-auto">
+      {tabs.map(({ key, icon, label }) => (
+        <button key={key} onClick={() => navigate(`/p/${projectId}/${key}`)}
+          className={`px-3.5 py-[11px] text-[13px] border-b-2 whitespace-nowrap flex items-center gap-1.5 transition-colors ${active === key ? 'text-[#185FA5] border-[#185FA5] font-semibold' : 'text-[#64748B] border-transparent hover:text-[#1A1A2E]'}`}>
+          <i className={`ti ${icon}`} /> {label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// ─── 상태 뱃지 ────────────────────────────────────────────
+export function StatusBadge({ status }: { status: string }) {
+  const map: Record<string, { label: string; bg: string; color: string }> = {
+    waiting:  { label: '대기',    bg: '#F1EFE8', color: '#5F5E5A' },
+    ready:    { label: '준비완료', bg: '#EAF3DE', color: '#3B6D11' },
+    ongoing:  { label: '진행중',  bg: '#E6F1FB', color: '#185FA5' },
+    done:     { label: '완료',    bg: '#EAF3DE', color: '#3B6D11' },
+    delay:    { label: '지연',    bg: '#FAEEDA', color: '#854F0B' },
+    issue:    { label: '이슈',    bg: '#FCEBEB', color: '#A32D2D' },
+    pending:  { label: '대기',    bg: '#F1EFE8', color: '#5F5E5A' },
+  }
+  const s = map[status] ?? map['waiting']
+  return (
+    <span className="text-[11px] px-2.5 py-0.5 rounded-full font-semibold" style={{ background: s.bg, color: s.color }}>
+      {s.label}
+    </span>
+  )
+}
