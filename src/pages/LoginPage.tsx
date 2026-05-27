@@ -26,9 +26,9 @@ export default function LoginPage() {
       // 내 프로젝트가 있는지 확인
       const projects = Object.values(snap.val()) as { ownerId: string }[]
       const mine = projects.find((p) => p.ownerId === uid)
-      if (mine) { navigate('/projects'); return }
+      if (mine) { navigate('/dashboard'); return }
     }
-    navigate('/onboarding/field')
+    navigate('/dashboard')
   }
 
   async function handleSubmit() {
