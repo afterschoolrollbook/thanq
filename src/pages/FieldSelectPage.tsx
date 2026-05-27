@@ -1,5 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { ref, onValue, update } from 'firebase/database'
+import { db } from '@/lib/firebase'
+import { useAuthStore } from '@/store/authStore'
 import { FIELD_TERMS } from '@/utils/fieldTerms'
 import { Topbar, StepBar } from '@/components/ui/Common'
 import type { FieldType } from '@/types'
@@ -15,11 +18,37 @@ const FIELDS = [
 
 export default function FieldSelectPage() {
   const navigate = useNavigate()
+  const user = useAuthStore((s) => s.user)
   const [selected, setSelected] = useState<FieldType | null>(null)
   const [custom, setCustom] = useState('')
 
+  // Firebase에서 이전에 선택한 분야 불러오기
+  useEffect(() => {
+    if (!user) return
+    onValue(ref(db, `drafts/${user.uid}/fieldType`), (snap) => {
+      if (snap.exists()) {
+        const val = snap.val() as FieldType
+        if (val === 'custom') return
+        setSelected(val)
+      }
+    }, { onlyOnce: true })
+  }, [user])
+
+  function handleSelect(field: FieldType) {
+    setSelected(field)
+    setCustom('')
+    if (user) update(ref(db, `drafts/${user.uid}`), { fieldType: field })
+  }
+
+  function handleCustom(val: string) {
+    setCustom(val)
+    setSelected(null)
+    if (user) update(ref(db, `drafts/${user.uid}`), { fieldType: 'custom', customField: val })
+  }
+
   function handleNext() {
     const field = selected ?? 'custom'
+    // sessionStorage는 보조용으로만 유지
     sessionStorage.setItem('oncue_field', field)
     sessionStorage.setItem('oncue_terms', JSON.stringify(FIELD_TERMS[field]))
     navigate('/onboarding/create')
@@ -34,7 +63,7 @@ export default function FieldSelectPage() {
         <p className="text-[13px] text-[#64748B] mb-6 leading-relaxed">선택한 분야에 맞는 용어와 템플릿이 자동으로 세팅됩니다. 나중에 언제든 변경 가능해요.</p>
         <div className="grid grid-cols-3 gap-2.5 mb-4">
           {FIELDS.map(({ key, name, desc, icon, bg, color }) => (
-            <button key={key} onClick={() => setSelected(key)}
+            <button key={key} onClick={() => handleSelect(key)}
               className={`text-left p-3.5 rounded-[14px] border-2 transition-all ${selected === key ? 'border-[#185FA5] bg-[#E6F1FB]' : 'border-[#E2E8F0] bg-white hover:border-[#185FA5]'}`}>
               <div className="w-[34px] h-[34px] rounded-[10px] flex items-center justify-center mb-2" style={{ background: bg }}>
                 <i className={`ti ${icon} text-[18px]`} style={{ color }} />
@@ -53,7 +82,7 @@ export default function FieldSelectPage() {
           <i className="ti ti-pencil text-[16px] text-[#A0AEC0]" />
           <input className="flex-1 bg-transparent outline-none text-[13px] text-[#1A1A2E] placeholder-[#A0AEC0]"
             placeholder="직접 입력 — 다른 현장이라면 여기에 입력하세요"
-            value={custom} onChange={(e) => { setCustom(e.target.value); setSelected(null) }} />
+            value={custom} onChange={(e) => handleCustom(e.target.value)} />
         </div>
         <div className="flex justify-end">
           <button onClick={handleNext} disabled={!selected && !custom.trim()}
