@@ -68,7 +68,7 @@ export default function LoginPage() {
         {isSignUp ? '회원가입' : '시작하기'}
       </h2>
       <p className="text-oncue-muted text-sm mb-5">
-        {isSignUp ? '계정을 만들고 OnCue를 시작하세요' : '이메일 또는 소셜 계정으로 로그인하세요'}
+        {isSignUp ? '계정을 만들고 ThanQ를 시작하세요' : '이메일 또는 소셜 계정으로 로그인하세요'}
       </p>
 
       <div className="space-y-3">

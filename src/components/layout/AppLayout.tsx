@@ -18,7 +18,7 @@ export default function AppLayout() {
       {/* 상단 헤더 */}
       <header className="sticky top-0 z-30 bg-primary text-white px-4 py-3 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-2">
-          <span className="font-bold text-lg tracking-tight">OnCue</span>
+          <span className="font-bold text-lg tracking-tight">ThanQ</span>
           {projectId && (
             <span className="text-primary-mid text-sm flex items-center gap-1">
               <i className="ti ti-chevron-right text-xs" />

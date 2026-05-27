@@ -6,7 +6,7 @@ export default function AuthLayout() {
       <div className="w-full max-w-sm">
         {/* 로고 */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white tracking-tight">OnCue</h1>
+          <h1 className="text-3xl font-bold text-white tracking-tight">ThanQ</h1>
           <p className="text-primary-mid text-sm mt-1">현장 운영 통합 플랫폼</p>
         </div>
 

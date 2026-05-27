@@ -18,7 +18,7 @@ export default function FieldSelectPage() {
     <div className="min-h-screen bg-oncue-bg">
       {/* 상단 */}
       <header className="bg-primary text-white px-4 py-3">
-        <span className="font-bold text-lg">OnCue</span>
+        <span className="font-bold text-lg">ThanQ</span>
       </header>
 
       {/* 스텝 바 */}

@@ -16,7 +16,7 @@ export default function ProjectsPage() {
     <div className="min-h-screen bg-oncue-bg">
       {/* 헤더 */}
       <header className="bg-primary text-white px-4 py-3 flex items-center justify-between">
-        <span className="font-bold text-lg">OnCue</span>
+        <span className="font-bold text-lg">ThanQ</span>
         <div className="flex items-center gap-2">
           <span className="text-primary-mid text-sm">{user?.displayName ?? user?.email}</span>
           <button onClick={handleLogout} className="text-primary-mid text-xs border border-primary-mid rounded px-2 py-1 hover:text-white hover:border-white transition-colors">

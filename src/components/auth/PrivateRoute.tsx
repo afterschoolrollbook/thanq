@@ -8,7 +8,7 @@ export default function PrivateRoute() {
     return (
       <div className="min-h-screen bg-oncue-bg flex items-center justify-center">
         <div className="text-center">
-          <div className="text-3xl font-bold text-primary mb-2">OnCue</div>
+          <div className="text-3xl font-bold text-primary mb-2">ThanQ</div>
           <div className="text-oncue-muted text-sm">로딩 중...</div>
         </div>
       </div>
