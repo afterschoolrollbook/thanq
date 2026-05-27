@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { ref, onValue } from 'firebase/database'
 import { db } from '@/lib/firebase'
 import { getDday } from '@/utils/joinCode'
@@ -8,6 +8,7 @@ import type { Project, Part } from '@/types'
 
 export default function ProjectHomePage() {
   const { projectId } = useParams()
+  const navigate = useNavigate()
   const [project, setProject] = useState<Project | null>(null)
   const [parts, setParts] = useState<Part[]>([])
   const [loading, setLoading] = useState(true)
@@ -77,7 +78,13 @@ export default function ProjectHomePage() {
               <div className="text-[12px] text-[#185FA5]">대시보드</div>
             </div>
             {parts.length === 0 ? (
-              <div className="text-[12px] text-[#64748B] text-center py-4">파트가 없어요</div>
+              <div className="text-center py-4">
+              <p className="text-[12px] text-[#64748B] mb-3">파트가 없어요</p>
+              <button onClick={() => navigate(`/onboarding/parts/${projectId}`)}
+                className="h-[34px] px-4 bg-[#185FA5] text-white rounded-[10px] text-[12px] font-semibold flex items-center gap-1.5 mx-auto">
+                <i className="ti ti-plus text-[13px]" /> 파트 추가하기
+              </button>
+            </div>
             ) : parts.map((part) => (
               <div key={part.id} className="flex items-center gap-2 py-1.5 border-b border-[#E2E8F0] last:border-0">
                 <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: part.color }} />
