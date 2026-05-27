@@ -4,7 +4,7 @@ import { signOut } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
 
-// ─── 앱 탑바 ─────────────────────────────────────────────
+// ─── 탑바 ─────────────────────────────────────────────────
 export function Topbar({ projectName }: { projectName?: string }) {
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
@@ -25,7 +25,7 @@ export function Topbar({ projectName }: { projectName?: string }) {
         {projectName && (
           <span className="text-[#B5D4F4] text-[13px] flex items-center gap-1">
             <i className="ti ti-chevron-right text-[12px]" />
-            <span className="truncate max-w-[140px]">{projectName}</span>
+            <span className="truncate max-w-[160px]">{projectName}</span>
           </span>
         )}
       </div>
@@ -57,6 +57,31 @@ export function Topbar({ projectName }: { projectName?: string }) {
   )
 }
 
+// ─── 하단 탭바 ────────────────────────────────────────────
+export function BottomTabBar() {
+  const { projectId } = useParams()
+  const tabs = [
+    { key: 'home',      icon: 'ti-home',             label: '홈' },
+    { key: 'timeline',  icon: 'ti-timeline',         label: '타임라인' },
+    { key: 'my-part',   icon: 'ti-checklist',        label: '내 파트' },
+    { key: 'dashboard', icon: 'ti-layout-dashboard', label: '대시보드' },
+    { key: 'comms',     icon: 'ti-message-circle',   label: '소통' },
+  ] as const
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-[#E2E8F0]">
+      <div className="flex">
+        {tabs.map(({ key, icon, label }) => (
+          <NavLink key={key} to={`/p/${projectId}/${key}`}
+            className={({ isActive }) => `flex-1 flex flex-col items-center py-2.5 gap-0.5 text-[11px] font-medium transition-colors ${isActive ? 'text-[#185FA5]' : 'text-[#A0AEC0]'}`}>
+            <i className={`ti ${icon} text-[20px]`} />
+            <span>{label}</span>
+          </NavLink>
+        ))}
+      </div>
+    </nav>
+  )
+}
+
 // ─── 스텝바 ──────────────────────────────────────────────
 export function StepBar({ step }: { step: number }) {
   const steps = ['계정', '분야 선택', '프로젝트', '파트 구성']
@@ -78,28 +103,6 @@ export function StepBar({ step }: { step: number }) {
           </div>
         )
       })}
-    </div>
-  )
-}
-
-// ─── 앱 탭바 ─────────────────────────────────────────────
-export function TabBar({ active }: { active: 'home' | 'timeline' | 'my-part' | 'dashboard' | 'comms' }) {
-  const { projectId } = useParams()
-  const tabs = [
-    { key: 'home',      icon: 'ti-home',             label: '홈' },
-    { key: 'timeline',  icon: 'ti-timeline',         label: '타임라인' },
-    { key: 'my-part',   icon: 'ti-checklist',        label: '내 파트' },
-    { key: 'dashboard', icon: 'ti-layout-dashboard', label: '대시보드' },
-    { key: 'comms',     icon: 'ti-message-circle',   label: '소통' },
-  ] as const
-  return (
-    <div className="flex gap-0 border-b border-[#E2E8F0] bg-white overflow-x-auto">
-      {tabs.map(({ key, icon, label }) => (
-        <NavLink key={key} to={`/p/${projectId}/${key}`}
-          className={`px-3.5 py-[11px] text-[13px] border-b-2 whitespace-nowrap flex items-center gap-1.5 transition-colors ${active === key ? 'text-[#185FA5] border-[#185FA5] font-semibold' : 'text-[#64748B] border-transparent hover:text-[#1A1A2E]'}`}>
-          <i className={`ti ${icon}`} /> {label}
-        </NavLink>
-      ))}
     </div>
   )
 }
