@@ -60,8 +60,8 @@ export function Topbar({ projectName }: { projectName?: string }) {
 // ─── 하단 탭바 ────────────────────────────────────────────
 export function BottomTabBar() {
   const { projectId } = useParams()
+  const navigate = useNavigate()
   const tabs = [
-    { key: 'home',      icon: 'ti-home',             label: '홈' },
     { key: 'timeline',  icon: 'ti-timeline',         label: '타임라인' },
     { key: 'my-part',   icon: 'ti-checklist',        label: '내 파트' },
     { key: 'dashboard', icon: 'ti-layout-dashboard', label: '대시보드' },
@@ -70,6 +70,11 @@ export function BottomTabBar() {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-[#E2E8F0]">
       <div className="flex">
+        <button onClick={() => navigate('/dashboard')}
+          className="flex-1 flex flex-col items-center py-2.5 gap-0.5 text-[11px] font-medium text-[#A0AEC0] hover:text-[#185FA5] transition-colors">
+          <i className="ti ti-home text-[20px]" />
+          <span>홈</span>
+        </button>
         {tabs.map(({ key, icon, label }) => (
           <NavLink key={key} to={`/p/${projectId}/${key}`}
             className={({ isActive }) => `flex-1 flex flex-col items-center py-2.5 gap-0.5 text-[11px] font-medium transition-colors ${isActive ? 'text-[#185FA5]' : 'text-[#A0AEC0]'}`}>
