@@ -14,6 +14,7 @@
 | 상태관리 | Zustand |
 | 라우팅 | React Router v6 |
 | 백엔드/DB | Firebase (Auth + Realtime DB) |
+| 실시간 음성 | WebRTC (푸시투토크 무전) |
 | 배포 | Vercel |
 
 ## 적용 분야
@@ -41,6 +42,32 @@
 | 8 | 통합 타임라인 | 🔧 개발 중 |
 | 9 | 소통 허브 | 🔧 개발 중 |
 | 10 | 당일 실시간 운영 | 🔧 개발 중 |
+| 11 | 🎙️ 무전 (푸시투토크) | 📋 기획 완료 |
+
+## 🎙️ 무전 기능 (푸시투토크)
+
+현장 무전기를 앱으로 — 버튼 누르는 동안 실시간 음성 전송.
+
+**동작 방식**
+- 🔴 버튼 누르는 동안 → 녹음 + 실시간 전송
+- 🟢 손 떼면 → 자동 전송 완료
+- 📱 상대방 폰에서 자동 재생 (앱이 백그라운드여도)
+
+**보내는 대상 선택**
+- 전체 전송 — 프로젝트 전원에게
+- 파트 전송 — 특정 파트(음향팀, 무대팀 등)에게만
+- 1:1 전송 — 특정 담당자에게만
+
+**기술 구현**
+- WebRTC — 버튼 누르는 동안 실시간 P2P 음성 스트리밍
+- Firebase Realtime DB — 채널 상태 및 수신자 관리
+- Web Audio API — 마이크 입력 처리
+- FCM (Firebase Cloud Messaging) — 백그라운드 수신 알림
+
+**UI**
+- 소통 허브 탭 안에 무전 버튼 상시 노출
+- 말하는 사람 이름 + 파트 실시간 표시
+- 무전 히스토리 — 누가 언제 보냈는지 기록
 
 ## 프로젝트 구조
 
@@ -50,9 +77,9 @@ src/
 │   ├── auth/         # 인증 관련 (PrivateRoute 등)
 │   ├── layout/       # 레이아웃 (AppLayout, AuthLayout)
 │   └── ui/           # 공통 UI 컴포넌트
-├── hooks/            # 커스텀 훅 (useAuth 등)
-├── lib/              # Firebase 초기화
-├── pages/            # 화면 컴포넌트 (10개)
+├── hooks/            # 커스텀 훅 (useAuth, usePTT 등)
+├── lib/              # Firebase, WebRTC 초기화
+├── pages/            # 화면 컴포넌트 (10개 + 무전)
 ├── store/            # Zustand 상태 관리
 ├── styles/           # 전역 CSS
 ├── types/            # TypeScript 타입 정의
