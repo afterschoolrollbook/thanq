@@ -15,6 +15,7 @@ import TimelinePage from '@/pages/TimelinePage'
 import CommsPage from '@/pages/CommsPage'
 import LiveOpsPage from '@/pages/LiveOpsPage'
 import PTTPage from '@/pages/PTTPage'
+import SiteAdminPage from '@/pages/SiteAdminPage'
 import AdminPage from '@/pages/AdminPage'
 
 export default function App() {
@@ -44,6 +45,7 @@ export default function App() {
             <Route path="admin"      element={<AdminPage />} />
           </Route>
         </Route>
+        <Route path="/admin" element={<SiteAdminPage />} />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
