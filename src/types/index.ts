@@ -18,6 +18,7 @@ export type FieldType =
   | 'fashion'    // 패션쇼
   | 'sports'     // 스포츠/대회
   | 'broadcast'  // 방송/생방송
+  | 'club'       // 모임/클럽
   | 'custom'     // 직접 입력
 
 export interface FieldTerms {
