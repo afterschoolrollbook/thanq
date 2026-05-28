@@ -467,7 +467,7 @@ export default function PTTPage() {
             ].map((f) => (
               <div key={f.title} className="flex items-start gap-3">
                 <div className="w-8 h-8 rounded-[8px] flex items-center justify-center flex-shrink-0" style={{ background: f.color + '22' }}>
-                  <i className={\`ti \${f.icon} text-[16px]\`} style={{ color: f.color }} />
+                  <i className={['ti', f.icon, 'text-[16px]'].join(' ')} style={{ color: f.color }} />
                 </div>
                 <div>
                   <div className="text-[13px] font-semibold text-[#1A1A2E]">{f.title}</div>
