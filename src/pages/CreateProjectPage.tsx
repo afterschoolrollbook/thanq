@@ -5,13 +5,22 @@ import { db } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
 import { FIELD_TERMS } from '@/utils/fieldTerms'
 import { generateJoinCode } from '@/utils/joinCode'
+import { applyTemplateToProject } from '@/utils/templateUtils'
 import { Topbar, StepBar } from '@/components/ui/Common'
-import type { FieldType, Project } from '@/types'
+import type { FieldType, Project, TemplateFile } from '@/types'
 
 export default function CreateProjectPage() {
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
   const fieldType = (sessionStorage.getItem('oncue_field') ?? 'event') as FieldType
+
+  // 템플릿으로 시작하는 경우 — FieldSelectPage에서 저장한 데이터
+  const templateData: TemplateFile | null = (() => {
+    try {
+      const raw = sessionStorage.getItem('oncue_template')
+      return raw ? JSON.parse(raw) : null
+    } catch { return null }
+  })()
 
   const [projectId, setProjectId] = useState<string | null>(null)
   const [name, setName] = useState('')
@@ -90,10 +99,18 @@ export default function CreateProjectPage() {
         uid: user.uid, projectId, role: 'owner',
         displayName: user.displayName, joinedAt: new Date().toISOString(),
       })
-      // draft 삭제
       await set(ref(db, `drafts/${user.uid}`), null)
       sessionStorage.removeItem('oncue_field')
-      navigate(`/onboarding/parts/${projectId}`)
+
+      if (templateData) {
+        // 템플릿으로 시작 → 파트 자동 세팅 후 바로 프로젝트 홈으로
+        await applyTemplateToProject(projectId, templateData)
+        sessionStorage.removeItem('oncue_template')
+        navigate(`/p/${projectId}/home`)
+      } else {
+        // 직접 입력 → 파트 구성 단계로
+        navigate(`/onboarding/parts/${projectId}`)
+      }
     } catch (e) { console.error(e) }
     finally { setLoading(false) }
   }
@@ -111,6 +128,23 @@ export default function CreateProjectPage() {
       <div className="max-w-2xl mx-auto px-5 pt-7 pb-10">
         <h2 className="text-[20px] font-semibold text-[#1A1A2E] mb-1">프로젝트 기본 정보</h2>
         <p className="text-[13px] text-[#64748B] mb-6">입력하는 즉시 저장돼요 — 언제든 이어서 작업 가능해요</p>
+
+        {/* 템플릿 적용 중 배너 */}
+        {templateData && (
+          <div className="flex items-center gap-3 px-4 py-3 mb-5 bg-[#E6F1FB] border border-[#185FA5] rounded-[12px]">
+            <i className="ti ti-file-check text-[#185FA5] text-[20px] flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="text-[13px] font-bold text-[#185FA5]">템플릿 적용 예정</div>
+              <div className="text-[11px] text-[#64748B] truncate">
+                {templateData.name} · 파트 {templateData.parts.length}개가 자동 세팅돼요
+              </div>
+            </div>
+            <button onClick={() => { sessionStorage.removeItem('oncue_template'); window.location.reload() }}
+              className="text-[#A0AEC0] hover:text-[#E24B4A]">
+              <i className="ti ti-x text-[16px]" />
+            </button>
+          </div>
+        )}
 
         <div className="mb-4">
           <label className={lbl}>행사명</label>
