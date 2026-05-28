@@ -58,7 +58,12 @@ export function Topbar({ projectName }: { projectName?: string }) {
             <div className="absolute right-0 top-10 bg-white rounded-[12px] shadow-lg border border-[#E2E8F0] py-1.5 min-w-[150px] z-50">
               <button onClick={() => { navigate('/dashboard'); setShowMenu(false) }}
                 className="w-full px-4 py-2.5 text-left text-[13px] text-[#1A1A2E] flex items-center gap-2 hover:bg-[#F4F6F9]">
-                <i className="ti ti-layout-dashboard text-[15px] text-[#185FA5]" /> 전체 대시보드
+                <i className="ti ti-home text-[15px] text-[#185FA5]" /> 대시보드
+              </button>
+              <button onClick={() => { navigate('/blog'); setShowMenu(false) }}
+                className="w-full px-4 py-2.5 text-left text-[13px] text-[#1A1A2E] flex items-center gap-2 hover:bg-[#F4F6F9]">
+                <i className="ti ti-news text-[15px] text-[#185FA5]" /> 블로그
+              </button>                <i className="ti ti-layout-dashboard text-[15px] text-[#185FA5]" /> 전체 대시보드
               </button>
               <div className="h-px bg-[#E2E8F0] my-1" />
               <button onClick={handleLogout}

@@ -140,3 +140,48 @@ export interface ProjectMember {
   displayName: string
   joinedAt: string
 }
+
+// ─── 블로그 ───────────────────────────────────────────────
+export type BlogCategory = 'notice' | 'tip' | 'template' | 'free'
+
+export interface BlogPost {
+  id: string
+  title: string
+  content: string
+  category: BlogCategory
+  authorId: string
+  authorName: string
+  likes: number
+  viewCount: number
+  templateFile?: string   // JSON string (템플릿 첨부 시)
+  templateName?: string   // 첨부 템플릿 이름
+  createdAt: string
+  updatedAt: string
+}
+
+// ─── 템플릿 파일 구조 ─────────────────────────────────────
+export interface TemplatePartDraft {
+  name: string
+  color: string
+  order: number
+  cueItems: Array<{
+    title: string
+    startTime: string
+    durationMin: number
+    memo?: string
+  }>
+  checkItems: Array<{
+    title: string
+    category: string
+  }>
+}
+
+export interface TemplateFile {
+  version: '1.0'
+  name: string
+  fieldType: FieldType
+  description: string
+  authorName: string
+  createdAt: string
+  parts: TemplatePartDraft[]
+}

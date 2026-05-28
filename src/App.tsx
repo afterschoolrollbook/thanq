@@ -17,6 +17,9 @@ import LiveOpsPage from '@/pages/LiveOpsPage'
 import PTTPage from '@/pages/PTTPage'
 import SiteAdminPage from '@/pages/SiteAdminPage'
 import AdminPage from '@/pages/AdminPage'
+import BlogPage from '@/pages/BlogPage'
+import BlogPostPage from '@/pages/BlogPostPage'
+import BlogWritePage from '@/pages/BlogWritePage'
 
 export default function App() {
   return (
@@ -24,6 +27,12 @@ export default function App() {
       <Routes>
         <Route element={<AuthLayout />}>
           <Route path="/login" element={<LoginPage />} />
+        </Route>
+        {/* 블로그 — 비로그인도 읽기 가능 */}
+        <Route path="/blog" element={<BlogPage />} />
+        <Route path="/blog/:postId" element={<BlogPostPage />} />
+        <Route element={<PrivateRoute />}>
+          <Route path="/blog/write" element={<BlogWritePage />} />
         </Route>
         <Route element={<PrivateRoute />}>
           <Route path="/dashboard" element={<MainDashboardPage />} />

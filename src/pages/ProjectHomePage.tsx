@@ -4,6 +4,8 @@ import { ref, onValue } from 'firebase/database'
 import { db } from '@/lib/firebase'
 import { getDday } from '@/utils/joinCode'
 import { Topbar, BottomTabBar, StatusBadge } from '@/components/ui/Common'
+import TemplateExportModal from '@/components/template/TemplateExportModal'
+import TemplateImportModal from '@/components/template/TemplateImportModal'
 import type { Project, Part } from '@/types'
 
 export default function ProjectHomePage() {
@@ -12,6 +14,8 @@ export default function ProjectHomePage() {
   const [project, setProject] = useState<Project | null>(null)
   const [parts, setParts] = useState<Part[]>([])
   const [loading, setLoading] = useState(true)
+  const [showExport, setShowExport] = useState(false)
+  const [showImport, setShowImport] = useState(false)
 
   useEffect(() => {
     if (!projectId) return
@@ -140,8 +144,29 @@ export default function ProjectHomePage() {
             <div className="text-[12px] text-[#64748B] text-center py-4">공지가 없어요</div>
           </div>
         </div>
+        {/* 템플릿 내보내기 / 가져오기 */}
+        <div className="flex gap-2 mt-4">
+          <button onClick={() => setShowImport(true)}
+            className="flex-1 h-[40px] bg-white border border-[#E2E8F0] rounded-[10px] flex items-center justify-center gap-1.5 text-[12px] font-semibold text-[#64748B] hover:border-[#185FA5] hover:text-[#185FA5] transition-colors">
+            <i className="ti ti-file-import text-[14px]" /> 템플릿 가져오기
+          </button>
+          <button onClick={() => setShowExport(true)}
+            className="flex-1 h-[40px] bg-white border border-[#E2E8F0] rounded-[10px] flex items-center justify-center gap-1.5 text-[12px] font-semibold text-[#64748B] hover:border-[#185FA5] hover:text-[#185FA5] transition-colors">
+            <i className="ti ti-file-export text-[14px]" /> 템플릿으로 저장
+          </button>
+        </div>
       </div>
       <BottomTabBar />
+      {showExport && project && (
+        <TemplateExportModal project={project} onClose={() => setShowExport(false)} />
+      )}
+      {showImport && projectId && (
+        <TemplateImportModal
+          projectId={projectId}
+          onClose={() => setShowImport(false)}
+          onSuccess={() => { setShowImport(false); window.location.reload() }}
+        />
+      )}
     </div>
   )
 }
