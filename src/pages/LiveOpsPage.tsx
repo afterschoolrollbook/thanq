@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { ref, onValue } from 'firebase/database'
 import { db } from '@/lib/firebase'
 import { timeToMinutes } from '@/utils/joinCode'
-import { StatusBadge } from '@/components/ui/Common'
+import { StatusBadge, BottomTabBar } from '@/components/ui/Common'
 import type { Project, Part, CueItem } from '@/types'
 
 interface CueWithPart extends CueItem { partName: string; partColor: string }
@@ -47,6 +47,7 @@ export default function LiveOpsPage() {
   const progress = parts.length ? Math.round(parts.reduce((s, p) => s + p.progress, 0) / parts.length) : 0
 
   return (
+    <>
     <div className="min-h-screen bg-[#F4F6F9]">
       {/* D-DAY 탑바 */}
       <header className="bg-[#185FA5] px-5 py-3.5 flex items-center justify-between">
@@ -66,7 +67,7 @@ export default function LiveOpsPage() {
         </div>
       </header>
 
-      <div className="max-w-2xl mx-auto px-5 pt-5 pb-10">
+      <div className="max-w-2xl mx-auto px-5 pt-5 pb-28">
 
         {/* 시각 3개 */}
         <div className="grid grid-cols-3 gap-2.5 mb-4">
@@ -160,5 +161,7 @@ export default function LiveOpsPage() {
         </div>
       </div>
     </div>
+    <BottomTabBar />
+    </>
   )
 }
