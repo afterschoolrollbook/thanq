@@ -3,7 +3,7 @@ import { db } from '@/lib/firebase'
 import { PART_COLORS } from '@/utils/fieldTerms'
 import type { TemplateFile, TemplatePartDraft, Part, CueItem, CheckItem, FieldType } from '@/types'
 
-// ─── 비밀번호 해시 유틸 ───────────────────────────────────────
+// ─── 비밀번호 해시 / 검증 ─────────────────────────────────────
 export async function hashPassword(password: string): Promise<string> {
   const encoder = new TextEncoder()
   const data = encoder.encode(password)
@@ -13,8 +13,25 @@ export async function hashPassword(password: string): Promise<string> {
 }
 
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  const inputHash = await hashPassword(password)
-  return inputHash === hash
+  return (await hashPassword(password)) === hash
+}
+
+// ─── 이메일 검증 ──────────────────────────────────────────────
+// 파일에 allowedEmail이 설정된 경우, 현재 로그인된 이메일과 일치해야 열람 가능
+export function verifyEmail(currentUserEmail: string | null | undefined, allowedEmail: string): boolean {
+  if (!currentUserEmail) return false
+  return currentUserEmail.trim().toLowerCase() === allowedEmail.trim().toLowerCase()
+}
+
+// ─── 템플릿 잠금 상태 확인 ────────────────────────────────────
+// 반환값: 'email' | 'password' | 'both' | null
+export function getTemplateLockType(tmpl: TemplateFile): 'email' | 'password' | 'both' | null {
+  const hasEmail = !!tmpl.allowedEmail
+  const hasPw = !!tmpl.passwordHash
+  if (hasEmail && hasPw) return 'both'
+  if (hasEmail) return 'email'
+  if (hasPw) return 'password'
+  return null
 }
 
 // ─── 현재 프로젝트 → .thanq 파일로 내보내기 ──────────────────
@@ -24,9 +41,9 @@ export async function exportProjectAsTemplate(
   description: string,
   authorName: string,
   fieldType: FieldType,
-  password?: string      // 비밀번호 (선택)
+  password?: string,      // 비밀번호 (선택)
+  allowedEmail?: string   // 허용 이메일 (선택)
 ): Promise<void> {
-  // 파트 로드
   const partsSnap = await get(ref(db, `parts/${projectId}`))
   const parts: Part[] = partsSnap.exists() ? Object.values(partsSnap.val()) : []
   parts.sort((a, b) => a.order - b.order)
@@ -34,12 +51,10 @@ export async function exportProjectAsTemplate(
   const templateParts: TemplatePartDraft[] = []
 
   for (const part of parts) {
-    // 큐시트 로드
     const cueSnap = await get(ref(db, `cueItems/${projectId}/${part.id}`))
     const cueItems: CueItem[] = cueSnap.exists() ? Object.values(cueSnap.val()) : []
     cueItems.sort((a, b) => a.order - b.order)
 
-    // 체크리스트 로드
     const checkSnap = await get(ref(db, `checkItems/${projectId}/${part.id}`))
     const checkItems: CheckItem[] = checkSnap.exists() ? Object.values(checkSnap.val()) : []
 
@@ -69,6 +84,7 @@ export async function exportProjectAsTemplate(
     createdAt: new Date().toISOString(),
     parts: templateParts,
     ...(password ? { passwordHash: await hashPassword(password) } : {}),
+    ...(allowedEmail ? { allowedEmail: allowedEmail.trim().toLowerCase() } : {}),
   }
 
   const json = JSON.stringify(templateFile, null, 2)
@@ -81,7 +97,7 @@ export async function exportProjectAsTemplate(
   URL.revokeObjectURL(url)
 }
 
-// ─── .thanq 파일 → 새 프로젝트 파트/큐시트에 적용 ────────────
+// ─── .thanq 파일 → 프로젝트 파트/큐시트에 적용 ───────────────
 export async function applyTemplateToProject(
   projectId: string,
   template: TemplateFile
@@ -102,7 +118,6 @@ export async function applyTemplateToProject(
       createdAt: new Date().toISOString(),
     })
 
-    // 큐시트 적용
     for (const [j, cue] of tPart.cueItems.entries()) {
       const cueRef = push(ref(db, `cueItems/${projectId}/${partId}`))
       await set(cueRef, {
@@ -120,7 +135,6 @@ export async function applyTemplateToProject(
       })
     }
 
-    // 체크리스트 적용
     for (const check of tPart.checkItems) {
       const checkRef = push(ref(db, `checkItems/${projectId}/${partId}`))
       await set(checkRef, {
@@ -136,7 +150,7 @@ export async function applyTemplateToProject(
   }
 }
 
-// ─── 파일 읽기 유틸 ───────────────────────────────────────────
+// ─── 파일 읽기 ────────────────────────────────────────────────
 export function readTemplateFile(file: File): Promise<TemplateFile> {
   return new Promise((resolve, reject) => {
     if (!file.name.endsWith('.thanq')) {
