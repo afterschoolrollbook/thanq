@@ -9,18 +9,20 @@ import { applyTemplateToProject } from '@/utils/templateUtils'
 import { Topbar, StepBar } from '@/components/ui/Common'
 import type { FieldType, Project, TemplateFile } from '@/types'
 
+function loadTemplate(): TemplateFile | null {
+  try {
+    const raw = sessionStorage.getItem('oncue_template')
+    return raw ? JSON.parse(raw) : null
+  } catch { return null }
+}
+
 export default function CreateProjectPage() {
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
   const fieldType = (sessionStorage.getItem('oncue_field') ?? 'event') as FieldType
 
-  // 템플릿으로 시작하는 경우 — FieldSelectPage에서 저장한 데이터
-  const templateData: TemplateFile | null = (() => {
-    try {
-      const raw = sessionStorage.getItem('oncue_template')
-      return raw ? JSON.parse(raw) : null
-    } catch { return null }
-  })()
+  // 템플릿 데이터 — state로 관리해야 배너 X 버튼 즉시 반영됨
+  const [templateData, setTemplateData] = useState<TemplateFile | null>(loadTemplate)
 
   const [projectId, setProjectId] = useState<string | null>(null)
   const [name, setName] = useState('')
@@ -34,10 +36,10 @@ export default function CreateProjectPage() {
   const [budget, setBudget] = useState('')
   const [overview, setOverview] = useState('')
   const [loading, setLoading] = useState(false)
+  const [applyingTemplate, setApplyingTemplate] = useState(false)
   const [initializing, setInitializing] = useState(true)
   const draftRef = useRef<string | null>(null)
 
-  // 초기화: draft 프로젝트 있으면 불러오고, 없으면 새로 만들기
   useEffect(() => {
     if (!user) return
     const draftsRef = ref(db, `drafts/${user.uid}`)
@@ -57,7 +59,6 @@ export default function CreateProjectPage() {
         setBudget(draft.budget ? String(draft.budget) : '')
         setOverview(draft.overview ?? '')
       } else {
-        // 새 draft ID 생성
         const newRef = push(ref(db, 'projects'))
         draftRef.current = newRef.key
         setProjectId(newRef.key)
@@ -67,7 +68,6 @@ export default function CreateProjectPage() {
     return () => unsub()
   }, [user])
 
-  // 입력값 실시간 Firebase 저장
   function saveField(field: string, val: string | number) {
     if (!user || !projectId) return
     update(ref(db, `drafts/${user.uid}`), { id: projectId, [field]: val, fieldType })
@@ -78,22 +78,35 @@ export default function CreateProjectPage() {
     saveField(field, val)
   }
 
+  function removeTemplate() {
+    sessionStorage.removeItem('oncue_template')
+    setTemplateData(null)
+  }
+
   async function handleNext() {
     if (!user || !projectId) return
     setLoading(true)
     try {
       const project: Project & { dateEnd?: string } = {
-        id: projectId, name: name || '새 프로젝트',
-        fieldType, fieldTerms: FIELD_TERMS[fieldType],
+        id: projectId,
+        name: name || '새 프로젝트',
+        fieldType,
+        fieldTerms: FIELD_TERMS[fieldType],
         date: date || new Date().toISOString().split('T')[0],
-        startTime: startTime || '', endTime: endTime || '',
-        venue: venue || '', estimatedPeople: Number(people) || 0,
+        startTime: startTime || '',
+        endTime: endTime || '',
+        venue: venue || '',
+        estimatedPeople: Number(people) || 0,
         budget: Number(budget.replace(/,/g, '')) || 0,
-        overview, status: 'planning',
-        ownerId: user.uid, joinCode: generateJoinCode(),
-        createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+        overview,
+        status: 'planning',
+        ownerId: user.uid,
+        joinCode: generateJoinCode(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       }
       if (dateType === 'range' && dateEnd) project.dateEnd = dateEnd
+
       await set(ref(db, `projects/${projectId}`), project)
       await set(ref(db, `projectMembers/${projectId}/${user.uid}`), {
         uid: user.uid, projectId, role: 'owner',
@@ -103,7 +116,8 @@ export default function CreateProjectPage() {
       sessionStorage.removeItem('oncue_field')
 
       if (templateData) {
-        // 템플릿으로 시작 → 파트 자동 세팅 후 바로 프로젝트 홈으로
+        // 템플릿 → 파트 자동 세팅 후 프로젝트 홈으로
+        setApplyingTemplate(true)
         await applyTemplateToProject(projectId, templateData)
         sessionStorage.removeItem('oncue_template')
         navigate(`/p/${projectId}/home`)
@@ -111,9 +125,24 @@ export default function CreateProjectPage() {
         // 직접 입력 → 파트 구성 단계로
         navigate(`/onboarding/parts/${projectId}`)
       }
-    } catch (e) { console.error(e) }
-    finally { setLoading(false) }
+    } catch (e) {
+      console.error(e)
+      setApplyingTemplate(false)
+    } finally {
+      setLoading(false)
+    }
   }
+
+  // 템플릿 파트 적용 중 전체화면 로딩
+  if (applyingTemplate) return (
+    <div className="min-h-screen bg-[#F4F6F9] flex flex-col items-center justify-center gap-4">
+      <div className="w-16 h-16 rounded-full bg-[#E6F1FB] flex items-center justify-center">
+        <i className="ti ti-loader-2 animate-spin text-[#185FA5] text-[28px]" />
+      </div>
+      <div className="text-[15px] font-semibold text-[#1A1A2E]">템플릿 적용 중...</div>
+      <div className="text-[12px] text-[#64748B]">{templateData?.parts.length}개 파트를 세팅하고 있어요</div>
+    </div>
+  )
 
   if (initializing) return (
     <div className="min-h-screen bg-[#F4F6F9] flex items-center justify-center">
@@ -129,7 +158,7 @@ export default function CreateProjectPage() {
         <h2 className="text-[20px] font-semibold text-[#1A1A2E] mb-1">프로젝트 기본 정보</h2>
         <p className="text-[13px] text-[#64748B] mb-6">입력하는 즉시 저장돼요 — 언제든 이어서 작업 가능해요</p>
 
-        {/* 템플릿 적용 중 배너 */}
+        {/* 템플릿 적용 예정 배너 */}
         {templateData && (
           <div className="flex items-center gap-3 px-4 py-3 mb-5 bg-[#E6F1FB] border border-[#185FA5] rounded-[12px]">
             <i className="ti ti-file-check text-[#185FA5] text-[20px] flex-shrink-0" />
@@ -139,8 +168,7 @@ export default function CreateProjectPage() {
                 {templateData.name} · 파트 {templateData.parts.length}개가 자동 세팅돼요
               </div>
             </div>
-            <button onClick={() => { sessionStorage.removeItem('oncue_template'); window.location.reload() }}
-              className="text-[#A0AEC0] hover:text-[#E24B4A]">
+            <button onClick={removeTemplate} className="text-[#A0AEC0] hover:text-[#E24B4A] flex-shrink-0">
               <i className="ti ti-x text-[16px]" />
             </button>
           </div>
@@ -155,11 +183,11 @@ export default function CreateProjectPage() {
         <div className="mb-4">
           <label className={lbl}>행사 일자</label>
           <div className="flex gap-2 mb-3">
-            <button onClick={() => { setDateType('single'); saveField('dateType','single') }}
+            <button onClick={() => { setDateType('single'); saveField('dateType', 'single') }}
               className={`px-4 py-1.5 rounded-full text-[12px] font-semibold border-2 transition-colors ${dateType === 'single' ? 'bg-[#185FA5] text-white border-[#185FA5]' : 'border-[#E2E8F0] text-[#64748B] bg-white'}`}>
               단일 날짜
             </button>
-            <button onClick={() => { setDateType('range'); saveField('dateType','range') }}
+            <button onClick={() => { setDateType('range'); saveField('dateType', 'range') }}
               className={`px-4 py-1.5 rounded-full text-[12px] font-semibold border-2 transition-colors ${dateType === 'range' ? 'bg-[#185FA5] text-white border-[#185FA5]' : 'border-[#E2E8F0] text-[#64748B] bg-white'}`}>
               기간 (여러 날)
             </button>
@@ -235,7 +263,10 @@ export default function CreateProjectPage() {
           </button>
           <button onClick={handleNext} disabled={loading}
             className="h-[38px] px-5 bg-[#185FA5] text-white rounded-[10px] flex items-center gap-2 text-[13px] font-semibold disabled:opacity-40">
-            <i className="ti ti-arrow-right" /> {loading ? '저장 중...' : '다음'}
+            {templateData
+              ? <><i className="ti ti-rocket" /> {loading ? '적용 중...' : '프로젝트 시작'}</>
+              : <><i className="ti ti-arrow-right" /> {loading ? '저장 중...' : '다음'}</>
+            }
           </button>
         </div>
       </div>
@@ -243,5 +274,5 @@ export default function CreateProjectPage() {
   )
 }
 
-const inp = "w-full h-[40px] border border-[#E2E8F0] rounded-[10px] px-3 text-[13px] text-[#1A1A2E] bg-white focus:outline-none focus:border-[#185FA5]"
-const lbl = "text-[12px] font-medium text-[#64748B] mb-1.5 block"
+const inp = 'w-full h-[40px] border border-[#E2E8F0] rounded-[10px] px-3 text-[13px] text-[#1A1A2E] bg-white focus:outline-none focus:border-[#185FA5]'
+const lbl = 'text-[12px] font-medium text-[#64748B] mb-1.5 block'

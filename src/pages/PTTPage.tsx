@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { ref, onValue, push, set } from 'firebase/database'
 import { db } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
@@ -19,6 +19,7 @@ interface TargetItem {
 
 export default function PTTPage() {
   const { projectId } = useParams()
+  const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
   const [project, setProject] = useState<Project | null>(null)
   const [parts, setParts] = useState<Part[]>([])
@@ -435,6 +436,60 @@ export default function PTTPage() {
       </div>
     )
   }
+
+
+  // ─── Pro 게이트 ───────────────────────────────────────────
+  if (!user?.isPro) return (
+    <div className="min-h-screen bg-[#F4F6F9]">
+      <Topbar />
+      <div className="max-w-2xl mx-auto px-5 pt-16 pb-10 flex flex-col items-center text-center">
+        <div className="w-20 h-20 rounded-full bg-[#E6F1FB] flex items-center justify-center mb-5">
+          <i className="ti ti-radio text-[#185FA5] text-[36px]" />
+        </div>
+        <div className="text-[20px] font-bold text-[#1A1A2E] mb-2">AI 무전 기능</div>
+        <div className="text-[13px] text-[#64748B] leading-relaxed mb-2">
+          말로 단축번호를 호출하고 실시간으로<br />무전을 보내는 기능이에요.
+        </div>
+        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#E6F1FB] rounded-full mb-8">
+          <i className="ti ti-crown text-[#185FA5] text-[12px]" />
+          <span className="text-[12px] text-[#185FA5] font-semibold">ThanQ Pro 전용 기능이에요</span>
+        </div>
+
+        {/* 기능 소개 */}
+        <div className="w-full bg-white border border-[#E2E8F0] rounded-[16px] p-5 mb-6 text-left">
+          <div className="text-[13px] font-bold text-[#1A1A2E] mb-3">무전 기능으로 할 수 있는 것</div>
+          <div className="flex flex-col gap-3">
+            {[
+              { icon: 'ti-microphone', color: '#185FA5', title: '원터치 무전', desc: '버튼 누르는 동안 실시간 음성 전송' },
+              { icon: 'ti-hash', color: '#0F6E56', title: '단축번호 호출', desc: '1번, 2번으로 빠르게 대상 선택' },
+              { icon: 'ti-bluetooth', color: '#534AB7', title: '블루투스 지원', desc: '헤드셋·이어폰 자동 연동' },
+              { icon: 'ti-star', color: '#B45309', title: '즐겨찾기', desc: '자주 쓰는 대상 상단 고정' },
+            ].map((f) => (
+              <div key={f.title} className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-[8px] flex items-center justify-center flex-shrink-0" style={{ background: f.color + '22' }}>
+                  <i className={\`ti \${f.icon} text-[16px]\`} style={{ color: f.color }} />
+                </div>
+                <div>
+                  <div className="text-[13px] font-semibold text-[#1A1A2E]">{f.title}</div>
+                  <div className="text-[11px] text-[#64748B]">{f.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <button onClick={() => navigate('/upgrade')}
+          className="w-full h-[50px] bg-[#185FA5] text-white rounded-[14px] text-[15px] font-bold flex items-center justify-center gap-2 mb-3">
+          <i className="ti ti-crown text-[18px]" /> Pro로 업그레이드
+        </button>
+        <button onClick={() => navigate(-1)}
+          className="text-[13px] text-[#A0AEC0]">
+          돌아가기
+        </button>
+      </div>
+      <BottomTabBar />
+    </div>
+  )
 
   return (
     <div className="min-h-screen bg-[#F4F6F9]">
