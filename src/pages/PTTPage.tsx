@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { ref, onValue, push, set } from 'firebase/database'
 import { db } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
@@ -19,7 +19,6 @@ interface TargetItem {
 
 export default function PTTPage() {
   const { projectId } = useParams()
-  const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
   const [project, setProject] = useState<Project | null>(null)
   const [parts, setParts] = useState<Part[]>([])
@@ -447,10 +446,7 @@ export default function PTTPage() {
             <div className="text-[12px] text-[#64748B]">버튼을 누르는 동안 실시간 음성 전송</div>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => navigate(`/p/${projectId}/admin`)}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-semibold bg-[#F4F6F9] text-[#64748B] border border-[#E2E8F0] hover:border-[#185FA5] hover:text-[#185FA5] transition-colors">
-              <i className="ti ti-settings text-[13px]" /> 관리자
-            </button>
+
             <button onClick={() => setShowMicModal(true)}
               className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-semibold border ${micPermission === 'granted' ? 'bg-[#EAF3DE] text-[#3B6D11] border-[#C6E6A0]' : micPermission === 'denied' ? 'bg-[#FCEBEB] text-[#A32D2D] border-[#F7C1C1]' : 'bg-[#F4F6F9] text-[#64748B] border-[#E2E8F0]'}`}>
               <i className={`ti text-[13px] ${isBluetooth ? 'ti-bluetooth' : micPermission === 'denied' ? 'ti-microphone-off' : 'ti-microphone'}`} />
