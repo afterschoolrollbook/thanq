@@ -43,7 +43,6 @@ export default function BlogPostPage() {
 
   async function handleLike() {
     if (!user || !postId) { navigate('/login'); return }
-    const likeRef = ref(db, `blogLikes/${postId}/${user.uid}`)
     const postLikeRef = ref(db, `blog/${postId}/likes`)
     if (liked) {
       await update(ref(db, `blogLikes/${postId}`), { [user.uid]: null })

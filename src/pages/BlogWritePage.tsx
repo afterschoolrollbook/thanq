@@ -64,6 +64,7 @@ export default function BlogWritePage() {
   async function handleSubmit() {
     if (!title.trim()) { setError('제목을 입력해주세요'); return }
     if (!content.trim()) { setError('내용을 입력해주세요'); return }
+    if (!user) { navigate('/login'); return }
     setSaving(true)
     try {
       const newRef = push(dbRef(db, 'blog'))
