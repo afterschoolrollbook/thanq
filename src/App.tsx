@@ -20,6 +20,7 @@ import AdminPage from '@/pages/AdminPage'
 import BlogPage from '@/pages/BlogPage'
 import BlogPostPage from '@/pages/BlogPostPage'
 import BlogWritePage from '@/pages/BlogWritePage'
+import LandingPage from '@/pages/LandingPage'
 
 export default function App() {
   return (
@@ -55,8 +56,8 @@ export default function App() {
           </Route>
         </Route>
         <Route path="/admin" element={<SiteAdminPage />} />
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/" element={<LandingPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   )
