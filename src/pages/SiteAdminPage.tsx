@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ref, onValue, set, push } from 'firebase/database'
+import { ref, onValue, set, push, update } from 'firebase/database'
 import { db } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
 import type { Project, Part } from '@/types'
@@ -10,12 +10,25 @@ import type { Project, Part } from '@/types'
 interface SiteUser {
   uid: string; email: string; displayName: string
   plan: 'free' | 'pro' | 'enterprise'; createdAt: string
-  projectCount?: number
+  projectCount?: number; isPro?: boolean; proExpiresAt?: string
 }
 interface PTTRecord { id: string; senderName: string; senderColor: string; target: string; targetLabel: string; duration: number; createdAt: string }
 interface TargetItem { id: string; label: string; sublabel: string; icon?: string; color?: string; tier: 'owner' | 'manager' | 'all'; shortcutNum: number }
 type ListenState = 'idle' | 'listening' | 'processing' | 'connected'
-type AdminTab = 'dashboard' | 'users' | 'ptt' | 'plans' | 'notice'
+type AdminTab = 'dashboard' | 'users' | 'ptt' | 'coupons' | 'plans' | 'notice'
+
+interface Coupon {
+  code: string
+  type: 'duration' | 'permanent'   // 기간 무료 | 영구 Pro
+  durationDays?: number             // type === 'duration' 일 때
+  maxUses: number                   // 0 = 무제한
+  usedCount: number
+  usedBy?: Record<string, string>   // uid → 사용 일시
+  createdAt: string
+  expiresAt?: string                // 쿠폰 자체 만료일
+  memo: string                      // 관리자용 메모
+  active: boolean
+}
 
 export default function SiteAdminPage() {
   const navigate = useNavigate()
@@ -42,6 +55,17 @@ export default function SiteAdminPage() {
   const [pttHistory, setPttHistory] = useState<PTTRecord[]>([])
   const recognitionRef = useRef<any>(null)
 
+  // 쿠폰
+  const [coupons, setCoupons] = useState<Coupon[]>([])
+  const [couponForm, setCouponForm] = useState({
+    code: '', type: 'duration' as 'duration' | 'permanent',
+    durationDays: '30', maxUses: '0',
+    expiresAt: '', memo: '',
+  })
+  const [couponSaving, setCouponSaving] = useState(false)
+  const [couponMsg, setCouponMsg] = useState('')
+  const [couponError, setCouponError] = useState('')
+
   // 공지
   const [noticeText, setNoticeText] = useState('')
   const [noticeSent, setNoticeSent] = useState(false)
@@ -58,25 +82,26 @@ export default function SiteAdminPage() {
   // ─── 데이터 로드 ──────────────────────────────────────────
   useEffect(() => {
     if (!isAdmin) return
-
-    // 회원 목록
     onValue(ref(db, 'users'), (s) => {
       if (!s.exists()) return
-      const list: SiteUser[] = Object.entries(s.val()).map(([uid, v]: any) => ({ uid, ...v, plan: v.plan ?? 'free' }))
+      const list: SiteUser[] = Object.entries(s.val()).map(([uid, v]: any) => ({ uid, ...v, plan: v.isPro ? 'pro' : (v.plan ?? 'free') }))
       setUsers(list)
       setStats((prev) => ({ ...prev, users: list.length }))
     })
-
-    // 전체 프로젝트
     onValue(ref(db, 'projects'), (s) => {
       if (!s.exists()) return
       const list: Project[] = Object.values(s.val())
       setPttProjects(list)
       setStats((prev) => ({ ...prev, projects: list.length }))
     })
+    onValue(ref(db, 'coupons'), (s) => {
+      if (!s.exists()) { setCoupons([]); return }
+      const list: Coupon[] = Object.values(s.val())
+      list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      setCoupons(list)
+    })
   }, [isAdmin])
 
-  // 선택된 프로젝트의 파트 로드
   useEffect(() => {
     if (!selectedProject) return
     onValue(ref(db, `parts/${selectedProject}`), (s) => {
@@ -92,7 +117,53 @@ export default function SiteAdminPage() {
     })
   }, [selectedProject])
 
-  // ─── PTT AI 음성명령 ──────────────────────────────────────
+  // ─── 쿠폰 발행 ───────────────────────────────────────────
+  function generateCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+    let code = ''
+    for (let i = 0; i < 8; i++) {
+      if (i === 4) code += '-'
+      code += chars[Math.floor(Math.random() * chars.length)]
+    }
+    setCouponForm((prev) => ({ ...prev, code }))
+  }
+
+  async function saveCoupon() {
+    setCouponError('')
+    if (!couponForm.code.trim()) { setCouponError('코드를 입력하거나 자동 생성하세요'); return }
+    if (couponForm.type === 'duration' && (!couponForm.durationDays || Number(couponForm.durationDays) < 1)) {
+      setCouponError('기간은 1일 이상이어야 해요'); return
+    }
+    setCouponSaving(true)
+    const code = couponForm.code.trim().toUpperCase()
+    const coupon: Coupon = {
+      code,
+      type: couponForm.type,
+      durationDays: couponForm.type === 'duration' ? Number(couponForm.durationDays) : undefined,
+      maxUses: Number(couponForm.maxUses) || 0,
+      usedCount: 0,
+      createdAt: new Date().toISOString(),
+      expiresAt: couponForm.expiresAt || undefined,
+      memo: couponForm.memo,
+      active: true,
+    }
+    await set(ref(db, `coupons/${code}`), coupon)
+    setCouponMsg(`✓ 쿠폰 "${code}" 발행 완료!`)
+    setCouponForm({ code: '', type: 'duration', durationDays: '30', maxUses: '0', expiresAt: '', memo: '' })
+    setCouponSaving(false)
+    setTimeout(() => setCouponMsg(''), 3000)
+  }
+
+  async function toggleCoupon(code: string, active: boolean) {
+    await update(ref(db, `coupons/${code}`), { active })
+  }
+
+  async function deleteCoupon(code: string) {
+    if (!confirm(`쿠폰 "${code}"를 삭제할까요?`)) return
+    await set(ref(db, `coupons/${code}`), null)
+  }
+
+  // ─── PTT AI ──────────────────────────────────────────────
   const targetItems: TargetItem[] = selectedProject ? [
     { id: 'owner', label: '총책임자', sublabel: pttProjects.find(p => p.id === selectedProject)?.name ?? '', icon: 'ti-crown', color: '#854F0B', tier: 'owner', shortcutNum: 1 },
     ...parts.map((p, i): TargetItem => ({ id: p.id, label: p.managerName ?? `${p.name} 책임자`, sublabel: p.name, color: p.color, tier: 'manager', shortcutNum: i + 2 })),
@@ -168,6 +239,7 @@ export default function SiteAdminPage() {
   function stopListening() { recognitionRef.current?.stop(); setListenState('idle'); setStatusMsg(''); setTranscript('') }
 
   async function changePlan(uid: string, plan: SiteUser['plan']) {
+    await set(ref(db, `users/${uid}/isPro`), plan === 'pro' || plan === 'enterprise')
     await set(ref(db, `users/${uid}/plan`), plan)
   }
 
@@ -190,7 +262,6 @@ export default function SiteAdminPage() {
     u.email?.toLowerCase().includes(userSearch.toLowerCase())
   )
 
-  // ─── 로딩 / 권한 없음 ─────────────────────────────────────
   if (checking) return (
     <div className="min-h-screen bg-[#0F172A] flex items-center justify-center">
       <div className="text-[#64748B] text-[13px]">확인 중...</div>
@@ -209,13 +280,13 @@ export default function SiteAdminPage() {
     { key: 'dashboard', icon: 'ti-layout-dashboard', label: '대시보드' },
     { key: 'users',     icon: 'ti-users',             label: '회원 관리' },
     { key: 'ptt',       icon: 'ti-radio',             label: 'PTT AI' },
+    { key: 'coupons',   icon: 'ti-ticket',            label: '쿠폰 발행' },
     { key: 'plans',     icon: 'ti-credit-card',       label: '요금제' },
     { key: 'notice',    icon: 'ti-speakerphone',      label: '공지' },
   ]
 
   return (
     <div className="min-h-screen bg-[#0F172A] text-white">
-      {/* 어드민 헤더 */}
       <header className="bg-[#1E293B] border-b border-[#334155] px-6 py-4 flex items-center justify-between sticky top-0 z-30">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-[8px] bg-[#185FA5] flex items-center justify-center">
@@ -252,7 +323,6 @@ export default function SiteAdminPage() {
           ))}
         </nav>
 
-        {/* 콘텐츠 */}
         <main className="flex-1 p-6 overflow-auto">
 
           {/* ─── 대시보드 ─── */}
@@ -275,20 +345,37 @@ export default function SiteAdminPage() {
                   </div>
                 ))}
               </div>
-              <div className="bg-[#1E293B] border border-[#334155] rounded-[12px] p-4">
-                <div className="text-[13px] font-semibold mb-3">요금제 분포</div>
-                <div className="flex gap-4">
-                  {[
-                    { label: 'Free', count: users.filter(u => u.plan === 'free').length, color: '#64748B' },
-                    { label: 'Pro', count: users.filter(u => u.plan === 'pro').length, color: '#185FA5' },
-                    { label: 'Enterprise', count: users.filter(u => u.plan === 'enterprise').length, color: '#854F0B' },
-                  ].map((p) => (
-                    <div key={p.label} className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full" style={{ background: p.color }} />
-                      <span className="text-[13px] text-[#94A3B8]">{p.label}</span>
-                      <span className="text-[13px] font-bold text-white">{p.count}명</span>
-                    </div>
-                  ))}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-[#1E293B] border border-[#334155] rounded-[12px] p-4">
+                  <div className="text-[13px] font-semibold mb-3">요금제 분포</div>
+                  <div className="flex gap-4">
+                    {[
+                      { label: 'Free', count: users.filter(u => !u.isPro).length, color: '#64748B' },
+                      { label: 'Pro', count: users.filter(u => u.isPro).length, color: '#185FA5' },
+                    ].map((p) => (
+                      <div key={p.label} className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full" style={{ background: p.color }} />
+                        <span className="text-[13px] text-[#94A3B8]">{p.label}</span>
+                        <span className="text-[13px] font-bold text-white">{p.count}명</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="bg-[#1E293B] border border-[#334155] rounded-[12px] p-4">
+                  <div className="text-[13px] font-semibold mb-3">쿠폰 현황</div>
+                  <div className="flex gap-4">
+                    {[
+                      { label: '발행', count: coupons.length, color: '#3B9EE8' },
+                      { label: '활성', count: coupons.filter(c => c.active).length, color: '#4ADE80' },
+                      { label: '사용됨', count: coupons.reduce((s, c) => s + (c.usedCount ?? 0), 0), color: '#F59E0B' },
+                    ].map((p) => (
+                      <div key={p.label} className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full" style={{ background: p.color }} />
+                        <span className="text-[13px] text-[#94A3B8]">{p.label}</span>
+                        <span className="text-[13px] font-bold text-white">{p.count}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -310,15 +397,20 @@ export default function SiteAdminPage() {
                       {u.displayName?.charAt(0) ?? '?'}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[13px] font-semibold truncate">{u.displayName ?? '이름 없음'}</div>
+                      <div className="flex items-center gap-2">
+                        <div className="text-[13px] font-semibold truncate">{u.displayName ?? '이름 없음'}</div>
+                        {u.isPro && <span className="text-[10px] px-1.5 py-0.5 bg-[#185FA5] text-white rounded-full font-bold">PRO</span>}
+                      </div>
                       <div className="text-[11px] text-[#64748B] truncate">{u.email}</div>
+                      {u.proExpiresAt && (
+                        <div className="text-[10px] text-[#F59E0B]">Pro 만료: {new Date(u.proExpiresAt).toLocaleDateString('ko-KR')}</div>
+                      )}
                     </div>
-                    <select value={u.plan}
+                    <select value={u.isPro ? 'pro' : 'free'}
                       onChange={(e) => changePlan(u.uid, e.target.value as SiteUser['plan'])}
                       className="bg-[#0F172A] border border-[#334155] text-[12px] text-white rounded-[6px] px-2 py-1 outline-none">
                       <option value="free">Free</option>
                       <option value="pro">Pro</option>
-                      <option value="enterprise">Enterprise</option>
                     </select>
                   </div>
                 ))}
@@ -331,8 +423,6 @@ export default function SiteAdminPage() {
             <div>
               <div className="text-[18px] font-bold mb-1">PTT AI 채널 관리</div>
               <div className="text-[12px] text-[#64748B] mb-5">음성 명령으로 프로젝트 채널에 연결해요</div>
-
-              {/* 프로젝트 선택 */}
               <div className="mb-4">
                 <label className="text-[12px] text-[#94A3B8] block mb-1.5">프로젝트 선택</label>
                 <select value={selectedProject} onChange={(e) => setSelectedProject(e.target.value)}
@@ -343,10 +433,8 @@ export default function SiteAdminPage() {
                   ))}
                 </select>
               </div>
-
               {selectedProject && (
                 <>
-                  {/* 음성 명령 패널 */}
                   <div className={`rounded-[14px] p-5 mb-4 border transition-all ${
                     listenState === 'listening'  ? 'bg-[#0F2744] border-[#185FA5]'
                     : listenState === 'processing' ? 'bg-[#2A1500] border-[#854F0B]'
@@ -378,21 +466,9 @@ export default function SiteAdminPage() {
                         : <div className="text-[12px] text-[#475569]">버튼 누르고 채널 번호나 이름을 말하세요</div>}
                       {transcript && <div className="mt-1 text-[11px] text-[#64748B]">"{transcript}"</div>}
                     </div>
-                    {listenState === 'idle' && (
-                      <div className="mt-3 grid grid-cols-3 gap-1.5">
-                        {['"1번 연결"', '"음향팀 연결"', '"총책임자"', '"전체 연결"', '"2번 채널"', '"크루 전체"'].map((ex) => (
-                          <div key={ex} className="text-[10px] text-[#185FA5] bg-[#0F2744] px-2 py-1 rounded-[6px] text-center">{ex}</div>
-                        ))}
-                      </div>
-                    )}
                   </div>
-
-                  {/* 채널 목록 */}
                   <div className="bg-[#1E293B] border border-[#334155] rounded-[14px] overflow-hidden mb-4">
-                    <div className="px-4 py-3 border-b border-[#334155] flex items-center justify-between">
-                      <div className="text-[13px] font-semibold">채널 목록</div>
-                      <div className="text-[11px] text-[#475569]">탭하면 바로 연결</div>
-                    </div>
+                    <div className="px-4 py-3 border-b border-[#334155] text-[13px] font-semibold">채널 목록</div>
                     <div className="p-3 flex flex-col gap-2">
                       {targetItems.map((item) => {
                         const isConn = connectedTarget?.id === item.id && listenState === 'connected'
@@ -413,8 +489,6 @@ export default function SiteAdminPage() {
                       })}
                     </div>
                   </div>
-
-                  {/* PTT 히스토리 */}
                   {pttHistory.length > 0 && (
                     <div className="bg-[#1E293B] border border-[#334155] rounded-[14px] overflow-hidden">
                       <div className="px-4 py-3 border-b border-[#334155] text-[13px] font-semibold">최근 연결 기록</div>
@@ -437,15 +511,201 @@ export default function SiteAdminPage() {
             </div>
           )}
 
+          {/* ─── 쿠폰 발행 ─── */}
+          {tab === 'coupons' && (
+            <div>
+              <div className="text-[18px] font-bold mb-1">쿠폰 발행</div>
+              <div className="text-[12px] text-[#64748B] mb-5">마케팅용 무료 Pro 쿠폰을 발행해요</div>
+
+              {/* 발행 폼 */}
+              <div className="bg-[#1E293B] border border-[#334155] rounded-[14px] p-5 mb-6">
+                <div className="text-[14px] font-bold text-white mb-4 flex items-center gap-2">
+                  <i className="ti ti-ticket text-[#3B9EE8]" /> 새 쿠폰 만들기
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  {/* 쿠폰 코드 */}
+                  <div>
+                    <label className={lbl}>쿠폰 코드</label>
+                    <div className="flex gap-2">
+                      <input
+                        value={couponForm.code}
+                        onChange={(e) => setCouponForm(p => ({ ...p, code: e.target.value.toUpperCase() }))}
+                        placeholder="예: SUMMER-2026"
+                        className={inp}
+                      />
+                      <button onClick={generateCode}
+                        className="flex-shrink-0 h-[38px] px-3 bg-[#334155] hover:bg-[#475569] text-white text-[11px] font-semibold rounded-[8px] transition-colors whitespace-nowrap">
+                        자동 생성
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 쿠폰 타입 */}
+                  <div>
+                    <label className={lbl}>쿠폰 종류</label>
+                    <div className="flex gap-2">
+                      {[
+                        { value: 'duration', label: '기간 무료' },
+                        { value: 'permanent', label: '영구 Pro' },
+                      ].map((t) => (
+                        <button key={t.value}
+                          onClick={() => setCouponForm(p => ({ ...p, type: t.value as any }))}
+                          className={`flex-1 h-[38px] rounded-[8px] text-[12px] font-semibold border transition-colors ${
+                            couponForm.type === t.value
+                              ? 'bg-[#185FA5] border-[#185FA5] text-white'
+                              : 'bg-[#0F172A] border-[#334155] text-[#94A3B8] hover:border-[#475569]'
+                          }`}>
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 기간 (duration 선택 시) */}
+                  {couponForm.type === 'duration' && (
+                    <div>
+                      <label className={lbl}>무료 기간 (일)</label>
+                      <div className="flex gap-2">
+                        {['7', '14', '30', '90'].map((d) => (
+                          <button key={d}
+                            onClick={() => setCouponForm(p => ({ ...p, durationDays: d }))}
+                            className={`flex-1 h-[38px] rounded-[8px] text-[12px] font-bold border transition-colors ${
+                              couponForm.durationDays === d
+                                ? 'bg-[#185FA5] border-[#185FA5] text-white'
+                                : 'bg-[#0F172A] border-[#334155] text-[#94A3B8] hover:border-[#475569]'
+                            }`}>
+                            {d}일
+                          </button>
+                        ))}
+                        <input
+                          type="number"
+                          value={couponForm.durationDays}
+                          onChange={(e) => setCouponForm(p => ({ ...p, durationDays: e.target.value }))}
+                          placeholder="직접"
+                          className="w-16 h-[38px] bg-[#0F172A] border border-[#334155] rounded-[8px] px-2 text-[12px] text-white text-center outline-none focus:border-[#185FA5]"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 최대 사용 횟수 */}
+                  <div>
+                    <label className={lbl}>최대 사용 횟수 <span className="text-[#475569] font-normal">(0 = 무제한)</span></label>
+                    <div className="flex gap-2">
+                      {['0', '1', '10', '50', '100'].map((n) => (
+                        <button key={n}
+                          onClick={() => setCouponForm(p => ({ ...p, maxUses: n }))}
+                          className={`flex-1 h-[38px] rounded-[8px] text-[12px] font-bold border transition-colors ${
+                            couponForm.maxUses === n
+                              ? 'bg-[#185FA5] border-[#185FA5] text-white'
+                              : 'bg-[#0F172A] border-[#334155] text-[#94A3B8] hover:border-[#475569]'
+                          }`}>
+                            {n === '0' ? '무제한' : n}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 쿠폰 만료일 */}
+                  <div>
+                    <label className={lbl}>쿠폰 만료일 <span className="text-[#475569] font-normal">(선택)</span></label>
+                    <input
+                      type="date"
+                      value={couponForm.expiresAt}
+                      onChange={(e) => setCouponForm(p => ({ ...p, expiresAt: e.target.value }))}
+                      className={inp}
+                    />
+                  </div>
+
+                  {/* 메모 */}
+                  <div>
+                    <label className={lbl}>관리자 메모 <span className="text-[#475569] font-normal">(선택)</span></label>
+                    <input
+                      value={couponForm.memo}
+                      onChange={(e) => setCouponForm(p => ({ ...p, memo: e.target.value }))}
+                      placeholder="예: 2026 여름 SNS 이벤트"
+                      className={inp}
+                    />
+                  </div>
+                </div>
+
+                {couponError && (
+                  <div className="flex items-center gap-2 text-[12px] text-[#F87171] mb-3">
+                    <i className="ti ti-alert-circle text-[13px]" /> {couponError}
+                  </div>
+                )}
+                {couponMsg && (
+                  <div className="flex items-center gap-2 text-[12px] text-[#4ADE80] mb-3">
+                    <i className="ti ti-check text-[13px]" /> {couponMsg}
+                  </div>
+                )}
+
+                <button onClick={saveCoupon} disabled={couponSaving}
+                  className="h-[42px] px-6 bg-[#185FA5] hover:bg-[#1470BE] text-white rounded-[10px] text-[13px] font-bold flex items-center gap-2 disabled:opacity-50 transition-colors">
+                  <i className="ti ti-ticket text-[15px]" />
+                  {couponSaving ? '발행 중...' : '쿠폰 발행'}
+                </button>
+              </div>
+
+              {/* 발행된 쿠폰 목록 */}
+              <div className="text-[14px] font-bold text-white mb-3">발행된 쿠폰 ({coupons.length}개)</div>
+              {coupons.length === 0 ? (
+                <div className="text-center py-10 text-[#475569] text-[13px]">발행된 쿠폰이 없어요</div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {coupons.map((c) => {
+                    const isExpired = c.expiresAt ? new Date(c.expiresAt) < new Date() : false
+                    const isFull = c.maxUses > 0 && c.usedCount >= c.maxUses
+                    return (
+                      <div key={c.code} className={`bg-[#1E293B] border rounded-[12px] px-4 py-3 flex items-center gap-3 ${
+                        !c.active || isExpired || isFull ? 'border-[#334155] opacity-60' : 'border-[#334155]'
+                      }`}>
+                        {/* 코드 */}
+                        <div className="font-mono text-[14px] font-bold text-white tracking-widest min-w-[120px]">{c.code}</div>
+
+                        {/* 배지 */}
+                        <div className="flex items-center gap-1.5 flex-1 flex-wrap">
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                            c.type === 'duration' ? 'bg-[#0F2744] text-[#3B9EE8]' : 'bg-[#1A0A40] text-[#A78BFA]'
+                          }`}>
+                            {c.type === 'duration' ? `${c.durationDays}일 무료` : '영구 Pro'}
+                          </span>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#0F172A] text-[#64748B] font-semibold">
+                            {c.usedCount}/{c.maxUses === 0 ? '∞' : c.maxUses}회
+                          </span>
+                          {isExpired && <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#2A0A0A] text-[#F87171] font-semibold">만료됨</span>}
+                          {isFull && !isExpired && <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#2A1500] text-[#F59E0B] font-semibold">소진됨</span>}
+                          {c.memo && <span className="text-[10px] text-[#475569] truncate max-w-[160px]">{c.memo}</span>}
+                        </div>
+
+                        {/* 활성/비활성 토글 */}
+                        <button onClick={() => toggleCoupon(c.code, !c.active)}
+                          className={`w-10 h-6 rounded-full transition-colors flex items-center px-0.5 flex-shrink-0 ${c.active ? 'bg-[#185FA5]' : 'bg-[#334155]'}`}>
+                          <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${c.active ? 'translate-x-4' : 'translate-x-0'}`} />
+                        </button>
+
+                        {/* 삭제 */}
+                        <button onClick={() => deleteCoupon(c.code)}
+                          className="w-7 h-7 flex items-center justify-center rounded-[6px] hover:bg-[#2A0A0A] text-[#475569] hover:text-[#F87171] transition-colors flex-shrink-0">
+                          <i className="ti ti-trash text-[14px]" />
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* ─── 요금제 ─── */}
           {tab === 'plans' && (
             <div>
-              <div className="text-[18px] font-bold mb-5">요금제 관리</div>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="text-[18px] font-bold mb-5">요금제 현황</div>
+              <div className="grid grid-cols-2 gap-4">
                 {[
-                  { plan: 'Free', price: '무료', color: '#64748B', features: ['프로젝트 3개', '멤버 10명', '기본 PTT', '큐시트/체크리스트', '광고 표시'] },
-                  { plan: 'Pro', price: '월 9,900원', color: '#185FA5', features: ['프로젝트 무제한', '멤버 무제한', 'AI 큐시트 생성', 'AI 음성 명령', '광고 없음', '고급 분석'] },
-                  { plan: 'Enterprise', price: '협의', color: '#854F0B', features: ['Pro 전체 포함', '전용 서버 PTT', '화이트라벨', 'API 연동', '전담 지원'] },
+                  { plan: 'Free', price: '무료', color: '#64748B', features: ['프로젝트 생성', '파트 직접 입력', '큐시트 · 체크리스트', '팀원 초대'] },
+                  { plan: 'Pro', price: '월 9,900원', color: '#185FA5', features: ['Free 전체 포함', '템플릿 저장 · 불러오기', 'AI 무전 (PTT)', '우선 지원'] },
                 ].map((p) => (
                   <div key={p.plan} className="bg-[#1E293B] border border-[#334155] rounded-[14px] p-4">
                     <div className="text-[14px] font-bold mb-1" style={{ color: p.color }}>{p.plan}</div>
@@ -459,6 +719,14 @@ export default function SiteAdminPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+              <div className="mt-4 bg-[#1E293B] border border-[#334155] rounded-[14px] p-4">
+                <div className="text-[13px] font-semibold mb-2 flex items-center gap-2">
+                  <i className="ti ti-info-circle text-[#3B9EE8]" /> 결제 연동 안내
+                </div>
+                <div className="text-[12px] text-[#64748B] leading-relaxed">
+                  현재는 쿠폰으로만 Pro 활성화가 가능해요. 카드 결제 기능은 PG사(토스페이먼츠, 아임포트 등) 연동 후 추가될 예정이에요.
+                </div>
               </div>
             </div>
           )}
@@ -486,3 +754,6 @@ export default function SiteAdminPage() {
     </div>
   )
 }
+
+const inp = 'w-full h-[38px] bg-[#0F172A] border border-[#334155] rounded-[8px] px-3 text-[12px] text-white placeholder-[#475569] outline-none focus:border-[#185FA5]'
+const lbl = 'text-[11px] font-semibold text-[#94A3B8] block mb-1.5'
