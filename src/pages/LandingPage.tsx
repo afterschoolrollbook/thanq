@@ -94,6 +94,10 @@ export default function LandingPage() {
               className="px-4 py-2 text-[13px] text-white/70 hover:text-white transition-colors">
               블로그
             </button>
+            <button onClick={() => navigate('/templates')}
+              className="px-4 py-2 text-[13px] text-white/70 hover:text-white transition-colors">
+              템플릿
+            </button>
             {user ? (
               <button onClick={() => navigate('/dashboard')}
                 className="px-4 py-2 bg-[#185FA5] rounded-[8px] text-[13px] font-semibold hover:bg-[#1470BE] transition-colors">

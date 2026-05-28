@@ -21,6 +21,7 @@ import BlogPage from '@/pages/BlogPage'
 import BlogPostPage from '@/pages/BlogPostPage'
 import BlogWritePage from '@/pages/BlogWritePage'
 import LandingPage from '@/pages/LandingPage'
+import TemplatePage from '@/pages/TemplatePage'
 
 export default function App() {
   return (
@@ -32,6 +33,8 @@ export default function App() {
         {/* 블로그 — 비로그인도 읽기 가능 */}
         <Route path="/blog" element={<BlogPage />} />
         <Route path="/blog/:postId" element={<BlogPostPage />} />
+        {/* 템플릿 — 비로그인도 탐색 가능 */}
+        <Route path="/templates" element={<TemplatePage />} />
         <Route element={<PrivateRoute />}>
           <Route path="/blog/write" element={<BlogWritePage />} />
         </Route>

@@ -29,7 +29,7 @@ export function Topbar({ projectName }: { projectName?: string }) {
   return (
     <header className="sticky top-0 z-30 bg-[#185FA5] px-5 py-3.5 flex items-center justify-between">
       <div className="flex items-center gap-2.5">
-        <button onClick={() => navigate('/dashboard')} className="text-white font-bold text-[18px] tracking-tight hover:opacity-80">
+        <button onClick={() => navigate('/')} className="text-white font-bold text-[18px] tracking-tight hover:opacity-80">
           ThanQ
         </button>
         {projectName && (
@@ -55,14 +55,18 @@ export function Topbar({ projectName }: { projectName?: string }) {
             {initial}
           </button>
           {showMenu && (
-            <div className="absolute right-0 top-10 bg-white rounded-[12px] shadow-lg border border-[#E2E8F0] py-1.5 min-w-[150px] z-50">
+            <div className="absolute right-0 top-10 bg-white rounded-[12px] shadow-lg border border-[#E2E8F0] py-1.5 min-w-[160px] z-50">
               <button onClick={() => { navigate('/dashboard'); setShowMenu(false) }}
                 className="w-full px-4 py-2.5 text-left text-[13px] text-[#1A1A2E] flex items-center gap-2 hover:bg-[#F4F6F9]">
-                <i className="ti ti-home text-[15px] text-[#185FA5]" /> 대시보드
+                <i className="ti ti-layout-dashboard text-[15px] text-[#185FA5]" /> 대시보드
               </button>
               <button onClick={() => { navigate('/blog'); setShowMenu(false) }}
                 className="w-full px-4 py-2.5 text-left text-[13px] text-[#1A1A2E] flex items-center gap-2 hover:bg-[#F4F6F9]">
                 <i className="ti ti-news text-[15px] text-[#185FA5]" /> 블로그
+              </button>
+              <button onClick={() => { navigate('/templates'); setShowMenu(false) }}
+                className="w-full px-4 py-2.5 text-left text-[13px] text-[#1A1A2E] flex items-center gap-2 hover:bg-[#F4F6F9]">
+                <i className="ti ti-file-export text-[15px] text-[#185FA5]" /> 템플릿
               </button>
               <div className="h-px bg-[#E2E8F0] my-1" />
               <button onClick={handleLogout}
