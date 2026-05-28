@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { ref, onValue } from 'firebase/database'
+import { db } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
 
 const FEATURES = [
@@ -28,12 +30,20 @@ export default function LandingPage() {
   const heroRef = useRef<HTMLDivElement>(null)
   const [scrollY, setScrollY] = useState(0)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
     const onScroll = () => setScrollY(window.scrollY)
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
+
+  useEffect(() => {
+    if (!user) { setIsAdmin(false); return }
+    onValue(ref(db, `admins/${user.uid}`), (s) => {
+      setIsAdmin(s.exists() && s.val() === true)
+    }, { onlyOnce: true })
+  }, [user])
 
   function handleStart() {
     if (user) navigate('/dashboard')
@@ -67,10 +77,18 @@ export default function LandingPage() {
               템플릿
             </button>
             {user ? (
-              <button onClick={() => navigate('/dashboard')}
-                className="ml-2 px-4 py-2 bg-[#185FA5] rounded-[8px] text-[13px] font-semibold hover:bg-[#1470BE] transition-colors">
-                대시보드
-              </button>
+              <div className="flex items-center gap-2 ml-2">
+                {isAdmin && (
+                  <button onClick={() => navigate('/admin')}
+                    className="px-3 py-2 rounded-[8px] text-[12px] font-semibold border border-[#FAEEDA]/40 text-[#FAEEDA] hover:bg-[#FAEEDA]/10 transition-colors flex items-center gap-1">
+                    <i className="ti ti-shield text-[13px]" /> 관리자
+                  </button>
+                )}
+                <button onClick={() => navigate('/dashboard')}
+                  className="px-4 py-2 bg-[#185FA5] rounded-[8px] text-[13px] font-semibold hover:bg-[#1470BE] transition-colors">
+                  대시보드
+                </button>
+              </div>
             ) : (
               <button onClick={() => navigate('/login')}
                 className="ml-2 px-4 py-2 bg-[#185FA5] rounded-[8px] text-[13px] font-semibold hover:bg-[#1470BE] transition-colors">
@@ -99,10 +117,18 @@ export default function LandingPage() {
             </button>
             <div className="h-px bg-white/10 my-1" />
             {user ? (
-              <button onClick={() => { navigate('/dashboard'); setMobileMenuOpen(false) }}
-                className="w-full h-[44px] bg-[#185FA5] rounded-[10px] text-[14px] font-bold flex items-center justify-center gap-2">
-                <i className="ti ti-layout-dashboard text-[15px]" /> 대시보드
-              </button>
+              <div className="flex flex-col gap-2">
+                {isAdmin && (
+                  <button onClick={() => { navigate('/admin'); setMobileMenuOpen(false) }}
+                    className="w-full h-[44px] border border-[#FAEEDA]/40 rounded-[10px] text-[14px] font-bold flex items-center justify-center gap-2 text-[#FAEEDA]">
+                    <i className="ti ti-shield text-[15px]" /> 관리자 콘솔
+                  </button>
+                )}
+                <button onClick={() => { navigate('/dashboard'); setMobileMenuOpen(false) }}
+                  className="w-full h-[44px] bg-[#185FA5] rounded-[10px] text-[14px] font-bold flex items-center justify-center gap-2">
+                  <i className="ti ti-layout-dashboard text-[15px]" /> 대시보드
+                </button>
+              </div>
             ) : (
               <button onClick={() => { navigate('/login'); setMobileMenuOpen(false) }}
                 className="w-full h-[44px] bg-[#185FA5] rounded-[10px] text-[14px] font-bold flex items-center justify-center gap-2">

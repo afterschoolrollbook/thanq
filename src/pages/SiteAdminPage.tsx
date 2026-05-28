@@ -226,10 +226,16 @@ export default function SiteAdminPage() {
             <div className="text-[11px] text-[#64748B]">Site Admin Console</div>
           </div>
         </div>
-        <button onClick={() => navigate('/dashboard')}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] border border-[#334155] text-[12px] text-[#94A3B8] hover:text-white hover:border-[#475569] transition-colors">
-          <i className="ti ti-arrow-left text-[13px]" /> 서비스로
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => navigate('/')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] border border-[#334155] text-[12px] text-[#94A3B8] hover:text-white hover:border-[#475569] transition-colors">
+            <i className="ti ti-home text-[13px]" /> 메인
+          </button>
+          <button onClick={() => navigate('/dashboard')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] border border-[#334155] text-[12px] text-[#94A3B8] hover:text-white hover:border-[#475569] transition-colors">
+            <i className="ti ti-layout-dashboard text-[13px]" /> 대시보드
+          </button>
+        </div>
       </header>
 
       <div className="flex">
