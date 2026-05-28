@@ -63,7 +63,6 @@ export function Topbar({ projectName }: { projectName?: string }) {
               <button onClick={() => { navigate('/blog'); setShowMenu(false) }}
                 className="w-full px-4 py-2.5 text-left text-[13px] text-[#1A1A2E] flex items-center gap-2 hover:bg-[#F4F6F9]">
                 <i className="ti ti-news text-[15px] text-[#185FA5]" /> 블로그
-              </button>                <i className="ti ti-layout-dashboard text-[15px] text-[#185FA5]" /> 전체 대시보드
               </button>
               <div className="h-px bg-[#E2E8F0] my-1" />
               <button onClick={handleLogout}
