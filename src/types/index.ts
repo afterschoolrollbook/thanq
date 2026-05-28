@@ -8,6 +8,7 @@ export interface User {
   photoURL?: string
   emailVerified: boolean
   createdAt: string
+  isPro?: boolean   // Pro 플랜 여부 (Firebase users/{uid}/isPro)
 }
 
 // ─── 분야 ────────────────────────────────────────────────
@@ -184,4 +185,5 @@ export interface TemplateFile {
   authorName: string
   createdAt: string
   parts: TemplatePartDraft[]
+  passwordHash?: string   // SHA-256 해시 (비밀번호 설정 시)
 }

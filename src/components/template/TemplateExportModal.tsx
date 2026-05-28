@@ -12,20 +12,31 @@ export default function TemplateExportModal({ project, onClose }: Props) {
   const user = useAuthStore((s) => s.user)
   const [name, setName] = useState(project.name + ' 템플릿')
   const [description, setDescription] = useState('')
+  const [usePassword, setUsePassword] = useState(false)
+  const [password, setPassword] = useState('')
+  const [passwordConfirm, setPasswordConfirm] = useState('')
+  const [showPw, setShowPw] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState('')
 
   async function handleExport() {
     if (!name.trim()) { setError('템플릿 이름을 입력해주세요'); return }
+    if (usePassword) {
+      if (!password) { setError('비밀번호를 입력해주세요'); return }
+      if (password.length < 4) { setError('비밀번호는 4자 이상이어야 해요'); return }
+      if (password !== passwordConfirm) { setError('비밀번호가 일치하지 않아요'); return }
+    }
     setExporting(true)
+    setError('')
     try {
       await exportProjectAsTemplate(
         project.id,
         name.trim(),
         description.trim(),
         user?.displayName ?? '익명',
-        project.fieldType
+        project.fieldType,
+        usePassword ? password : undefined
       )
       setDone(true)
     } catch {
@@ -56,6 +67,12 @@ export default function TemplateExportModal({ project, onClose }: Props) {
             </div>
             <div className="text-[15px] font-bold text-[#1A1A2E] mb-1">내보내기 완료!</div>
             <div className="text-[13px] text-[#64748B] mb-1">{name}.thanq 파일이 다운로드됐어요</div>
+            {usePassword && (
+              <div className="inline-flex items-center gap-1.5 mt-1 mb-2 px-3 py-1.5 bg-[#FFF8E1] rounded-full">
+                <i className="ti ti-lock text-[#B45309] text-[12px]" />
+                <span className="text-[12px] text-[#B45309] font-semibold">비밀번호가 설정된 파일이에요</span>
+              </div>
+            )}
             <div className="text-[12px] text-[#A0AEC0]">블로그에 게시해서 다른 사람과 공유해보세요</div>
             <div className="flex flex-col gap-2 mt-5">
               <button
@@ -83,6 +100,70 @@ export default function TemplateExportModal({ project, onClose }: Props) {
                   placeholder="어떤 행사에 적합한지, 파트 구성 특징 등을 적어주세요"
                   rows={3}
                   className="w-full border border-[#E2E8F0] rounded-[10px] px-3 py-2.5 text-[13px] focus:outline-none focus:border-[#185FA5] resize-none" />
+              </div>
+
+              {/* 비밀번호 설정 토글 */}
+              <div className="border border-[#E2E8F0] rounded-[12px] overflow-hidden">
+                <button
+                  onClick={() => { setUsePassword(!usePassword); setPassword(''); setPasswordConfirm('') }}
+                  className="w-full flex items-center justify-between px-4 py-3 hover:bg-[#F8FBFF] transition-colors">
+                  <div className="flex items-center gap-2.5">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${usePassword ? 'bg-[#FFF8E1]' : 'bg-[#F4F6F9]'}`}>
+                      <i className={`ti ti-lock text-[16px] ${usePassword ? 'text-[#B45309]' : 'text-[#A0AEC0]'}`} />
+                    </div>
+                    <div className="text-left">
+                      <div className="text-[13px] font-semibold text-[#1A1A2E]">비밀번호 설정</div>
+                      <div className="text-[11px] text-[#A0AEC0]">파일을 열 때 비밀번호가 필요해요</div>
+                    </div>
+                  </div>
+                  <div className={`w-10 h-6 rounded-full transition-colors flex items-center px-0.5 ${usePassword ? 'bg-[#B45309]' : 'bg-[#E2E8F0]'}`}>
+                    <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${usePassword ? 'translate-x-4' : 'translate-x-0'}`} />
+                  </div>
+                </button>
+
+                {usePassword && (
+                  <div className="px-4 pb-4 pt-1 border-t border-[#F4F6F9] flex flex-col gap-2.5">
+                    <div>
+                      <label className="text-[11px] font-semibold text-[#64748B] mb-1 block">비밀번호</label>
+                      <div className="relative">
+                        <input
+                          type={showPw ? 'text' : 'password'}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="4자 이상 입력"
+                          className="w-full h-[38px] border border-[#E2E8F0] rounded-[8px] px-3 pr-9 text-[13px] focus:outline-none focus:border-[#B45309]" />
+                        <button onClick={() => setShowPw(!showPw)}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#A0AEC0]">
+                          <i className={`ti ${showPw ? 'ti-eye-off' : 'ti-eye'} text-[15px]`} />
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-semibold text-[#64748B] mb-1 block">비밀번호 확인</label>
+                      <div className="relative">
+                        <input
+                          type={showPw ? 'text' : 'password'}
+                          value={passwordConfirm}
+                          onChange={(e) => setPasswordConfirm(e.target.value)}
+                          placeholder="동일하게 입력"
+                          className={`w-full h-[38px] border rounded-[8px] px-3 pr-9 text-[13px] focus:outline-none ${
+                            passwordConfirm && password !== passwordConfirm
+                              ? 'border-[#E24B4A] focus:border-[#E24B4A]'
+                              : passwordConfirm && password === passwordConfirm
+                              ? 'border-[#0F6E56] focus:border-[#0F6E56]'
+                              : 'border-[#E2E8F0] focus:border-[#B45309]'
+                          }`} />
+                        {passwordConfirm && (
+                          <i className={`ti ${password === passwordConfirm ? 'ti-check text-[#0F6E56]' : 'ti-x text-[#E24B4A]'} absolute right-2.5 top-1/2 -translate-y-1/2 text-[14px]`} />
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-1.5 text-[11px] text-[#B45309] bg-[#FFF8E1] rounded-[8px] px-3 py-2">
+                      <i className="ti ti-alert-triangle text-[12px] mt-0.5 flex-shrink-0" />
+                      비밀번호를 잊으면 복구할 수 없어요. 반드시 따로 기록해두세요.
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

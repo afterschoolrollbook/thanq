@@ -3,13 +3,28 @@ import { db } from '@/lib/firebase'
 import { PART_COLORS } from '@/utils/fieldTerms'
 import type { TemplateFile, TemplatePartDraft, Part, CueItem, CheckItem, FieldType } from '@/types'
 
+// ─── 비밀번호 해시 유틸 ───────────────────────────────────────
+export async function hashPassword(password: string): Promise<string> {
+  const encoder = new TextEncoder()
+  const data = encoder.encode(password)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  const inputHash = await hashPassword(password)
+  return inputHash === hash
+}
+
 // ─── 현재 프로젝트 → .thanq 파일로 내보내기 ──────────────────
 export async function exportProjectAsTemplate(
   projectId: string,
   templateName: string,
   description: string,
   authorName: string,
-  fieldType: FieldType
+  fieldType: FieldType,
+  password?: string      // 비밀번호 (선택)
 ): Promise<void> {
   // 파트 로드
   const partsSnap = await get(ref(db, `parts/${projectId}`))
@@ -53,6 +68,7 @@ export async function exportProjectAsTemplate(
     authorName,
     createdAt: new Date().toISOString(),
     parts: templateParts,
+    ...(password ? { passwordHash: await hashPassword(password) } : {}),
   }
 
   const json = JSON.stringify(templateFile, null, 2)

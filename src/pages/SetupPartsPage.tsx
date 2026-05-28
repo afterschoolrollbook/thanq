@@ -5,6 +5,7 @@ import { db } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
 import { PART_COLORS } from '@/utils/fieldTerms'
 import { Topbar, StepBar, BottomTabBar } from '@/components/ui/Common'
+import TemplateImportModal from '@/components/template/TemplateImportModal'
 import type { Part } from '@/types'
 
 // alias: 내가 부르는 표시 이름 (담당자 초대 모달에서 관리)
@@ -30,6 +31,8 @@ export default function SetupPartsPage() {
 
   const joinCode = projectId?.slice(-6).toUpperCase() ?? 'AB3X7F'
   const joinLink = `${window.location.origin}/join?code=${joinCode}`
+  const [showImport, setShowImport] = useState(false)
+  const [showProGate, setShowProGate] = useState(false)
 
   useEffect(() => {
     if (!projectId) return
@@ -181,6 +184,20 @@ export default function SetupPartsPage() {
           ))}
         </div>
 
+        {/* 템플릿 불러오기 버튼 */}
+        <button
+          onClick={() => {
+            if (user?.isPro) setShowImport(true)
+            else setShowProGate(true)
+          }}
+          className="flex items-center justify-center gap-2 w-full h-[44px] border-2 border-[#185FA5] rounded-[12px] text-[13px] font-semibold text-[#185FA5] hover:bg-[#E6F1FB] transition-colors mb-3">
+          <i className="ti ti-file-import text-[16px]" />
+          .thanq 템플릿 불러오기
+          {!user?.isPro && (
+            <span className="ml-1 px-2 py-0.5 bg-[#185FA5] text-white text-[10px] font-bold rounded-full">PRO</span>
+          )}
+        </button>
+
         <button onClick={addPart} className="flex items-center gap-2 px-3.5 py-2.5 border border-dashed border-[#E2E8F0] rounded-[10px] text-[13px] text-[#A0AEC0] w-full mb-5 hover:border-[#185FA5] hover:text-[#185FA5] transition-colors">
           <i className="ti ti-plus text-[15px]" /> 파트 추가
         </button>
@@ -218,6 +235,74 @@ export default function SetupPartsPage() {
       </div>
 
       <BottomTabBar />
+
+      {/* 템플릿 불러오기 모달 (Pro 전용) */}
+      {showImport && projectId && (
+        <TemplateImportModal
+          projectId={projectId}
+          onClose={() => setShowImport(false)}
+          onSuccess={() => {
+            setShowImport(false)
+            // 파트 목록 새로고침 — Firebase onValue로 자동 반영되므로 페이지만 리로드
+            window.location.reload()
+          }}
+        />
+      )}
+
+      {/* Pro 업그레이드 안내 모달 */}
+      {showProGate && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center sm:items-center"
+          onClick={() => setShowProGate(false)}>
+          <div className="bg-white w-full max-w-md rounded-t-[20px] sm:rounded-[20px] p-6 pb-8"
+            onClick={(e) => e.stopPropagation()}>
+            {/* 아이콘 */}
+            <div className="flex flex-col items-center text-center mb-5">
+              <div className="w-16 h-16 rounded-full bg-[#E6F1FB] flex items-center justify-center mb-3">
+                <i className="ti ti-crown text-[#185FA5] text-[32px]" />
+              </div>
+              <div className="text-[18px] font-bold text-[#1A1A2E] mb-1">Pro 버전 전용 기능이에요</div>
+              <div className="text-[13px] text-[#64748B] leading-relaxed">
+                템플릿 불러오기는 <span className="font-semibold text-[#185FA5]">ThanQ Pro</span> 플랜에서만<br />
+                사용할 수 있어요. 무료 플랜에서는<br />파트를 직접 입력해야 해요.
+              </div>
+            </div>
+
+            {/* 비교 */}
+            <div className="flex gap-2 mb-5">
+              <div className="flex-1 bg-[#F4F6F9] rounded-[12px] p-3">
+                <div className="text-[11px] font-bold text-[#A0AEC0] mb-2">무료</div>
+                <div className="flex flex-col gap-1.5 text-[12px] text-[#64748B]">
+                  <span className="flex items-center gap-1.5"><i className="ti ti-check text-[#0F6E56] text-[12px]" /> 파트 직접 입력</span>
+                  <span className="flex items-center gap-1.5"><i className="ti ti-check text-[#0F6E56] text-[12px]" /> 큐시트 · 체크리스트</span>
+                  <span className="flex items-center gap-1.5"><i className="ti ti-check text-[#0F6E56] text-[12px]" /> 템플릿 저장</span>
+                  <span className="flex items-center gap-1.5 text-[#A0AEC0]"><i className="ti ti-x text-[#E24B4A] text-[12px]" /> 템플릿 불러오기</span>
+                </div>
+              </div>
+              <div className="flex-1 bg-[#EBF4FF] border-2 border-[#185FA5] rounded-[12px] p-3">
+                <div className="text-[11px] font-bold text-[#185FA5] mb-2">PRO ✦</div>
+                <div className="flex flex-col gap-1.5 text-[12px] text-[#1A1A2E]">
+                  <span className="flex items-center gap-1.5"><i className="ti ti-check text-[#0F6E56] text-[12px]" /> 파트 직접 입력</span>
+                  <span className="flex items-center gap-1.5"><i className="ti ti-check text-[#0F6E56] text-[12px]" /> 큐시트 · 체크리스트</span>
+                  <span className="flex items-center gap-1.5"><i className="ti ti-check text-[#0F6E56] text-[12px]" /> 템플릿 저장</span>
+                  <span className="flex items-center gap-1.5 font-semibold"><i className="ti ti-check text-[#0F6E56] text-[12px]" /> 템플릿 불러오기</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => { setShowProGate(false); navigate('/upgrade') }}
+                className="w-full h-[48px] bg-[#185FA5] text-white rounded-[12px] text-[14px] font-bold flex items-center justify-center gap-2">
+                <i className="ti ti-crown text-[16px]" /> Pro로 업그레이드
+              </button>
+              <button onClick={() => setShowProGate(false)}
+                className="w-full h-[42px] text-[#64748B] text-[13px]">
+                직접 입력할게요
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 담당자 초대 모달 — alias 관리 통합 */}
       {inviteIdx !== null && (

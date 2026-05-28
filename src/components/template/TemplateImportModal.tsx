@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { readTemplateFile, applyTemplateToProject } from '@/utils/templateUtils'
+import { readTemplateFile, applyTemplateToProject, verifyPassword } from '@/utils/templateUtils'
 import type { TemplateFile } from '@/types'
 
 interface Props {
@@ -15,14 +15,43 @@ export default function TemplateImportModal({ projectId, onClose, onSuccess }: P
   const [applying, setApplying] = useState(false)
   const [dragOver, setDragOver] = useState(false)
 
+  // 비밀번호 관련
+  const [needPassword, setNeedPassword] = useState(false)
+  const [password, setPassword] = useState('')
+  const [showPw, setShowPw] = useState(false)
+  const [pwError, setPwError] = useState('')
+  const [verifying, setVerifying] = useState(false)
+
   async function handleFile(file: File) {
     setError('')
     setPreview(null)
+    setNeedPassword(false)
+    setPassword('')
+    setPwError('')
     try {
       const tmpl = await readTemplateFile(file)
-      setPreview(tmpl)
+      if (tmpl.passwordHash) {
+        // 비밀번호가 걸린 파일 → 비번 입력 단계로
+        setPreview(tmpl)
+        setNeedPassword(true)
+      } else {
+        setPreview(tmpl)
+      }
     } catch (e: unknown) {
       setError((e as Error).message)
+    }
+  }
+
+  async function handleVerifyPassword() {
+    if (!preview || !password) { setPwError('비밀번호를 입력해주세요'); return }
+    setVerifying(true)
+    setPwError('')
+    const ok = await verifyPassword(password, preview.passwordHash!)
+    setVerifying(false)
+    if (ok) {
+      setNeedPassword(false)
+    } else {
+      setPwError('비밀번호가 올바르지 않아요')
     }
   }
 
@@ -66,8 +95,8 @@ export default function TemplateImportModal({ projectId, onClose, onSuccess }: P
           <button onClick={onClose}><i className="ti ti-x text-[18px] text-[#A0AEC0]" /></button>
         </div>
 
-        {!preview ? (
-          /* 파일 업로드 영역 */
+        {/* 파일 업로드 영역 */}
+        {!preview && (
           <div
             onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
             onDragLeave={() => setDragOver(false)}
@@ -86,15 +115,66 @@ export default function TemplateImportModal({ projectId, onClose, onSuccess }: P
             <input ref={fileRef} type="file" accept=".thanq" className="hidden"
               onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
           </div>
-        ) : (
-          /* 미리보기 */
+        )}
+
+        {/* 비밀번호 입력 단계 */}
+        {preview && needPassword && (
+          <div className="flex flex-col items-center py-4">
+            <div className="w-14 h-14 rounded-full bg-[#FFF8E1] flex items-center justify-center mb-3">
+              <i className="ti ti-lock text-[#B45309] text-[26px]" />
+            </div>
+            <div className="text-[15px] font-bold text-[#1A1A2E] mb-1">{preview.name}</div>
+            <div className="text-[12px] text-[#64748B] mb-4">이 파일은 비밀번호로 보호되어 있어요</div>
+
+            <div className="w-full mb-3">
+              <div className="relative">
+                <input
+                  type={showPw ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => { setPassword(e.target.value); setPwError('') }}
+                  onKeyDown={(e) => e.key === 'Enter' && handleVerifyPassword()}
+                  placeholder="비밀번호 입력"
+                  className={`w-full h-[42px] border rounded-[10px] px-3 pr-10 text-[13px] focus:outline-none ${
+                    pwError ? 'border-[#E24B4A] focus:border-[#E24B4A]' : 'border-[#E2E8F0] focus:border-[#B45309]'
+                  }`} />
+                <button onClick={() => setShowPw(!showPw)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A0AEC0]">
+                  <i className={`ti ${showPw ? 'ti-eye-off' : 'ti-eye'} text-[16px]`} />
+                </button>
+              </div>
+              {pwError && <p className="text-[11px] text-[#E24B4A] mt-1.5 pl-1">{pwError}</p>}
+            </div>
+
+            <div className="flex gap-2 w-full">
+              <button onClick={() => { setPreview(null); setNeedPassword(false) }}
+                className="flex-1 h-[42px] border border-[#E2E8F0] rounded-[10px] text-[13px] text-[#64748B]">
+                다른 파일
+              </button>
+              <button onClick={handleVerifyPassword} disabled={verifying}
+                className="flex-1 h-[42px] bg-[#B45309] text-white rounded-[10px] text-[13px] font-semibold flex items-center justify-center gap-1.5 disabled:opacity-50">
+                <i className="ti ti-lock-open text-[14px]" />
+                {verifying ? '확인 중...' : '잠금 해제'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 미리보기 (비번 통과 후) */}
+        {preview && !needPassword && (
           <div className="bg-[#F4F6F9] rounded-[14px] p-4 mb-4">
             <div className="flex items-start gap-3 mb-4">
               <div className="w-10 h-10 rounded-[10px] bg-[#185FA5] flex items-center justify-center flex-shrink-0">
                 <i className="ti ti-file-zip text-white text-[18px]" />
               </div>
               <div>
-                <div className="text-[14px] font-bold text-[#1A1A2E]">{preview.name}</div>
+                <div className="flex items-center gap-2">
+                  <div className="text-[14px] font-bold text-[#1A1A2E]">{preview.name}</div>
+                  {preview.passwordHash && (
+                    <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 bg-[#FFF8E1] text-[#B45309] rounded-full font-semibold">
+                      <i className="ti ti-lock text-[10px]" /> 잠금 해제됨
+                    </span>
+                  )}
+                </div>
                 <div className="text-[12px] text-[#64748B] mt-0.5">
                   {FIELD_LABELS[preview.fieldType] ?? preview.fieldType} · {preview.authorName}
                 </div>
@@ -119,7 +199,7 @@ export default function TemplateImportModal({ projectId, onClose, onSuccess }: P
               ))}
             </div>
 
-            <button onClick={() => setPreview(null)}
+            <button onClick={() => { setPreview(null); setNeedPassword(false) }}
               className="mt-3 text-[12px] text-[#64748B] flex items-center gap-1 hover:text-[#185FA5]">
               <i className="ti ti-refresh text-[13px]" /> 다른 파일 선택
             </button>
@@ -128,7 +208,7 @@ export default function TemplateImportModal({ projectId, onClose, onSuccess }: P
 
         {error && <p className="text-[12px] text-[#A32D2D] mb-3">{error}</p>}
 
-        {preview && (
+        {preview && !needPassword && (
           <button onClick={handleApply} disabled={applying}
             className="w-full h-[46px] bg-[#185FA5] text-white rounded-[12px] text-[14px] font-bold flex items-center justify-center gap-2 disabled:opacity-50">
             <i className="ti ti-check text-[16px]" />
