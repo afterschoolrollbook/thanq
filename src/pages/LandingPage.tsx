@@ -24,6 +24,201 @@ const USE_CASES = [
   { icon: '✏️', label: '직접 설정' },
 ]
 
+const PLANS = [
+  {
+    key: 'free',
+    name: 'Free',
+    price: '무료',
+    priceDesc: '영원히 무료',
+    color: '#64748B',
+    badgeBg: '#F4F6F9',
+    highlight: false,
+    features: [
+      { text: '프로젝트 생성', ok: true },
+      { text: '파트 직접 입력', ok: true },
+      { text: '큐시트 · 체크리스트', ok: true },
+      { text: '팀원 초대', ok: true },
+      { text: '템플릿 저장 · 불러오기', ok: false },
+      { text: 'AI 무전 (PTT)', ok: false },
+    ],
+    cta: '무료로 시작',
+  },
+  {
+    key: 'pro',
+    name: 'Pro',
+    price: '₩9,900',
+    priceDesc: '/ 월',
+    color: '#185FA5',
+    badgeBg: '#185FA5',
+    highlight: true,
+    features: [
+      { text: '프로젝트 생성', ok: true },
+      { text: '파트 직접 입력', ok: true },
+      { text: '큐시트 · 체크리스트', ok: true },
+      { text: '팀원 초대', ok: true },
+      { text: '템플릿 저장 · 불러오기', ok: true },
+      { text: 'AI 무전 (PTT)', ok: true },
+    ],
+    cta: 'Pro 시작하기',
+  },
+]
+
+// ── 업그레이드 모달 (export해서 다른 곳에서도 사용) ──────────
+export function UpgradeModal({ onClose }: { onClose: () => void }) {
+  const navigate = useNavigate()
+  const user = useAuthStore((s) => s.user)
+  const [couponCode, setCouponCode] = useState('')
+  const [couponMsg, setCouponMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
+  const [applying, setApplying] = useState(false)
+
+  async function applyCoupon() {
+    if (!couponCode.trim() || !user) return
+    setApplying(true)
+    setCouponMsg(null)
+    try {
+      // Firebase에서 쿠폰 조회
+      const snap = await new Promise<any>((resolve) => {
+        onValue(ref(db, `coupons/${couponCode.trim().toUpperCase()}`), resolve, { onlyOnce: true })
+      })
+      if (!snap.exists()) {
+        setCouponMsg({ type: 'err', text: '존재하지 않는 쿠폰이에요' })
+        setApplying(false)
+        return
+      }
+      const coupon = snap.val()
+      // 만료 확인
+      if (coupon.expiresAt && new Date(coupon.expiresAt) < new Date()) {
+        setCouponMsg({ type: 'err', text: '만료된 쿠폰이에요' })
+        setApplying(false)
+        return
+      }
+      // 사용 횟수 확인
+      if (coupon.maxUses && (coupon.usedCount ?? 0) >= coupon.maxUses) {
+        setCouponMsg({ type: 'err', text: '이미 소진된 쿠폰이에요' })
+        setApplying(false)
+        return
+      }
+      // 이미 사용한 유저인지 확인
+      if (coupon.usedBy?.[user.uid]) {
+        setCouponMsg({ type: 'err', text: '이미 사용한 쿠폰이에요' })
+        setApplying(false)
+        return
+      }
+
+      // 적용 — Firebase 업데이트는 Cloud Function에서 처리하는 게 이상적이지만
+      // 여기서는 클라이언트에서 직접 처리 (간단 구현)
+      const { set: fbSet, update: fbUpdate } = await import('firebase/database')
+      // isPro 활성화
+      await fbSet(ref(db, `users/${user.uid}/isPro`), true)
+      // Pro 만료일 설정 (기간 쿠폰인 경우)
+      if (coupon.durationDays) {
+        const expiry = new Date()
+        expiry.setDate(expiry.getDate() + coupon.durationDays)
+        await fbSet(ref(db, `users/${user.uid}/proExpiresAt`), expiry.toISOString())
+      }
+      // 쿠폰 사용 기록
+      await fbUpdate(ref(db, `coupons/${couponCode.trim().toUpperCase()}`), {
+        usedCount: (coupon.usedCount ?? 0) + 1,
+        [`usedBy/${user.uid}`]: new Date().toISOString(),
+      })
+
+      const msg = coupon.durationDays
+        ? `${coupon.durationDays}일 무료 Pro가 활성화됐어요!`
+        : 'Pro가 활성화됐어요!'
+      setCouponMsg({ type: 'ok', text: msg })
+      setTimeout(() => { onClose(); window.location.reload() }, 2000)
+    } catch {
+      setCouponMsg({ type: 'err', text: '오류가 발생했어요. 다시 시도해주세요' })
+    }
+    setApplying(false)
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center sm:items-center px-0 sm:px-4"
+      onClick={onClose}>
+      <div className="bg-[#0A0F1E] w-full sm:max-w-2xl rounded-t-[24px] sm:rounded-[24px] border border-white/10 overflow-hidden max-h-[92vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}>
+
+        {/* 헤더 */}
+        <div className="flex items-center justify-between px-6 pt-6 pb-4">
+          <div>
+            <div className="text-[20px] font-black text-white">ThanQ 요금제</div>
+            <div className="text-[13px] text-white/50 mt-0.5">현장 운영팀을 위한 플랜을 선택하세요</div>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20">
+            <i className="ti ti-x text-white text-[16px]" />
+          </button>
+        </div>
+
+        {/* 플랜 카드 */}
+        <div className="px-6 pb-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {PLANS.map((plan) => (
+            <div key={plan.key}
+              className={`rounded-[16px] p-5 border ${plan.highlight ? 'border-[#185FA5] bg-[#0D1829]' : 'border-white/10 bg-white/4'}`}>
+              {plan.highlight && (
+                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#185FA5] text-white text-[10px] font-bold mb-3">
+                  <i className="ti ti-crown text-[10px]" /> 추천
+                </div>
+              )}
+              <div className="text-[14px] font-bold mb-1" style={{ color: plan.highlight ? '#3B9EE8' : '#94A3B8' }}>{plan.name}</div>
+              <div className="flex items-end gap-1 mb-4">
+                <span className="text-[28px] font-black text-white">{plan.price}</span>
+                <span className="text-[13px] text-white/40 mb-1">{plan.priceDesc}</span>
+              </div>
+              <div className="flex flex-col gap-2 mb-5">
+                {plan.features.map((f) => (
+                  <div key={f.text} className={`flex items-center gap-2 text-[12px] ${f.ok ? 'text-white/80' : 'text-white/25'}`}>
+                    <i className={`ti ${f.ok ? 'ti-check text-[#4ADE80]' : 'ti-x text-white/20'} text-[12px] flex-shrink-0`} />
+                    {f.text}
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={() => { onClose(); navigate(user ? '/onboarding/field' : '/login') }}
+                className={`w-full h-[42px] rounded-[10px] text-[13px] font-bold transition-colors ${
+                  plan.highlight
+                    ? 'bg-[#185FA5] hover:bg-[#1470BE] text-white'
+                    : 'bg-white/8 hover:bg-white/12 text-white border border-white/10'
+                }`}>
+                {plan.cta}
+              </button>
+            </div>
+          ))}
+        </div>
+
+        {/* 쿠폰 입력 */}
+        <div className="px-6 py-5 border-t border-white/8 mt-2">
+          <div className="text-[13px] font-semibold text-white/70 mb-3 flex items-center gap-2">
+            <i className="ti ti-ticket text-[#3B9EE8] text-[15px]" /> 쿠폰 코드 입력
+          </div>
+          {couponMsg && (
+            <div className={`flex items-center gap-2 px-3 py-2 rounded-[8px] mb-2 text-[12px] font-semibold ${
+              couponMsg.type === 'ok' ? 'bg-[#0A2010] text-[#4ADE80]' : 'bg-[#2A0A0A] text-[#F87171]'
+            }`}>
+              <i className={`ti ${couponMsg.type === 'ok' ? 'ti-check' : 'ti-alert-circle'} text-[13px]`} />
+              {couponMsg.text}
+            </div>
+          )}
+          <div className="flex gap-2">
+            <input
+              value={couponCode}
+              onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+              onKeyDown={(e) => e.key === 'Enter' && applyCoupon()}
+              placeholder="쿠폰 코드를 입력하세요"
+              className="flex-1 h-[42px] bg-white/6 border border-white/15 rounded-[10px] px-4 text-[13px] text-white placeholder-white/30 outline-none focus:border-[#185FA5]"
+            />
+            <button onClick={applyCoupon} disabled={applying || !couponCode.trim() || !user}
+              className="h-[42px] px-5 bg-[#185FA5] hover:bg-[#1470BE] text-white rounded-[10px] text-[13px] font-bold disabled:opacity-40 flex items-center gap-2">
+              {applying ? <i className="ti ti-loader-2 animate-spin text-[14px]" /> : '적용'}
+            </button>
+          </div>
+          {!user && <p className="text-[11px] text-white/30 mt-2">쿠폰 적용은 로그인 후 가능해요</p>}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function LandingPage() {
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
@@ -31,6 +226,7 @@ export default function LandingPage() {
   const [scrollY, setScrollY] = useState(0)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [showUpgrade, setShowUpgrade] = useState(false)
 
   useEffect(() => {
     const onScroll = () => setScrollY(window.scrollY)
@@ -58,15 +254,12 @@ export default function LandingPage() {
         scrollY > 40 ? 'bg-[#0A0F1E]/95 backdrop-blur-md border-b border-white/10' : ''
       }`}>
         <div className="max-w-5xl mx-auto px-5 h-[60px] flex items-center justify-between">
-          {/* 로고 */}
           <button onClick={() => navigate('/')} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <div className="w-7 h-7 rounded-[7px] bg-[#185FA5] flex items-center justify-center">
               <i className="ti ti-bolt text-white text-[14px]" />
             </div>
             <span className="text-[16px] font-bold tracking-tight">ThanQ</span>
           </button>
-
-          {/* PC 메뉴 */}
           <div className="hidden sm:flex items-center gap-1">
             <button onClick={() => navigate('/blog')}
               className="px-4 py-2 text-[13px] text-white/70 hover:text-white transition-colors rounded-[8px] hover:bg-white/5">
@@ -75,6 +268,10 @@ export default function LandingPage() {
             <button onClick={() => navigate('/templates')}
               className="px-4 py-2 text-[13px] text-white/70 hover:text-white transition-colors rounded-[8px] hover:bg-white/5">
               템플릿
+            </button>
+            <button onClick={() => setShowUpgrade(true)}
+              className="px-4 py-2 text-[13px] text-white/70 hover:text-white transition-colors rounded-[8px] hover:bg-white/5">
+              요금제
             </button>
             {user ? (
               <div className="flex items-center gap-2 ml-2">
@@ -96,15 +293,11 @@ export default function LandingPage() {
               </button>
             )}
           </div>
-
-          {/* 모바일 햄버거 */}
           <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="sm:hidden w-9 h-9 flex items-center justify-center rounded-[8px] bg-white/8 border border-white/15">
             <i className={`ti ${mobileMenuOpen ? 'ti-x' : 'ti-menu-2'} text-white text-[16px]`} />
           </button>
         </div>
-
-        {/* 모바일 드롭다운 메뉴 */}
         {mobileMenuOpen && (
           <div className="sm:hidden bg-[#0D1829]/98 backdrop-blur-md border-b border-white/10 px-5 py-4 flex flex-col gap-2">
             <button onClick={() => { navigate('/blog'); setMobileMenuOpen(false) }}
@@ -114,6 +307,10 @@ export default function LandingPage() {
             <button onClick={() => { navigate('/templates'); setMobileMenuOpen(false) }}
               className="flex items-center gap-3 px-3 py-3 rounded-[10px] text-[14px] text-white/70 hover:text-white hover:bg-white/8 transition-colors text-left">
               <i className="ti ti-file-export text-[16px] text-[#854F0B]" /> 템플릿 공유
+            </button>
+            <button onClick={() => { setShowUpgrade(true); setMobileMenuOpen(false) }}
+              className="flex items-center gap-3 px-3 py-3 rounded-[10px] text-[14px] text-white/70 hover:text-white hover:bg-white/8 transition-colors text-left">
+              <i className="ti ti-credit-card text-[16px] text-[#3B9EE8]" /> 요금제
             </button>
             <div className="h-px bg-white/10 my-1" />
             {user ? (
@@ -141,7 +338,6 @@ export default function LandingPage() {
 
       {/* ── 히어로 ── */}
       <div ref={heroRef} className="relative min-h-screen flex flex-col items-center justify-center px-5 pt-[60px]">
-        {/* 배경 */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-[20%] left-[10%] w-[500px] h-[500px] rounded-full"
             style={{ background: 'radial-gradient(circle, rgba(24,95,165,0.15) 0%, transparent 70%)' }} />
@@ -150,57 +346,45 @@ export default function LandingPage() {
           <div className="absolute inset-0 opacity-[0.03]"
             style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
         </div>
-
         <div className="relative z-10 text-center max-w-2xl mx-auto w-full">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-white/15 bg-white/5 text-[12px] text-white/70 mb-6">
             <span className="w-1.5 h-1.5 rounded-full bg-[#4ADE80] animate-pulse" />
             현장 운영팀을 위한 실시간 협업 도구
           </div>
-
           <h1 className="text-[38px] sm:text-[56px] font-black leading-[1.1] tracking-tight mb-5">
             현장을 하나로<br />
             <span style={{ background: 'linear-gradient(135deg, #3B9EE8, #4ADE80)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
               연결하세요
             </span>
           </h1>
-
           <p className="text-[15px] sm:text-[16px] text-white/60 leading-relaxed mb-8 max-w-lg mx-auto px-2">
             행사, 공연, 촬영 현장에서 팀 전체가 큐시트를 실시간으로 공유하고,
             파트 간 소통을 앱 하나로 해결해요.
           </p>
-
-          {/* CTA 버튼 */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 px-4 sm:px-0">
             <button onClick={handleStart}
               className="w-full sm:w-auto px-7 py-3.5 bg-[#185FA5] hover:bg-[#1470BE] rounded-[12px] text-[15px] font-bold transition-colors flex items-center justify-center gap-2">
-              <i className="ti ti-rocket text-[16px]" />
-              무료로 시작하기
+              <i className="ti ti-rocket text-[16px]" /> 무료로 시작하기
             </button>
             <div className="flex gap-3 w-full sm:w-auto">
-              <button onClick={() => navigate('/blog')}
+              <button onClick={() => setShowUpgrade(true)}
                 className="flex-1 sm:flex-none px-5 py-3.5 bg-white/8 hover:bg-white/12 border border-white/15 rounded-[12px] text-[14px] font-semibold transition-colors flex items-center justify-center gap-2">
-                <i className="ti ti-news text-[15px]" />
-                블로그
+                <i className="ti ti-crown text-[15px] text-[#3B9EE8]" /> 요금제
               </button>
               <button onClick={() => navigate('/templates')}
                 className="flex-1 sm:flex-none px-5 py-3.5 bg-white/8 hover:bg-white/12 border border-white/15 rounded-[12px] text-[14px] font-semibold transition-colors flex items-center justify-center gap-2">
-                <i className="ti ti-file-export text-[15px]" />
-                템플릿
+                <i className="ti ti-file-export text-[15px]" /> 템플릿
               </button>
             </div>
           </div>
-
-          {/* 분야 태그 */}
           <div className="flex flex-wrap justify-center gap-2 mt-10">
             {USE_CASES.map((u) => (
-              <span key={u.label}
-                className="px-3 py-1.5 rounded-full bg-white/6 border border-white/10 text-[12px] text-white/60">
+              <span key={u.label} className="px-3 py-1.5 rounded-full bg-white/6 border border-white/10 text-[12px] text-white/60">
                 {u.icon} {u.label}
               </span>
             ))}
           </div>
         </div>
-
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 text-white/30">
           <span className="text-[11px]">스크롤</span>
           <i className="ti ti-chevrons-down text-[16px] animate-bounce" />
@@ -229,8 +413,62 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── 가격 섹션 ── */}
+      <section id="pricing" className="px-5 py-16 sm:py-20 bg-white/3 border-y border-white/8">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-10">
+            <div className="text-[11px] font-semibold text-[#3B9EE8] uppercase tracking-widest mb-3">Pricing</div>
+            <h2 className="text-[26px] sm:text-[36px] font-black tracking-tight mb-3">심플한 요금제</h2>
+            <p className="text-[13px] text-white/50">무료로 시작하고, 필요할 때 업그레이드하세요</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+            {PLANS.map((plan) => (
+              <div key={plan.key}
+                className={`rounded-[20px] p-6 border relative ${plan.highlight ? 'border-[#185FA5] bg-[#0D1829]' : 'border-white/10 bg-white/4'}`}>
+                {plan.highlight && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-[#185FA5] rounded-full text-[11px] font-bold text-white flex items-center gap-1">
+                    <i className="ti ti-crown text-[11px]" /> 추천 플랜
+                  </div>
+                )}
+                <div className="text-[14px] font-bold mb-1" style={{ color: plan.highlight ? '#3B9EE8' : '#94A3B8' }}>{plan.name}</div>
+                <div className="flex items-end gap-1 mb-5">
+                  <span className="text-[32px] font-black text-white">{plan.price}</span>
+                  <span className="text-[13px] text-white/40 mb-1.5">{plan.priceDesc}</span>
+                </div>
+                <div className="flex flex-col gap-2.5 mb-6">
+                  {plan.features.map((f) => (
+                    <div key={f.text} className={`flex items-center gap-2.5 text-[13px] ${f.ok ? 'text-white/80' : 'text-white/25'}`}>
+                      <i className={`ti ${f.ok ? 'ti-check text-[#4ADE80]' : 'ti-x text-white/20'} text-[13px] flex-shrink-0`} />
+                      {f.text}
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={() => plan.highlight ? setShowUpgrade(true) : handleStart()}
+                  className={`w-full h-[46px] rounded-[12px] text-[14px] font-bold transition-colors ${
+                    plan.highlight
+                      ? 'bg-[#185FA5] hover:bg-[#1470BE] text-white'
+                      : 'bg-white/8 hover:bg-white/12 text-white border border-white/10'
+                  }`}>
+                  {plan.cta}
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {/* 쿠폰 안내 */}
+          <div className="flex items-center justify-center gap-2 text-[13px] text-white/40">
+            <i className="ti ti-ticket text-[#3B9EE8] text-[15px]" />
+            쿠폰 코드가 있으신가요?
+            <button onClick={() => setShowUpgrade(true)} className="text-[#3B9EE8] font-semibold hover:underline">
+              여기서 입력하세요
+            </button>
+          </div>
+        </div>
+      </section>
+
       {/* ── 사용 흐름 ── */}
-      <section className="px-5 py-14 sm:py-16 bg-white/3 border-y border-white/8">
+      <section className="px-5 py-14 sm:py-16">
         <div className="max-w-3xl mx-auto text-center mb-10">
           <div className="text-[11px] font-semibold text-[#4ADE80] uppercase tracking-widest mb-3">How it works</div>
           <h2 className="text-[26px] sm:text-[30px] font-black tracking-tight">3분이면 시작해요</h2>
@@ -259,25 +497,19 @@ export default function LandingPage() {
       {/* ── 블로그 + 템플릿 CTA ── */}
       <section className="px-5 py-14 sm:py-16 max-w-3xl mx-auto">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* 블로그 */}
           <div className="bg-gradient-to-br from-[#185FA5]/30 to-[#185FA5]/10 border border-white/10 rounded-[20px] p-6 sm:p-8 flex flex-col">
             <i className="ti ti-news text-[28px] text-[#3B9EE8] mb-4" />
             <h3 className="text-[18px] sm:text-[20px] font-black mb-2">블로그</h3>
-            <p className="text-[13px] text-white/55 mb-5 leading-relaxed flex-1">
-              사용자들의 노하우, 운영 후기, 공지사항을 확인해요.
-            </p>
+            <p className="text-[13px] text-white/55 mb-5 leading-relaxed flex-1">사용자들의 노하우, 운영 후기, 공지사항을 확인해요.</p>
             <button onClick={() => navigate('/blog')}
               className="w-full h-[42px] bg-[#185FA5] hover:bg-[#1470BE] rounded-[10px] text-[13px] font-bold transition-colors flex items-center justify-center gap-2">
               <i className="ti ti-arrow-right text-[14px]" /> 블로그 바로가기
             </button>
           </div>
-          {/* 템플릿 */}
           <div className="bg-gradient-to-br from-[#854F0B]/30 to-[#854F0B]/10 border border-white/10 rounded-[20px] p-6 sm:p-8 flex flex-col">
             <i className="ti ti-file-export text-[28px] text-[#F59E0B] mb-4" />
             <h3 className="text-[18px] sm:text-[20px] font-black mb-2">템플릿 공유</h3>
-            <p className="text-[13px] text-white/55 mb-5 leading-relaxed flex-1">
-              다른 사람의 행사 구성을 .thanq 파일로 받아 바로 적용해요.
-            </p>
+            <p className="text-[13px] text-white/55 mb-5 leading-relaxed flex-1">다른 사람의 행사 구성을 .thanq 파일로 받아 바로 적용해요.</p>
             <button onClick={() => navigate('/templates')}
               className="w-full h-[42px] bg-[#854F0B] hover:bg-[#6B3E08] rounded-[10px] text-[13px] font-bold transition-colors flex items-center justify-center gap-2">
               <i className="ti ti-arrow-right text-[14px]" /> 템플릿 보러가기
@@ -293,8 +525,7 @@ export default function LandingPage() {
           <p className="text-[13px] sm:text-[14px] text-white/50 mb-8">무료로 사용할 수 있어요. 카드 등록 불필요.</p>
           <button onClick={handleStart}
             className="w-full sm:w-auto px-8 py-4 bg-[#185FA5] hover:bg-[#1470BE] rounded-[14px] text-[16px] font-black transition-colors inline-flex items-center justify-center gap-2">
-            <i className="ti ti-rocket text-[17px]" />
-            무료로 시작하기
+            <i className="ti ti-rocket text-[17px]" /> 무료로 시작하기
           </button>
         </div>
       </section>
@@ -311,11 +542,15 @@ export default function LandingPage() {
           <div className="flex items-center gap-5">
             <button onClick={() => navigate('/blog')} className="text-[12px] text-white/40 hover:text-white/70 transition-colors">블로그</button>
             <button onClick={() => navigate('/templates')} className="text-[12px] text-white/40 hover:text-white/70 transition-colors">템플릿</button>
+            <button onClick={() => setShowUpgrade(true)} className="text-[12px] text-white/40 hover:text-white/70 transition-colors">요금제</button>
             <button onClick={handleStart} className="text-[12px] text-white/40 hover:text-white/70 transition-colors">시작하기</button>
           </div>
           <div className="text-[12px] text-white/25">© 2026 ThanQ. All rights reserved.</div>
         </div>
       </footer>
+
+      {/* 업그레이드 모달 */}
+      {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} />}
     </div>
   )
 }
