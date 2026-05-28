@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useAuth } from '@/hooks/useAuth'
 import AuthLayout from '@/components/layout/AuthLayout'
 import AppLayout from '@/components/layout/AppLayout'
 import PrivateRoute from '@/components/auth/PrivateRoute'
@@ -24,6 +25,9 @@ import LandingPage from '@/pages/LandingPage'
 import TemplatePage from '@/pages/TemplatePage'
 
 export default function App() {
+  // 앱 최상단에서 Firebase 인증 상태 감지 → 모든 페이지에서 user 사용 가능
+  useAuth()
+
   return (
     <BrowserRouter>
       <Routes>
