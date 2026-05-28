@@ -5,6 +5,10 @@
 **ThanQ** = 큐시트(Q) + 한눈에 + 한번에 + 감사(Thank)  
 행사, 촬영, 콘서트 등 대규모 현장 운영을 위한 실시간 협업 플랫폼입니다.
 
+- **GitHub**: [afterschoolrollbook/thanq](https://github.com/afterschoolrollbook/thanq)
+- **배포 URL**: [thanq-beta.vercel.app](https://thanq-beta.vercel.app)
+- **Firebase 프로젝트**: thanq-dc193
+
 ---
 
 ## 기술 스택
@@ -17,6 +21,8 @@
 | 라우팅 | React Router v6 |
 | 백엔드/DB | Firebase (Auth + Realtime DB) |
 | 실시간 음성 | WebRTC (푸시투토크 무전) |
+| 알림 | Firebase Cloud Messaging (FCM) |
+| 에러 추적 | Sentry |
 | 배포 | Vercel |
 
 ---
@@ -35,7 +41,7 @@
 
 ---
 
-## 화면 목록
+## 화면 목록 (총 20개)
 
 ### 공개 페이지 (로그인 불필요)
 
@@ -52,24 +58,74 @@
 | # | 경로 | 화면 | 상태 |
 |---|------|------|------|
 | 6 | `/dashboard` | 메인 대시보드 | ✅ 완성 |
-| 7 | `/blog/write` | 블로그 글쓰기 (템플릿 첨부 가능) | ✅ 완성 |
-| 8 | `/onboarding/field` | 분야 선택 | ✅ 완성 |
-| 9 | `/onboarding/create` | 프로젝트 생성 | ✅ 완성 |
-| 10 | `/onboarding/parts/:id` | 파트 구성 & 초대 | ✅ 완성 |
-| 11 | `/p/:id/home` | 프로젝트 홈 (템플릿 내보내기/가져오기) | ✅ 완성 |
-| 12 | `/p/:id/my-part` | 담당자 작업 화면 (큐시트 + 체크리스트) | ✅ 완성 |
-| 13 | `/p/:id/dashboard` | 본부 대시보드 | ✅ 완성 |
-| 14 | `/p/:id/timeline` | 통합 타임라인 | ✅ 완성 |
-| 15 | `/p/:id/comms` | 소통 허브 | ✅ 완성 |
-| 16 | `/p/:id/live` | 당일 실시간 운영 | ✅ 완성 |
-| 17 | `/p/:id/ptt` | 🎙️ 무전 (푸시투토크) | ✅ 완성 |
-| 18 | `/p/:id/admin` | 프로젝트 관리자 | ✅ 완성 |
+| 7 | `/projects` | 내 프로젝트 목록 | ✅ 완성 |
+| 8 | `/blog/write` | 블로그 글쓰기 (템플릿 첨부 가능) | ✅ 완성 |
+| 9 | `/onboarding/field` | 분야 선택 | ✅ 완성 |
+| 10 | `/onboarding/create` | 프로젝트 생성 | ✅ 완성 |
+| 11 | `/onboarding/parts/:id` | 파트 구성 & 초대 | ✅ 완성 |
+| 12 | `/p/:id/home` | 프로젝트 홈 (템플릿 내보내기/가져오기) | ✅ 완성 |
+| 13 | `/p/:id/my-part` | 담당자 작업 화면 (큐시트 + 체크리스트) | ✅ 완성 |
+| 14 | `/p/:id/dashboard` | 본부 대시보드 | ✅ 완성 |
+| 15 | `/p/:id/timeline` | 통합 타임라인 | ✅ 완성 |
+| 16 | `/p/:id/comms` | 소통 허브 | ✅ 완성 |
+| 17 | `/p/:id/live` | 당일 실시간 운영 | ✅ 완성 |
+| 18 | `/p/:id/ptt` | 🎙️ 무전 (푸시투토크) | ✅ 완성 |
+| 19 | `/p/:id/admin` | 프로젝트 관리자 | ✅ 완성 |
 
 ### 관리자 (Firebase DB admins 등록 필요)
 
 | # | 경로 | 화면 | 상태 |
 |---|------|------|------|
-| 19 | `/admin` | 사이트 전체 관리자 콘솔 | ✅ 완성 |
+| 20 | `/admin` | 사이트 전체 관리자 콘솔 | ✅ 완성 |
+
+---
+
+## 개발 시작
+
+```bash
+# 의존성 설치
+npm install
+
+# 개발 서버 실행 (http://localhost:5173)
+npm run dev
+
+# 프로덕션 빌드
+npm run build
+
+# 빌드 결과 미리보기
+npm run preview
+```
+
+> **주의**: 실행 전 반드시 `.env` 파일에 Firebase 환경 변수를 설정하세요.
+
+---
+
+## 환경 변수 설정
+
+프로젝트 루트에 `.env` 파일을 생성하고 아래 값을 입력합니다:
+
+```env
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_AUTH_DOMAIN=
+VITE_FIREBASE_DATABASE_URL=
+VITE_FIREBASE_PROJECT_ID=
+VITE_FIREBASE_STORAGE_BUCKET=
+VITE_FIREBASE_MESSAGING_SENDER_ID=
+VITE_FIREBASE_APP_ID=
+VITE_FIREBASE_MEASUREMENT_ID=
+```
+
+Firebase Console → 프로젝트 설정 → 앱에서 확인할 수 있습니다.
+
+---
+
+## Vercel 배포
+
+1. GitHub 저장소를 [Vercel](https://vercel.com)에 연결
+2. Environment Variables에 위 Firebase 설정값 입력
+3. Deploy → `thanq-beta.vercel.app` 완료!
+
+`vercel.json`에 SPA 라우팅 처리가 포함되어 있습니다.
 
 ---
 
@@ -126,6 +182,7 @@ admins
 └── {사용자 UID}: true
 ```
 
+UID는 Firebase Console → Authentication → Users에서 확인합니다.  
 등록 후 `/admin` 경로에서 사이트 전체 관리자 콘솔 접근 가능합니다.
 
 ---
@@ -169,8 +226,53 @@ admins
 ├── projectMembers/{projectId}/{uid}   # 프로젝트 멤버
 ├── parts/{projectId}/{partId}         # 파트 정보
 ├── cueItems/{projectId}/{partId}      # 큐시트 항목
-└── checkItems/{projectId}/{partId}    # 체크리스트 항목
+├── checkItems/{projectId}/{partId}    # 체크리스트 항목
+├── notices/{projectId}/{noticeId}     # 공지사항 (소통 허브)
+└── pttHistory/{projectId}             # 무전 히스토리
 ```
+
+---
+
+## 디자인 시스템
+
+### 색상
+
+| 용도 | 색상 코드 | 사용처 |
+|------|----------|--------|
+| Primary Blue | `#185FA5` | 메인 버튼, 활성 탭, 강조 |
+| Blue Light | `#E6F1FB` | 배경, 카드 강조 |
+| Blue Mid | `#B5D4F4` | 보조 텍스트, 칩 |
+| Green | `#0F6E56` | 음향팀, 완료 상태 |
+| Amber | `#854F0B` | 푸드존, 지연 경고 |
+| Red | `#E24B4A` | 긴급, 알림 뱃지 |
+| Text Dark | `#1A1A2E` | 본문 텍스트 |
+| Text Muted | `#64748B` | 보조 텍스트 |
+| Gray BG | `#F4F6F9` | 페이지 배경 |
+
+### UI 규칙
+
+- 카드 `border-radius`: 14px
+- 버튼 `border-radius`: 10px
+- 폰트: Pretendard / Apple SD Gothic Neo / Noto Sans KR
+- 아이콘: Tabler Icons (`@tabler/icons-webfont` CDN)
+- 하단 탭 5개 고정: 홈 / 타임라인 / 내파트 / 대시보드 / 소통
+
+---
+
+## 개발 규칙
+
+| # | 규칙 |
+|---|------|
+| 1 | 모든 데이터는 Firebase Realtime DB에 실시간 저장 — sessionStorage 사용 금지 |
+| 2 | Topbar, BottomTabBar는 `Common.tsx` 컴포넌트 사용 |
+| 3 | AppLayout은 `<Outlet>` 만 렌더링 — 탑바/탭바는 각 페이지가 직접 렌더링 |
+| 4 | Tailwind 인라인 색상 사용 (예: `text-[#185FA5]`) — 커스텀 클래스 최소화 |
+| 5 | 파일 하나 수정 시 연관 파일도 함께 확인/수정 |
+| 6 | TypeScript 타입 오류 0개 확인 후 GitHub 푸시 |
+| 7 | Firebase Security Rules 반드시 처음부터 적용 |
+| 8 | HTTPS 전용 — JWT Access 1시간 / Refresh 30일 |
+| 9 | 카드/결제 정보 서버 저장 금지 — Stripe에 위임 |
+| 10 | 모바일 + PC 반응형 필수 지원 |
 
 ---
 
@@ -185,7 +287,7 @@ src/
 │   └── ui/           # 공통 UI (Topbar, BottomTabBar, StatusBadge 등)
 ├── hooks/            # 커스텀 훅
 ├── lib/              # Firebase 초기화
-├── pages/            # 페이지 컴포넌트 19개
+├── pages/            # 페이지 컴포넌트 20개
 ├── store/            # Zustand 상태 관리
 ├── styles/           # 전역 CSS
 ├── types/            # TypeScript 타입 정의
@@ -194,19 +296,4 @@ src/
 
 ---
 
-## Vercel 배포
-
-1. GitHub 저장소를 [Vercel](https://vercel.com)에 연결
-2. Environment Variables에 Firebase 설정값 입력:
-
-| 변수명 | 설명 |
-|--------|------|
-| `VITE_FIREBASE_API_KEY` | Firebase API Key |
-| `VITE_FIREBASE_AUTH_DOMAIN` | Firebase Auth Domain |
-| `VITE_FIREBASE_DATABASE_URL` | Realtime DB URL |
-| `VITE_FIREBASE_PROJECT_ID` | Project ID |
-| `VITE_FIREBASE_STORAGE_BUCKET` | Storage Bucket |
-| `VITE_FIREBASE_MESSAGING_SENDER_ID` | Messaging Sender ID |
-| `VITE_FIREBASE_APP_ID` | App ID |
-
-3. Deploy → `thanq-beta.vercel.app` 완료!
+*ThanQ — 현장의 모든 순간을 하나로, 처음부터 안전하게*
