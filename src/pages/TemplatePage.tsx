@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ref, onValue, query, orderByChild } from 'firebase/database'
 import { db } from '@/lib/firebase'
@@ -24,7 +24,6 @@ interface TemplatePost extends BlogPost {
 export default function TemplatePage() {
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
-  const fileRef = useRef<HTMLInputElement>(null)
   const [templates, setTemplates] = useState<TemplatePost[]>([])
   const [loading, setLoading] = useState(true)
   const [fieldFilter, setFieldFilter] = useState<string>('all')
