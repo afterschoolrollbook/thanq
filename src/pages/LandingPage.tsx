@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { ref, onValue } from 'firebase/database'
 import { db } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
+import type { Coupon } from '@/types'
 
 const FEATURES = [
   { icon: 'ti-layout-list', title: '큐시트 실시간 공유', desc: '파트별 큐시트를 팀 전원이 동시에 보고 수정해요.', color: '#185FA5', bg: '#E6F1FB' },
@@ -85,7 +86,7 @@ export function UpgradeModal({ onClose }: { onClose: () => void }) {
         setApplying(false)
         return
       }
-      const coupon = snap.val()
+      const coupon = snap.val() as Coupon
       // 만료 확인
       if (coupon.expiresAt && new Date(coupon.expiresAt) < new Date()) {
         setCouponMsg({ type: 'err', text: '만료된 쿠폰이에요' })

@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { ref, onValue, set, push, update } from 'firebase/database'
 import { db } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
-import type { Project, Part } from '@/types'
+import type { Project, Part, Coupon } from '@/types'
 
 // ─── 타입 ─────────────────────────────────────────────────
 interface SiteUser {
@@ -17,18 +17,6 @@ interface TargetItem { id: string; label: string; sublabel: string; icon?: strin
 type ListenState = 'idle' | 'listening' | 'processing' | 'connected'
 type AdminTab = 'dashboard' | 'users' | 'ptt' | 'coupons' | 'plans' | 'notice'
 
-interface Coupon {
-  code: string
-  type: 'duration' | 'permanent'   // 기간 무료 | 영구 Pro
-  durationDays?: number             // type === 'duration' 일 때
-  maxUses: number                   // 0 = 무제한
-  usedCount: number
-  usedBy?: Record<string, string>   // uid → 사용 일시
-  createdAt: string
-  expiresAt?: string                // 쿠폰 자체 만료일
-  memo: string                      // 관리자용 메모
-  active: boolean
-}
 
 export default function SiteAdminPage() {
   const navigate = useNavigate()

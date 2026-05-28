@@ -188,3 +188,28 @@ export interface TemplateFile {
   passwordHash?: string    // SHA-256 해시 (비밀번호 설정 시)
   allowedEmail?: string    // 허용된 이메일 (설정 시 해당 이메일 로그인한 사람만 열람 가능)
 }
+
+// ─── 쿠폰 ────────────────────────────────────────────────
+/**
+ * Firebase Realtime DB: coupons/{CODE}
+ *
+ * type
+ *   'duration'  — N일 무료 Pro (마케팅/회원가입 유도용)
+ *   'permanent' — 영구 Pro 전환
+ *
+ * maxUses  0 = 무제한
+ * usedBy   { [uid]: ISO 사용 일시 }
+ * expiresAt  쿠폰 자체 유효기간 (지나면 사용 불가)
+ */
+export interface Coupon {
+  code: string
+  type: 'duration' | 'permanent'
+  durationDays?: number              // type === 'duration' 일 때 필수
+  maxUses: number                    // 0 = 무제한
+  usedCount: number
+  usedBy?: Record<string, string>    // uid → 사용 일시 (ISO string)
+  createdAt: string
+  expiresAt?: string                 // 쿠폰 자체 만료일 (ISO string)
+  memo: string                       // 관리자용 메모
+  active: boolean
+}
