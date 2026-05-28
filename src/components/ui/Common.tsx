@@ -40,42 +40,51 @@ export function Topbar({ projectName }: { projectName?: string }) {
         )}
       </div>
       <div className="flex items-center gap-2">
-        {isAdmin && (
-          <button onClick={() => navigate('/admin')}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#FAEEDA]/20 border border-[#FAEEDA]/30 text-[11px] font-semibold text-[#FAEEDA] hover:bg-[#FAEEDA]/30 transition-colors">
-            <i className="ti ti-shield text-[12px]" /> 관리자
+        {user ? (
+          <>
+            {isAdmin && (
+              <button onClick={() => navigate('/admin')}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#FAEEDA]/20 border border-[#FAEEDA]/30 text-[11px] font-semibold text-[#FAEEDA] hover:bg-[#FAEEDA]/30 transition-colors">
+                <i className="ti ti-shield text-[12px]" /> 관리자
+              </button>
+            )}
+            <button className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center">
+              <i className="ti ti-bell text-white text-[16px]" />
+            </button>
+            <div className="relative">
+              <button onClick={() => setShowMenu(!showMenu)}
+                className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white text-[12px] font-semibold">
+                {initial}
+              </button>
+              {showMenu && (
+                <div className="absolute right-0 top-10 bg-white rounded-[12px] shadow-lg border border-[#E2E8F0] py-1.5 min-w-[160px] z-50">
+                  <button onClick={() => { navigate('/dashboard'); setShowMenu(false) }}
+                    className="w-full px-4 py-2.5 text-left text-[13px] text-[#1A1A2E] flex items-center gap-2 hover:bg-[#F4F6F9]">
+                    <i className="ti ti-layout-dashboard text-[15px] text-[#185FA5]" /> 대시보드
+                  </button>
+                  <button onClick={() => { navigate('/blog'); setShowMenu(false) }}
+                    className="w-full px-4 py-2.5 text-left text-[13px] text-[#1A1A2E] flex items-center gap-2 hover:bg-[#F4F6F9]">
+                    <i className="ti ti-news text-[15px] text-[#185FA5]" /> 블로그
+                  </button>
+                  <button onClick={() => { navigate('/templates'); setShowMenu(false) }}
+                    className="w-full px-4 py-2.5 text-left text-[13px] text-[#1A1A2E] flex items-center gap-2 hover:bg-[#F4F6F9]">
+                    <i className="ti ti-file-export text-[15px] text-[#185FA5]" /> 템플릿
+                  </button>
+                  <div className="h-px bg-[#E2E8F0] my-1" />
+                  <button onClick={handleLogout}
+                    className="w-full px-4 py-2.5 text-left text-[13px] text-[#A32D2D] flex items-center gap-2 hover:bg-[#F4F6F9]">
+                    <i className="ti ti-logout text-[15px]" /> 로그아웃
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          <button onClick={() => navigate('/login')}
+            className="px-4 py-1.5 bg-white/15 border border-white/25 rounded-[8px] text-[13px] font-semibold text-white hover:bg-white/25 transition-colors flex items-center gap-1.5">
+            <i className="ti ti-login text-[14px]" /> 로그인
           </button>
         )}
-        <button className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center">
-          <i className="ti ti-bell text-white text-[16px]" />
-        </button>
-        <div className="relative">
-          <button onClick={() => setShowMenu(!showMenu)}
-            className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white text-[12px] font-semibold">
-            {initial}
-          </button>
-          {showMenu && (
-            <div className="absolute right-0 top-10 bg-white rounded-[12px] shadow-lg border border-[#E2E8F0] py-1.5 min-w-[160px] z-50">
-              <button onClick={() => { navigate('/dashboard'); setShowMenu(false) }}
-                className="w-full px-4 py-2.5 text-left text-[13px] text-[#1A1A2E] flex items-center gap-2 hover:bg-[#F4F6F9]">
-                <i className="ti ti-layout-dashboard text-[15px] text-[#185FA5]" /> 대시보드
-              </button>
-              <button onClick={() => { navigate('/blog'); setShowMenu(false) }}
-                className="w-full px-4 py-2.5 text-left text-[13px] text-[#1A1A2E] flex items-center gap-2 hover:bg-[#F4F6F9]">
-                <i className="ti ti-news text-[15px] text-[#185FA5]" /> 블로그
-              </button>
-              <button onClick={() => { navigate('/templates'); setShowMenu(false) }}
-                className="w-full px-4 py-2.5 text-left text-[13px] text-[#1A1A2E] flex items-center gap-2 hover:bg-[#F4F6F9]">
-                <i className="ti ti-file-export text-[15px] text-[#185FA5]" /> 템플릿
-              </button>
-              <div className="h-px bg-[#E2E8F0] my-1" />
-              <button onClick={handleLogout}
-                className="w-full px-4 py-2.5 text-left text-[13px] text-[#A32D2D] flex items-center gap-2 hover:bg-[#F4F6F9]">
-                <i className="ti ti-logout text-[15px]" /> 로그아웃
-              </button>
-            </div>
-          )}
-        </div>
       </div>
     </header>
   )
