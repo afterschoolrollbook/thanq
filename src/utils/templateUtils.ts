@@ -20,12 +20,12 @@ export async function exportProjectAsTemplate(
 
   for (const part of parts) {
     // 큐시트 로드
-    const cueSnap = await get(ref(db, `cues/${projectId}/${part.id}`))
+    const cueSnap = await get(ref(db, `cueItems/${projectId}/${part.id}`))
     const cueItems: CueItem[] = cueSnap.exists() ? Object.values(cueSnap.val()) : []
     cueItems.sort((a, b) => a.order - b.order)
 
     // 체크리스트 로드
-    const checkSnap = await get(ref(db, `checks/${projectId}/${part.id}`))
+    const checkSnap = await get(ref(db, `checkItems/${projectId}/${part.id}`))
     const checkItems: CheckItem[] = checkSnap.exists() ? Object.values(checkSnap.val()) : []
 
     templateParts.push({
@@ -88,7 +88,7 @@ export async function applyTemplateToProject(
 
     // 큐시트 적용
     for (const [j, cue] of tPart.cueItems.entries()) {
-      const cueRef = push(ref(db, `cues/${projectId}/${partId}`))
+      const cueRef = push(ref(db, `cueItems/${projectId}/${partId}`))
       await set(cueRef, {
         id: cueRef.key,
         partId,
@@ -106,7 +106,7 @@ export async function applyTemplateToProject(
 
     // 체크리스트 적용
     for (const check of tPart.checkItems) {
-      const checkRef = push(ref(db, `checks/${projectId}/${partId}`))
+      const checkRef = push(ref(db, `checkItems/${projectId}/${partId}`))
       await set(checkRef, {
         id: checkRef.key,
         partId,
