@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useParams, NavLink } from 'react-router-dom'
 import { signOut } from 'firebase/auth'
+import { ref, onValue } from 'firebase/database'
+import { db } from '@/lib/firebase'
 import { auth } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
 
@@ -9,7 +11,15 @@ export function Topbar({ projectName }: { projectName?: string }) {
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
   const [showMenu, setShowMenu] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
   const initial = user?.displayName?.charAt(0) ?? '?'
+
+  useEffect(() => {
+    if (!user) return
+    onValue(ref(db, `admins/${user.uid}`), (s) => {
+      setIsAdmin(s.exists() && s.val() === true)
+    }, { onlyOnce: true })
+  }, [user])
 
   async function handleLogout() {
     await signOut(auth)
@@ -30,6 +40,12 @@ export function Topbar({ projectName }: { projectName?: string }) {
         )}
       </div>
       <div className="flex items-center gap-2">
+        {isAdmin && (
+          <button onClick={() => navigate('/admin')}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#FAEEDA]/20 border border-[#FAEEDA]/30 text-[11px] font-semibold text-[#FAEEDA] hover:bg-[#FAEEDA]/30 transition-colors">
+            <i className="ti ti-shield text-[12px]" /> 관리자
+          </button>
+        )}
         <button className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center">
           <i className="ti ti-bell text-white text-[16px]" />
         </button>
