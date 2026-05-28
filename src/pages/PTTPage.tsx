@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { ref, onValue, push, set } from 'firebase/database'
 import { db } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
@@ -7,21 +7,17 @@ import { Topbar, BottomTabBar } from '@/components/ui/Common'
 import type { Part, Project } from '@/types'
 
 interface PTTRecord { id: string; senderName: string; senderColor: string; target: string; targetLabel: string; duration: number; createdAt: string }
-
 type MicPermission = 'unknown' | 'granted' | 'denied' | 'prompt'
 type TargetId = 'crew-all' | 'owner' | string
 
 interface TargetItem {
-  id: TargetId
-  label: string
-  sublabel: string
-  icon?: string
-  color?: string
-  tier: 'owner' | 'manager' | 'all'
+  id: TargetId; label: string; sublabel: string
+  icon?: string; color?: string; tier: 'owner' | 'manager' | 'all'
 }
 
 export default function PTTPage() {
   const { projectId } = useParams()
+  const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
   const [project, setProject] = useState<Project | null>(null)
   const [parts, setParts] = useState<Part[]>([])
@@ -33,6 +29,9 @@ export default function PTTPage() {
   const [showMicModal, setShowMicModal] = useState(false)
   const [favorites, setFavorites] = useState<TargetId[]>([])
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ owner: true, manager: true, all: true })
+  // 블루투스/마이크 장치 선택
+  const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([])
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string>('')
   const mediaRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const startRef = useRef<number>(0)
@@ -55,6 +54,28 @@ export default function PTTPage() {
     if (saved) setFavorites(JSON.parse(saved))
   }, [projectId])
 
+  // ─── 키보드 단축키 1~20 ──────────────────────────────────
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+      const num = parseInt(e.key)
+      if (!isNaN(num) && num >= 1 && num <= 9) {
+        const idx = num - 1
+        if (targetItems[idx]) setTarget(targetItems[idx].id)
+      }
+      // 10~20: Alt+1~9, Alt+0
+      if (e.altKey) {
+        const num2 = parseInt(e.key)
+        if (!isNaN(num2)) {
+          const idx = num2 === 0 ? 9 : num2 + 9
+          if (targetItems[idx]) setTarget(targetItems[idx].id)
+        }
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [parts]) // targetItems depends on parts
+
   async function checkMicPermission() {
     try {
       if (navigator.permissions) {
@@ -76,14 +97,40 @@ export default function PTTPage() {
       stream.getTracks().forEach((t) => t.stop())
       setMicPermission('granted')
       setShowMicModal(false)
+      // 권한 허용 후 장치 목록 로드
+      await loadAudioDevices()
     } catch { setMicPermission('denied') }
     finally { setRequestingMic(false) }
   }
 
+  // 블루투스 포함 오디오 입력 장치 목록
+  async function loadAudioDevices() {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices()
+      const inputs = devices.filter((d) => d.kind === 'audioinput')
+      setAudioDevices(inputs)
+      // 기본 장치 선택
+      if (!selectedDeviceId && inputs.length > 0) setSelectedDeviceId(inputs[0].deviceId)
+    } catch { /* ignore */ }
+  }
+
+  // 장치 변경 감지 (블루투스 연결/해제)
+  useEffect(() => {
+    if (micPermission !== 'granted') return
+    loadAudioDevices()
+    navigator.mediaDevices.addEventListener('devicechange', loadAudioDevices)
+    return () => navigator.mediaDevices.removeEventListener('devicechange', loadAudioDevices)
+  }, [micPermission])
+
   async function startPTT() {
     if (micPermission !== 'granted' || !user) return
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const constraints: MediaStreamConstraints = {
+        audio: selectedDeviceId
+          ? { deviceId: { exact: selectedDeviceId }, echoCancellation: true, noiseSuppression: true }
+          : { echoCancellation: true, noiseSuppression: true }
+      }
+      const stream = await navigator.mediaDevices.getUserMedia(constraints)
       const mr = new MediaRecorder(stream)
       chunksRef.current = []
       mr.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data) }
@@ -97,9 +144,9 @@ export default function PTTPage() {
     const duration = Math.round((Date.now() - startRef.current) / 1000)
     mediaRef.current.stop()
     mediaRef.current.stream.getTracks().forEach((t) => t.stop())
-    const selectedTarget = targetItems.find((t) => t.id === target)
+    const sel = targetItems.find((t) => t.id === target)
     const r = push(ref(db, `pttHistory/${projectId}`))
-    await set(r, { id: r.key!, senderName: user.displayName, senderColor: '#185FA5', target, targetLabel: selectedTarget?.label ?? '크루 전체', duration, createdAt: new Date().toISOString() } as PTTRecord)
+    await set(r, { id: r.key!, senderName: user.displayName, senderColor: '#185FA5', target, targetLabel: sel?.label ?? '크루 전체', duration, createdAt: new Date().toISOString() } as PTTRecord)
   }
 
   function toggleFavorite(id: TargetId) {
@@ -133,21 +180,34 @@ export default function PTTPage() {
     { tier: 'all',     label: '크루 전체',   badgeBg: '#E6F1FB', badgeColor: '#185FA5' },
   ]
 
+  // 현재 선택된 장치 라벨
+  const selectedDevice = audioDevices.find((d) => d.deviceId === selectedDeviceId)
+  const deviceLabel = selectedDevice?.label || '기본 마이크'
+  const isBluetooth = deviceLabel.toLowerCase().includes('bluetooth') || deviceLabel.toLowerCase().includes('bt') || deviceLabel.includes('블루투스')
+
   function TargetCard({ item, compact = false }: { item: TargetItem; compact?: boolean }) {
     const isSelected = target === item.id
     const isFav = favorites.includes(item.id)
+    const shortcutNum = targetItems.findIndex((t) => t.id === item.id) + 1
+    const shortcutLabel = shortcutNum <= 9 ? `${shortcutNum}` : shortcutNum <= 19 ? `Alt+${shortcutNum - 9}` : shortcutNum === 20 ? 'Alt+0' : null
+
     return (
       <div className={`flex items-center gap-3 px-3 py-2.5 rounded-[10px] border-2 cursor-pointer transition-all ${
         isSelected ? 'border-[#185FA5] bg-[#E6F1FB]' : 'border-[#E2E8F0] bg-white hover:border-[#B5D4F4]'
       }`} onClick={() => setTarget(item.id)}>
+        {/* 단축키 뱃지 */}
+        {shortcutLabel && (
+          <div className={`w-6 h-6 rounded-[6px] flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${
+            isSelected ? 'bg-[#185FA5] text-white' : 'bg-[#F4F6F9] text-[#64748B]'
+          }`}>{shortcutLabel}</div>
+        )}
+        {/* 아이콘 */}
         {item.icon ? (
-          <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-            style={{ background: (item.color ?? '#185FA5') + '22' }}>
+          <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: (item.color ?? '#185FA5') + '22' }}>
             <i className={`ti ${item.icon} text-[16px]`} style={{ color: item.color }} />
           </div>
         ) : (
-          <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center flex-shrink-0"
-            style={{ borderColor: item.color, background: (item.color ?? '#185FA5') + '22' }}>
+          <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center flex-shrink-0" style={{ borderColor: item.color, background: (item.color ?? '#185FA5') + '22' }}>
             <i className="ti ti-user text-[14px]" style={{ color: item.color }} />
           </div>
         )}
@@ -176,62 +236,82 @@ export default function PTTPage() {
             <div className="text-[15px] font-semibold">마이크 설정</div>
             <button onClick={() => setShowMicModal(false)}><i className="ti ti-x text-[18px] text-[#A0AEC0]" /></button>
           </div>
+
+          {/* 권한 상태 */}
           <div className={`flex items-center gap-3 p-3 rounded-[12px] mb-4 ${
             micPermission === 'granted' ? 'bg-[#EAF3DE]' : micPermission === 'denied' ? 'bg-[#FCEBEB]' : 'bg-[#F4F6F9]'
           }`}>
             <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
               micPermission === 'granted' ? 'bg-[#C6E6A0]' : micPermission === 'denied' ? 'bg-[#F7C1C1]' : 'bg-[#E2E8F0]'
             }`}>
-              <i className={`ti text-[20px] ${
-                micPermission === 'granted' ? 'ti-microphone text-[#3B6D11]' : micPermission === 'denied' ? 'ti-microphone-off text-[#A32D2D]' : 'ti-microphone text-[#64748B]'
-              }`} />
+              <i className={`ti text-[20px] ${micPermission === 'granted' ? 'ti-microphone text-[#3B6D11]' : micPermission === 'denied' ? 'ti-microphone-off text-[#A32D2D]' : 'ti-microphone text-[#64748B]'}`} />
             </div>
             <div>
-              <div className={`text-[13px] font-semibold ${
-                micPermission === 'granted' ? 'text-[#3B6D11]' : micPermission === 'denied' ? 'text-[#A32D2D]' : 'text-[#64748B]'
-              }`}>
+              <div className={`text-[13px] font-semibold ${micPermission === 'granted' ? 'text-[#3B6D11]' : micPermission === 'denied' ? 'text-[#A32D2D]' : 'text-[#64748B]'}`}>
                 {micPermission === 'granted' ? '마이크 사용 가능' : micPermission === 'denied' ? '마이크 차단됨' : '권한 필요'}
               </div>
               <div className="text-[11px] text-[#64748B] mt-0.5">
-                {micPermission === 'granted' ? '이어폰/헤드셋 연결 시 자동으로 연동돼요' : micPermission === 'denied' ? '브라우저 설정에서 허용해야 해요' : '아래 버튼을 눌러 권한을 허용해주세요'}
+                {micPermission === 'granted' ? '블루투스 포함 모든 장치 지원' : micPermission === 'denied' ? '브라우저 설정에서 허용해야 해요' : '아래 버튼을 눌러 권한을 허용해주세요'}
               </div>
             </div>
           </div>
+
+          {/* 장치 선택 (권한 있을 때) */}
+          {micPermission === 'granted' && audioDevices.length > 0 && (
+            <div className="mb-4">
+              <div className="text-[12px] font-semibold text-[#64748B] mb-2">입력 장치 선택</div>
+              <div className="flex flex-col gap-1.5 max-h-[180px] overflow-y-auto">
+                {audioDevices.map((d) => {
+                  const isBt = d.label.toLowerCase().includes('bluetooth') || d.label.toLowerCase().includes('bt')
+                  const isSelected = d.deviceId === selectedDeviceId
+                  return (
+                    <button key={d.deviceId} onClick={() => { setSelectedDeviceId(d.deviceId) }}
+                      className={`flex items-center gap-2.5 px-3 py-2 rounded-[10px] border-2 text-left transition-colors ${isSelected ? 'border-[#185FA5] bg-[#E6F1FB]' : 'border-[#E2E8F0] hover:border-[#B5D4F4]'}`}>
+                      <i className={`ti text-[16px] ${isBt ? 'ti-bluetooth' : 'ti-microphone'} ${isSelected ? 'text-[#185FA5]' : 'text-[#64748B]'}`} />
+                      <div className="flex-1 min-w-0">
+                        <div className={`text-[12px] font-medium truncate ${isSelected ? 'text-[#185FA5]' : 'text-[#1A1A2E]'}`}>
+                          {d.label || `마이크 ${audioDevices.indexOf(d) + 1}`}
+                        </div>
+                        {isBt && <div className="text-[10px] text-[#3B6D11] font-semibold">블루투스</div>}
+                      </div>
+                      {isSelected && <i className="ti ti-check text-[#185FA5] text-[14px]" />}
+                    </button>
+                  )
+                })}
+              </div>
+              <button onClick={loadAudioDevices} className="mt-2 w-full text-[11px] text-[#185FA5] flex items-center justify-center gap-1 py-1">
+                <i className="ti ti-refresh text-[12px]" /> 장치 목록 새로고침
+              </button>
+            </div>
+          )}
+
           {micPermission !== 'granted' && micPermission !== 'denied' && (
             <button onClick={requestMicPermission} disabled={requestingMic}
               className="w-full h-[42px] bg-[#185FA5] text-white rounded-[12px] text-[13px] font-semibold flex items-center justify-center gap-2 disabled:opacity-50 mb-3">
-              {requestingMic
-                ? <><i className="ti ti-loader-2 text-[15px] animate-spin" /> 요청 중...</>
-                : <><i className="ti ti-microphone text-[15px]" /> 마이크 권한 허용하기</>}
+              {requestingMic ? <><i className="ti ti-loader-2 animate-spin" /> 요청 중...</> : <><i className="ti ti-microphone" /> 마이크 권한 허용하기</>}
             </button>
           )}
+
           {micPermission === 'denied' && (
-            <>
-              <div className="bg-[#F4F6F9] rounded-[10px] p-3 mb-3">
-                <div className="text-[11px] font-semibold text-[#64748B] mb-2">브라우저에서 직접 허용하는 방법</div>
-                {[
-                  { icon: 'ti-lock',    text: '주소창 왼쪽 자물쇠 클릭' },
-                  { icon: 'ti-settings',text: '사이트 설정 → 마이크 → 허용' },
-                  { icon: 'ti-refresh', text: '페이지 새로고침' },
-                ].map((s, i) => (
-                  <div key={i} className="flex items-center gap-2 mb-1.5 last:mb-0">
-                    <div className="w-4 h-4 rounded-full bg-[#E2E8F0] flex items-center justify-center text-[9px] font-bold text-[#64748B]">{i + 1}</div>
-                    <i className={`ti ${s.icon} text-[12px] text-[#185FA5]`} />
-                    <span className="text-[11px] text-[#64748B]">{s.text}</span>
-                  </div>
-                ))}
-              </div>
-              <button onClick={() => window.location.reload()}
-                className="w-full h-[38px] border border-[#E2E8F0] rounded-[10px] text-[12px] text-[#64748B] flex items-center justify-center gap-2">
-                <i className="ti ti-refresh text-[13px]" /> 새로고침
-              </button>
-            </>
+            <div className="bg-[#F4F6F9] rounded-[10px] p-3 mb-3">
+              <div className="text-[11px] font-semibold text-[#64748B] mb-2">브라우저에서 직접 허용하는 방법</div>
+              {[{ icon: 'ti-lock', text: '주소창 왼쪽 자물쇠 클릭' }, { icon: 'ti-settings', text: '사이트 설정 → 마이크 → 허용' }, { icon: 'ti-refresh', text: '페이지 새로고침' }].map((s, i) => (
+                <div key={i} className="flex items-center gap-2 mb-1.5 last:mb-0">
+                  <div className="w-4 h-4 rounded-full bg-[#E2E8F0] flex items-center justify-center text-[9px] font-bold text-[#64748B]">{i + 1}</div>
+                  <i className={`ti ${s.icon} text-[12px] text-[#185FA5]`} />
+                  <span className="text-[11px] text-[#64748B]">{s.text}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {micPermission === 'denied' && (
+            <button onClick={() => window.location.reload()} className="w-full h-[38px] border border-[#E2E8F0] rounded-[10px] text-[12px] text-[#64748B] flex items-center justify-center gap-2">
+              <i className="ti ti-refresh text-[13px]" /> 새로고침
+            </button>
           )}
           {micPermission === 'granted' && (
-            <button onClick={() => setShowMicModal(false)}
-              className="w-full h-[38px] bg-[#185FA5] text-white rounded-[10px] text-[13px] font-semibold">
-              확인
-            </button>
+            <button onClick={() => setShowMicModal(false)} className="w-full h-[38px] bg-[#185FA5] text-white rounded-[10px] text-[13px] font-semibold">확인</button>
           )}
         </div>
       </div>
@@ -244,22 +324,35 @@ export default function PTTPage() {
       <div className="max-w-2xl mx-auto px-5 pt-5 pb-28">
 
         {/* 헤더 */}
-        <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center justify-between mb-4">
           <div>
             <div className="text-[18px] font-semibold">무전 채널</div>
             <div className="text-[12px] text-[#64748B]">버튼을 누르는 동안 실시간 음성 전송</div>
           </div>
-          {/* 마이크 상태 토글 버튼 */}
-          <button onClick={() => setShowMicModal(true)}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-semibold border transition-colors ${
-              micPermission === 'granted' ? 'bg-[#EAF3DE] text-[#3B6D11] border-[#C6E6A0]'
-              : micPermission === 'denied'  ? 'bg-[#FCEBEB] text-[#A32D2D] border-[#F7C1C1]'
-              : 'bg-[#F4F6F9] text-[#64748B] border-[#E2E8F0]'
-            }`}>
-            <i className={`ti text-[13px] ${micPermission === 'denied' ? 'ti-microphone-off' : 'ti-microphone'}`} />
-            <span>{micPermission === 'granted' ? '마이크 ON' : micPermission === 'denied' ? '차단됨' : '권한 필요'}</span>
-            <i className="ti ti-chevron-down text-[10px] opacity-60" />
-          </button>
+          <div className="flex items-center gap-2">
+            {/* 관리자 버튼 */}
+            <button onClick={() => navigate(`/p/${projectId}/admin`)}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-semibold bg-[#F4F6F9] text-[#64748B] border border-[#E2E8F0] hover:border-[#185FA5] hover:text-[#185FA5] transition-colors">
+              <i className="ti ti-settings text-[13px]" /> 관리자
+            </button>
+            {/* 마이크 상태 */}
+            <button onClick={() => setShowMicModal(true)}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-semibold border transition-colors ${
+                micPermission === 'granted' ? 'bg-[#EAF3DE] text-[#3B6D11] border-[#C6E6A0]'
+                : micPermission === 'denied' ? 'bg-[#FCEBEB] text-[#A32D2D] border-[#F7C1C1]'
+                : 'bg-[#F4F6F9] text-[#64748B] border-[#E2E8F0]'
+              }`}>
+              <i className={`ti text-[13px] ${isBluetooth ? 'ti-bluetooth' : micPermission === 'denied' ? 'ti-microphone-off' : 'ti-microphone'}`} />
+              <span>{micPermission === 'granted' ? (isBluetooth ? 'BT 연결' : '마이크 ON') : micPermission === 'denied' ? '차단됨' : '권한 필요'}</span>
+              <i className="ti ti-chevron-down text-[10px] opacity-60" />
+            </button>
+          </div>
+        </div>
+
+        {/* 단축키 안내 */}
+        <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-white border border-[#E2E8F0] rounded-[10px]">
+          <i className="ti ti-keyboard text-[14px] text-[#185FA5]" />
+          <span className="text-[11px] text-[#64748B]">키보드 단축키: <span className="font-semibold text-[#1A1A2E]">1~9</span> 빠른 선택 · <span className="font-semibold text-[#1A1A2E]">Alt+1~0</span> 10~20번</span>
         </div>
 
         {/* PTT 버튼 */}
@@ -281,7 +374,9 @@ export default function PTTPage() {
               <span className="text-[12px] font-semibold text-[#1A1A2E]">{selectedTarget?.label ?? '크루 전체'}</span>
             </div>
           </div>
-          <p className="text-[11px] text-[#A0AEC0] mt-2">손 떼면 자동 전송 · 이어폰/헤드셋 자동 연동</p>
+          <p className="text-[11px] text-[#A0AEC0] mt-2">
+            손 떼면 자동 전송 · {isBluetooth ? <span className="text-[#3B6D11] font-semibold">블루투스 연결됨</span> : '이어폰/헤드셋 자동 연동'}
+          </p>
         </div>
 
         {/* 보낼 대상 */}
@@ -309,11 +404,9 @@ export default function PTTPage() {
             const isOpen = openGroups[tier]
             return (
               <div key={tier} className="border-b border-[#F4F6F9] last:border-0">
-                <button className="w-full flex items-center justify-between px-4 py-3 hover:bg-[#FAFBFC] transition-colors"
-                  onClick={() => toggleGroup(tier)}>
+                <button className="w-full flex items-center justify-between px-4 py-3 hover:bg-[#FAFBFC] transition-colors" onClick={() => toggleGroup(tier)}>
                   <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-                      style={{ background: badgeBg, color: badgeColor }}>{label}</span>
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: badgeBg, color: badgeColor }}>{label}</span>
                     <span className="text-[11px] text-[#A0AEC0]">{items.length}명</span>
                   </div>
                   <i className={`ti text-[14px] text-[#A0AEC0] transition-transform duration-200 ${isOpen ? 'ti-chevron-up' : 'ti-chevron-down'}`} />
