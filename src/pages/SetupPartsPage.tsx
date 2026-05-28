@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ref, push, update, onValue } from 'firebase/database'
+import { ref, push, set, onValue } from 'firebase/database'
 import { db } from '@/lib/firebase'
 import { PART_COLORS } from '@/utils/fieldTerms'
 import { Topbar, StepBar } from '@/components/ui/Common'
@@ -18,6 +18,7 @@ export default function SetupPartsPage() {
   const [inviteIdx, setInviteIdx] = useState<number | null>(null)
   const [manager, setManager] = useState<Manager>({ name: '', phone: '', email: '' })
   const [initialized, setInitialized] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
 
   const joinCode = projectId?.slice(-6).toUpperCase() ?? 'AB3X7F'
   const joinLink = `${window.location.origin}/join?code=${joinCode}`
@@ -27,19 +28,29 @@ export default function SetupPartsPage() {
     if (!projectId) return
     onValue(ref(db, `draftParts/${projectId}`), (snap) => {
       if (snap.exists()) {
-        const saved = snap.val() as { name: string; manager?: Manager }[]
-        setParts(saved.map((p) => ({ name: p.name })))
-        setManagers(saved.map((p) => p.manager ?? null))
+        const saved = snap.val() as Record<string, { name: string; manager?: Manager }>
+        const arr = Object.values(saved)
+        setParts(arr.map((p) => ({ name: p.name })))
+        setManagers(arr.map((p) => p.manager ?? null))
       }
       setInitialized(true)
     }, { onlyOnce: true })
   }, [projectId])
 
   // 파트 변경시 Firebase에 저장
-  function saveDraft(newParts: { name: string }[], newManagers: (Manager | null)[]) {
+  async function saveDraft(newParts: { name: string }[], newManagers: (Manager | null)[]) {
     if (!projectId) return
-    const data = newParts.map((p, i) => ({ name: p.name, manager: newManagers[i] ?? null }))
-    update(ref(db, `draftParts/${projectId}`), Object.fromEntries(data.map((d, i) => [i, d])))
+    setSaveStatus('saving')
+    try {
+      const data: Record<string, { name: string; manager: Manager | null }> = {}
+      newParts.forEach((p, i) => { data[String(i)] = { name: p.name, manager: newManagers[i] ?? null } })
+      await set(ref(db, `draftParts/${projectId}`), data)
+      setSaveStatus('saved')
+      setTimeout(() => setSaveStatus('idle'), 1500)
+    } catch (e) {
+      console.error('draftParts 저장 오류:', e)
+      setSaveStatus('idle')
+    }
   }
 
   function updatePart(idx: number, name: string) {
@@ -102,31 +113,42 @@ export default function SetupPartsPage() {
   }
 
   async function handleSave() {
-    const valid = parts.filter((p) => p.name.trim())
+    const valid = parts.map((p, i) => ({ ...p, managerIdx: i })).filter((p) => p.name.trim())
     if (valid.length === 0) { setError('파트를 최소 1개 이상 입력해주세요'); return }
     setLoading(true); setError('')
     try {
-      const updates: Record<string, unknown> = {}
-      valid.forEach((p, idx) => {
+      // 파트를 순서대로 하나씩 set으로 저장 (push + update 대신 명시적 경로 사용)
+      for (let idx = 0; idx < valid.length; idx++) {
+        const p = valid[idx]
         const partRef = push(ref(db, `parts/${projectId}`))
+        const partId = partRef.key!
         const part: Part = {
-          id: partRef.key!, projectId: projectId!, name: p.name.trim(),
+          id: partId,
+          projectId: projectId!,
+          name: p.name.trim(),
           color: PART_COLORS[idx % PART_COLORS.length],
-          managerName: managers[idx]?.name ?? undefined,
-          status: 'waiting', progress: 0, order: idx,
+          managerName: managers[p.managerIdx]?.name ?? undefined,
+          status: 'waiting',
+          progress: 0,
+          order: idx,
           createdAt: new Date().toISOString(),
         }
-        updates[`parts/${projectId}/${part.id}`] = part
-        if (managers[idx]?.name) {
-          updates[`partManagers/${projectId}/${partRef.key}`] = managers[idx]
+        await set(ref(db, `parts/${projectId}/${partId}`), part)
+
+        if (managers[p.managerIdx]?.name) {
+          await set(ref(db, `partManagers/${projectId}/${partId}`), managers[p.managerIdx])
         }
-      })
+      }
       // draft 삭제
-      updates[`draftParts/${projectId}`] = null
-      await update(ref(db), updates)
+      await set(ref(db, `draftParts/${projectId}`), null)
       navigate(`/p/${projectId}/home`)
-    } catch { setError('저장 중 오류가 발생했어요') }
-    finally { setLoading(false) }
+    } catch (e) {
+      console.error('파트 저장 오류:', e)
+      const msg = e instanceof Error ? e.message : String(e)
+      setError(`저장 중 오류가 발생했어요: ${msg}`)
+    } finally {
+      setLoading(false)
+    }
   }
 
   if (!initialized) return (
@@ -140,7 +162,11 @@ export default function SetupPartsPage() {
       <Topbar />
       <StepBar step={4} />
       <div className="max-w-2xl mx-auto px-5 pt-7 pb-10">
-        <h2 className="text-[20px] font-semibold text-[#1A1A2E] mb-1">파트 구성 및 담당자 초대</h2>
+        <div className="flex items-center justify-between mb-1">
+          <h2 className="text-[20px] font-semibold text-[#1A1A2E]">파트 구성 및 담당자 초대</h2>
+          {saveStatus === 'saving' && <span className="text-[11px] text-[#A0AEC0]">저장 중...</span>}
+          {saveStatus === 'saved'  && <span className="text-[11px] text-[#3B6D11]">저장됨 ✓</span>}
+        </div>
         <p className="text-[13px] text-[#64748B] mb-6">입력하는 즉시 저장돼요 — 언제든 이어서 작업 가능해요</p>
 
         <div className="flex flex-col gap-2 mb-3">
@@ -173,7 +199,12 @@ export default function SetupPartsPage() {
           </div>
         </div>
 
-        {error && <p className="text-[#A32D2D] text-[12px] mb-3">{error}</p>}
+        {error && (
+          <div className="bg-[#FCEBEB] border border-[#F09595] rounded-[10px] px-4 py-3 mb-3 flex items-start gap-2">
+            <i className="ti ti-alert-circle text-[#A32D2D] text-[15px] mt-0.5 flex-shrink-0" />
+            <p className="text-[#A32D2D] text-[12px]">{error}</p>
+          </div>
+        )}
 
         <div className="flex items-center justify-between pt-5 border-t border-[#E2E8F0]">
           <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-[13px] text-[#64748B]">
