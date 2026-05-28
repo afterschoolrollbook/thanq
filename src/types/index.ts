@@ -185,5 +185,6 @@ export interface TemplateFile {
   authorName: string
   createdAt: string
   parts: TemplatePartDraft[]
-  passwordHash?: string   // SHA-256 해시 (비밀번호 설정 시)
+  passwordHash?: string    // SHA-256 해시 (비밀번호 설정 시)
+  allowedEmail?: string    // 허용된 이메일 (설정 시 해당 이메일 로그인한 사람만 열람 가능)
 }
