@@ -13,7 +13,8 @@ const FIELDS = [
   { key: 'concert' as FieldType,   name: '콘서트 / 공연',  desc: '콘서트, 뮤지컬, 연극',          icon: 'ti-music',     bg: '#E1F5EE', color: '#0F6E56' },
   { key: 'fashion' as FieldType,   name: '패션쇼',         desc: '런웨이, 브랜드 쇼케이스',       icon: 'ti-hanger',    bg: '#FBEAF0', color: '#993556' },
   { key: 'sports' as FieldType,    name: '스포츠 / 대회',  desc: '마라톤, 체육대회, e스포츠',     icon: 'ti-trophy',    bg: '#FAEEDA', color: '#854F0B' },
-  { key: 'broadcast' as FieldType, name: '방송 / 생방송',  desc: 'TV, 유튜브 라이브',             icon: 'ti-broadcast', bg: '#FAECE7', color: '#993C1D' },
+  { key: 'broadcast' as FieldType, name: '방송 / 생방송',  desc: 'TV, 유튜브 라이브',             icon: 'ti-broadcast',    bg: '#FAECE7', color: '#993C1D' },
+  { key: 'club' as FieldType,      name: '모임 / 클럽',    desc: '드라이브, 라이딩, 러닝, 등산',  icon: 'ti-users-group',  bg: '#E8F5E9', color: '#2E7D32' },
 ]
 
 export default function FieldSelectPage() {

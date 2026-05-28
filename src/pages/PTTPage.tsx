@@ -230,18 +230,17 @@ export default function PTTPage() {
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1">
             <span className={`text-[13px] font-semibold truncate ${isSelected ? 'text-[#185FA5]' : 'text-[#1A1A2E]'}`}>{displayName}</span>
-            {hasAlias && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#F4F6F9] text-[#A0AEC0] flex-shrink-0">별칭</span>}
+            <button onClick={(e) => { e.stopPropagation(); setDetailTarget(item); setAliasInput(aliasMap[item.id] ?? '') }}
+              className="flex-shrink-0 p-0.5 text-[#A0AEC0] hover:text-[#185FA5] transition-colors">
+              <i className="ti ti-pencil text-[11px]" />
+            </button>
           </div>
-          {!compact && <div className="text-[11px] text-[#A0AEC0] truncate">{item.sublabel}</div>}
+          {!compact && <div className="text-[11px] text-[#A0AEC0] truncate">{hasAlias ? <span className="text-[#185FA5]">{item.label}</span> : item.sublabel}</div>}
         </div>
 
-        {/* 상세보기 버튼 */}
-        <button onClick={(e) => { e.stopPropagation(); setDetailTarget(item); setAliasInput(aliasMap[item.id] ?? '') }}
-          className="p-1 flex-shrink-0 hover:text-[#185FA5] text-[#A0AEC0] transition-colors">
-          <i className="ti ti-info-circle text-[15px]" />
-        </button>
+
 
         {/* 단축번호 뱃지 */}
         <button onClick={(e) => { e.stopPropagation(); openShortcutModal(item) }}
@@ -271,7 +270,7 @@ export default function PTTPage() {
       <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-5" onClick={() => setDetailTarget(null)}>
         <div className="bg-white w-full max-w-sm rounded-[20px] p-5" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-between mb-4">
-            <div className="text-[15px] font-semibold">상세 정보</div>
+            <div className="text-[15px] font-semibold">별칭 설정</div>
             <button onClick={() => setDetailTarget(null)}><i className="ti ti-x text-[18px] text-[#A0AEC0]" /></button>
           </div>
 
@@ -502,9 +501,7 @@ export default function PTTPage() {
           <div className="px-4 py-3 border-b border-[#F4F6F9] flex items-center justify-between">
             <div className="text-[13px] font-semibold">보낼 대상</div>
             <div className="text-[11px] text-[#A0AEC0] flex items-center gap-2">
-              <span className="flex items-center gap-1"><i className="ti ti-info-circle text-[11px]" /> 상세</span>
-              <span className="flex items-center gap-1"><i className="ti ti-hash text-[11px]" /> 단축</span>
-              <span className="flex items-center gap-1"><i className="ti ti-star text-[11px]" /> 즐겨찾기</span>
+              <span className="flex items-center gap-1"><i className="ti ti-pencil text-[11px]" /> 이름 옆 ✏️ = 별칭</span>
             </div>
           </div>
 

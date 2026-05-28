@@ -1,32 +1,32 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ref, push, set, onValue } from 'firebase/database'
+import { ref, push, set, onValue, get } from 'firebase/database'
 import { db } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
 import { PART_COLORS } from '@/utils/fieldTerms'
 import { Topbar, StepBar, BottomTabBar } from '@/components/ui/Common'
 import type { Part } from '@/types'
 
-interface Manager { name: string; phone: string; email: string }
-interface PartDraft { name: string; alias: string; manager: Manager | null }
+// alias: 내가 부르는 표시 이름 (담당자 초대 모달에서 관리)
+interface Manager { name: string; alias: string; phone: string; email: string }
+interface PartDraft { name: string; manager: Manager | null }
+
+const emptyManager = (): Manager => ({ name: '', alias: '', phone: '', email: '' })
 
 export default function SetupPartsPage() {
   const navigate = useNavigate()
   const { projectId } = useParams()
   const user = useAuthStore((s) => s.user)
   const [parts, setParts] = useState<PartDraft[]>([
-    { name: '', alias: '', manager: null },
-    { name: '', alias: '', manager: null },
+    { name: '', manager: null },
+    { name: '', manager: null },
   ])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [inviteIdx, setInviteIdx] = useState<number | null>(null)
-  const [manager, setManager] = useState<Manager>({ name: '', phone: '', email: '' })
+  const [manager, setManager] = useState<Manager>(emptyManager())
   const [initialized, setInitialized] = useState(false)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
-  // 별칭 편집 모달
-  const [aliasIdx, setAliasIdx] = useState<number | null>(null)
-  const [aliasInput, setAliasInput] = useState('')
 
   const joinCode = projectId?.slice(-6).toUpperCase() ?? 'AB3X7F'
   const joinLink = `${window.location.origin}/join?code=${joinCode}`
@@ -36,8 +36,10 @@ export default function SetupPartsPage() {
     onValue(ref(db, `draftParts/${projectId}`), (snap) => {
       if (snap.exists()) {
         const saved = snap.val() as Record<string, PartDraft>
-        const arr = Object.values(saved)
-        setParts(arr.map((p) => ({ name: p.name, alias: p.alias ?? '', manager: p.manager ?? null })))
+        setParts(Object.values(saved).map((p) => ({
+          name: p.name,
+          manager: p.manager ?? null,
+        })))
       }
       setInitialized(true)
     }, { onlyOnce: true })
@@ -55,39 +57,33 @@ export default function SetupPartsPage() {
     } catch { setSaveStatus('idle') }
   }
 
-  function updatePart(idx: number, key: keyof PartDraft, value: string) {
-    const newParts = parts.map((p, i) => i === idx ? { ...p, [key]: value } : p)
-    setParts(newParts); saveDraft(newParts)
+  function updatePartName(idx: number, name: string) {
+    const next = parts.map((p, i) => i === idx ? { ...p, name } : p)
+    setParts(next); saveDraft(next)
   }
 
   function addPart() {
-    const newParts = [...parts, { name: '', alias: '', manager: null }]
-    setParts(newParts); saveDraft(newParts)
+    const next = [...parts, { name: '', manager: null }]
+    setParts(next); saveDraft(next)
   }
 
   function removePart(idx: number) {
-    const newParts = parts.filter((_, i) => i !== idx)
-    setParts(newParts); saveDraft(newParts)
+    const next = parts.filter((_, i) => i !== idx)
+    setParts(next); saveDraft(next)
   }
 
   function openInvite(idx: number) {
-    setInviteIdx(idx); setManager(parts[idx].manager ?? { name: '', phone: '', email: '' })
+    setInviteIdx(idx)
+    setManager(parts[idx].manager ?? emptyManager())
   }
 
   function saveManager() {
     if (inviteIdx === null) return
-    const newParts = parts.map((p, i) => i === inviteIdx ? { ...p, manager: manager.name ? { ...manager } : null } : p)
-    setParts(newParts); saveDraft(newParts); setInviteIdx(null)
-  }
-
-  function openAliasModal(idx: number) {
-    setAliasIdx(idx); setAliasInput(parts[idx].alias ?? '')
-  }
-
-  function saveAlias() {
-    if (aliasIdx === null) return
-    updatePart(aliasIdx, 'alias', aliasInput.trim())
-    setAliasIdx(null)
+    const next = parts.map((p, i) => i === inviteIdx
+      ? { ...p, manager: manager.name ? { ...manager } : null }
+      : p
+    )
+    setParts(next); saveDraft(next); setInviteIdx(null)
   }
 
   function shareKakao() {
@@ -109,6 +105,11 @@ export default function SetupPartsPage() {
     if (valid.length === 0) { setError('파트를 최소 1개 이상 입력해주세요'); return }
     setLoading(true); setError('')
     try {
+      // 현재 저장된 alias 맵 불러오기
+      const aliasMap: Record<string, string> = user
+        ? ((await get(ref(db, `pttAliases/${projectId}/${user.uid}`))).val() ?? {})
+        : {}
+
       for (let i = 0; i < valid.length; i++) {
         const p = valid[i]
         const partRef = push(ref(db, `parts/${projectId}`))
@@ -122,20 +123,18 @@ export default function SetupPartsPage() {
         }
         await set(ref(db, `parts/${projectId}/${partId}`), part)
         if (p.manager?.name) await set(ref(db, `partManagers/${projectId}/${partId}`), p.manager)
-        // 별칭 저장 (지정된 경우)
-        if (p.alias.trim() && user) {
-          const aliasRef = ref(db, `pttAliases/${projectId}/${user.uid}`)
-          const snapshot = await new Promise<Record<string, string>>((resolve) => {
-            onValue(aliasRef, (s) => resolve(s.val() ?? {}), { onlyOnce: true })
-          })
-          await set(aliasRef, { ...snapshot, [partId]: p.alias.trim() })
+        // alias가 있으면 pttAliases에 저장
+        if (p.manager?.alias?.trim() && user) {
+          aliasMap[partId] = p.manager.alias.trim()
         }
+      }
+      if (user && Object.keys(aliasMap).length > 0) {
+        await set(ref(db, `pttAliases/${projectId}/${user.uid}`), aliasMap)
       }
       await set(ref(db, `draftParts/${projectId}`), null)
       navigate(`/p/${projectId}/home`)
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e)
-      setError(`저장 중 오류가 발생했어요: ${msg}`)
+      setError(`저장 중 오류가 발생했어요: ${e instanceof Error ? e.message : String(e)}`)
     } finally { setLoading(false) }
   }
 
@@ -159,34 +158,24 @@ export default function SetupPartsPage() {
 
         <div className="flex flex-col gap-2 mb-3">
           {parts.map((part, idx) => (
-            <div key={idx} className="bg-white border border-[#E2E8F0] rounded-[10px] overflow-hidden">
-              {/* 파트 이름 행 */}
-              <div className="flex items-center gap-2.5 px-3.5 py-2.5">
-                <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: PART_COLORS[idx % PART_COLORS.length] }} />
-                <input className="flex-1 text-[13px] font-medium text-[#1A1A2E] outline-none bg-transparent placeholder-[#A0AEC0]"
-                  placeholder={`파트 ${idx + 1} 이름`} value={part.name} onChange={(e) => updatePart(idx, 'name', e.target.value)} />
-                {/* 별칭 버튼 */}
-                <button onClick={() => openAliasModal(idx)}
-                  className={`flex items-center gap-1 text-[11px] px-2 py-1 rounded-full border transition-colors ${
-                    part.alias ? 'border-[#185FA5] text-[#185FA5] bg-[#E6F1FB]' : 'border-[#E2E8F0] text-[#A0AEC0] hover:border-[#185FA5] hover:text-[#185FA5]'
-                  }`}>
-                  <i className="ti ti-tag text-[11px]" />
-                  {part.alias || '별칭'}
-                </button>
-                <button onClick={() => openInvite(idx)}
-                  className={`flex items-center gap-1.5 text-[12px] px-2.5 py-1 rounded-full border transition-colors ${part.manager?.name ? 'border-[#185FA5] text-[#185FA5] bg-[#E6F1FB]' : 'border-[#E2E8F0] text-[#A0AEC0] hover:border-[#185FA5] hover:text-[#185FA5]'}`}>
-                  <i className="ti ti-user-plus text-[13px]" />
-                  {part.manager?.name ?? '담당자 초대'}
-                </button>
-                {parts.length > 1 && <i className="ti ti-x text-[14px] text-[#A0AEC0] cursor-pointer hover:text-[#A32D2D]" onClick={() => removePart(idx)} />}
-              </div>
-              {/* 별칭 미리보기 */}
-              {part.alias && (
-                <div className="px-3.5 pb-2 flex items-center gap-1.5">
-                  <i className="ti ti-arrow-right text-[10px] text-[#A0AEC0]" />
-                  <span className="text-[11px] text-[#185FA5] font-medium">"{part.alias}"</span>
-                  <span className="text-[11px] text-[#A0AEC0]">로 표시됨</span>
-                </div>
+            <div key={idx} className="flex items-center gap-2.5 px-3.5 py-2.5 bg-white border border-[#E2E8F0] rounded-[10px]">
+              <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: PART_COLORS[idx % PART_COLORS.length] }} />
+              <input className="flex-1 text-[13px] font-medium text-[#1A1A2E] outline-none bg-transparent placeholder-[#A0AEC0]"
+                placeholder={`파트 ${idx + 1} 이름`} value={part.name}
+                onChange={(e) => updatePartName(idx, e.target.value)} />
+              <button onClick={() => openInvite(idx)}
+                className={`flex items-center gap-1.5 text-[12px] px-2.5 py-1 rounded-full border transition-colors ${
+                  part.manager?.name
+                    ? 'border-[#185FA5] text-[#185FA5] bg-[#E6F1FB]'
+                    : 'border-[#E2E8F0] text-[#A0AEC0] hover:border-[#185FA5] hover:text-[#185FA5]'
+                }`}>
+                <i className="ti ti-user-plus text-[13px]" />
+                {/* alias 있으면 alias 표시, 아니면 name, 없으면 "담당자 초대" */}
+                {part.manager?.alias || part.manager?.name || '담당자 초대'}
+              </button>
+              {parts.length > 1 && (
+                <i className="ti ti-x text-[14px] text-[#A0AEC0] cursor-pointer hover:text-[#A32D2D]"
+                  onClick={() => removePart(idx)} />
               )}
             </div>
           ))}
@@ -201,8 +190,12 @@ export default function SetupPartsPage() {
           <div className="text-[32px] font-bold tracking-[8px] text-[#185FA5] text-center my-2">{joinCode}</div>
           <div className="text-[12px] text-[#A0AEC0] text-center mb-3">이 코드를 공유하면 담당자가 바로 합류할 수 있어요</div>
           <div className="grid grid-cols-2 gap-2">
-            <button onClick={copyLink} className="h-[36px] border border-[#E2E8F0] rounded-[10px] flex items-center justify-center gap-1.5 text-[12px] text-[#64748B] hover:border-[#185FA5]"><i className="ti ti-copy text-[14px]" /> 링크 복사</button>
-            <button className="h-[36px] border border-[#E2E8F0] rounded-[10px] flex items-center justify-center gap-1.5 text-[12px] text-[#64748B] hover:border-[#185FA5]"><i className="ti ti-qrcode text-[14px]" /> QR 코드</button>
+            <button onClick={copyLink} className="h-[36px] border border-[#E2E8F0] rounded-[10px] flex items-center justify-center gap-1.5 text-[12px] text-[#64748B] hover:border-[#185FA5]">
+              <i className="ti ti-copy text-[14px]" /> 링크 복사
+            </button>
+            <button className="h-[36px] border border-[#E2E8F0] rounded-[10px] flex items-center justify-center gap-1.5 text-[12px] text-[#64748B] hover:border-[#185FA5]">
+              <i className="ti ti-qrcode text-[14px]" /> QR 코드
+            </button>
           </div>
         </div>
 
@@ -224,10 +217,9 @@ export default function SetupPartsPage() {
         </div>
       </div>
 
-      {/* 하단 네비 */}
       <BottomTabBar />
 
-      {/* 담당자 초대 모달 */}
+      {/* 담당자 초대 모달 — alias 관리 통합 */}
       {inviteIdx !== null && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center" onClick={() => setInviteIdx(null)}>
           <div className="bg-white w-full max-w-2xl rounded-t-[20px] p-5 pb-8" onClick={(e) => e.stopPropagation()}>
@@ -235,55 +227,54 @@ export default function SetupPartsPage() {
               <div className="text-[16px] font-semibold">담당자 초대</div>
               <button onClick={() => setInviteIdx(null)}><i className="ti ti-x text-[18px] text-[#A0AEC0]" /></button>
             </div>
+
             <div className="flex flex-col gap-3 mb-4">
-              <div><label className={lbl}>이름</label><input className={inp} placeholder="홍길동" value={manager.name} onChange={(e) => setManager({ ...manager, name: e.target.value })} /></div>
-              <div><label className={lbl}>전화번호</label><input className={inp} placeholder="010-1234-5678" type="tel" value={manager.phone} onChange={(e) => setManager({ ...manager, phone: e.target.value })} /></div>
-              <div><label className={lbl}>이메일</label><input className={inp} placeholder="example@email.com" type="email" value={manager.email} onChange={(e) => setManager({ ...manager, email: e.target.value })} /></div>
+              <div>
+                <label className={lbl}>이름</label>
+                <input className={inp} placeholder="홍길동" value={manager.name}
+                  onChange={(e) => setManager({ ...manager, name: e.target.value })} />
+              </div>
+              {/* 별칭 — 담당자 초대 모달에서 통합 관리 */}
+              <div>
+                <label className={lbl}>
+                  표시 이름 <span className="text-[#A0AEC0] font-normal">(나에게만 보이는 별칭, 비워두면 이름으로 표시)</span>
+                </label>
+                <input className={inp} placeholder={manager.name || '예: 음향팀장, 방PD'} value={manager.alias}
+                  onChange={(e) => setManager({ ...manager, alias: e.target.value })} />
+              </div>
+              <div>
+                <label className={lbl}>전화번호</label>
+                <input className={inp} placeholder="010-1234-5678" type="tel" value={manager.phone}
+                  onChange={(e) => setManager({ ...manager, phone: e.target.value })} />
+              </div>
+              <div>
+                <label className={lbl}>이메일</label>
+                <input className={inp} placeholder="example@email.com" type="email" value={manager.email}
+                  onChange={(e) => setManager({ ...manager, email: e.target.value })} />
+              </div>
             </div>
+
             <div className="text-[12px] font-semibold text-[#64748B] mb-2">초대 방법</div>
             <div className="grid grid-cols-4 gap-2 mb-5">
               {[
-                { fn: shareSMS,   icon: 'ti-message',   color: '#3B6D11', label: '문자' },
-                { fn: shareKakao, icon: 'ti-message-2',  color: '#3A1D1D', label: '카카오톡' },
-                { fn: shareEmail, icon: 'ti-mail',       color: '#185FA5', label: '이메일' },
-                { fn: copyLink,   icon: 'ti-link',       color: '#64748B', label: '링크 복사' },
+                { fn: shareSMS,   icon: 'ti-message',  color: '#3B6D11', label: '문자' },
+                { fn: shareKakao, icon: 'ti-message-2', color: '#3A1D1D', label: '카카오톡' },
+                { fn: shareEmail, icon: 'ti-mail',      color: '#185FA5', label: '이메일' },
+                { fn: copyLink,   icon: 'ti-link',      color: '#64748B', label: '링크 복사' },
               ].map((s) => (
-                <button key={s.label} onClick={s.fn} className="flex flex-col items-center gap-1.5 py-3 border border-[#E2E8F0] rounded-[10px] hover:border-[#185FA5]">
+                <button key={s.label} onClick={s.fn}
+                  className="flex flex-col items-center gap-1.5 py-3 border border-[#E2E8F0] rounded-[10px] hover:border-[#185FA5]">
                   <i className={`ti ${s.icon} text-[20px]`} style={{ color: s.color }} />
                   <span className="text-[11px] text-[#64748B]">{s.label}</span>
                 </button>
               ))}
             </div>
-            <div className="flex gap-2">
-              <button onClick={() => setInviteIdx(null)} className="flex-1 h-[42px] border border-[#E2E8F0] rounded-[10px] text-[13px] text-[#64748B]">취소</button>
-              <button onClick={saveManager} className="flex-1 h-[42px] bg-[#185FA5] text-white rounded-[10px] text-[13px] font-semibold">저장</button>
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* 별칭 편집 모달 */}
-      {aliasIdx !== null && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-5" onClick={() => setAliasIdx(null)}>
-          <div className="bg-white w-full max-w-sm rounded-[20px] p-5" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <div className="text-[15px] font-semibold">파트 별칭 설정</div>
-              <button onClick={() => setAliasIdx(null)}><i className="ti ti-x text-[18px] text-[#A0AEC0]" /></button>
-            </div>
-            <div className="p-3 bg-[#F4F6F9] rounded-[12px] mb-4">
-              <div className="text-[12px] text-[#64748B]">파트명</div>
-              <div className="text-[14px] font-semibold text-[#1A1A2E] mt-0.5">{parts[aliasIdx]?.name || `파트 ${aliasIdx + 1}`}</div>
-            </div>
-            <div className="mb-1">
-              <label className={lbl}>별칭 <span className="text-[#A0AEC0] font-normal">(나에게만 표시)</span></label>
-              <input className={inp} placeholder={parts[aliasIdx]?.name || '별칭 입력'} value={aliasInput}
-                onChange={(e) => setAliasInput(e.target.value)} autoFocus
-                onKeyDown={(e) => { if (e.key === 'Enter') saveAlias() }} />
-            </div>
-            <p className="text-[11px] text-[#A0AEC0] mb-4">비워두면 파트명 그대로 표시돼요</p>
             <div className="flex gap-2">
-              <button onClick={() => setAliasIdx(null)} className="flex-1 h-[42px] border border-[#E2E8F0] rounded-[10px] text-[13px] text-[#64748B]">취소</button>
-              <button onClick={saveAlias} className="flex-1 h-[42px] bg-[#185FA5] text-white rounded-[10px] text-[13px] font-semibold">저장</button>
+              <button onClick={() => setInviteIdx(null)}
+                className="flex-1 h-[42px] border border-[#E2E8F0] rounded-[10px] text-[13px] text-[#64748B]">취소</button>
+              <button onClick={saveManager}
+                className="flex-1 h-[42px] bg-[#185FA5] text-white rounded-[10px] text-[13px] font-semibold">저장</button>
             </div>
           </div>
         </div>
