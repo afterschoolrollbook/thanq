@@ -97,6 +97,62 @@ export async function exportProjectAsTemplate(
   URL.revokeObjectURL(url)
 }
 
+// ─── 현재 프로젝트 → JSON string으로 반환 (다운로드 + 보관함 저장 겸용) ──
+export async function exportProjectAsTemplateJson(
+  projectId: string,
+  templateName: string,
+  description: string,
+  authorName: string,
+  fieldType: FieldType,
+  password?: string,
+  allowedEmail?: string
+): Promise<string> {
+  const partsSnap = await get(ref(db, `parts/${projectId}`))
+  const parts: Part[] = partsSnap.exists() ? Object.values(partsSnap.val()) : []
+  parts.sort((a, b) => a.order - b.order)
+
+  const templateParts: TemplatePartDraft[] = []
+
+  for (const part of parts) {
+    const cueSnap = await get(ref(db, `cueItems/${projectId}/${part.id}`))
+    const cueItems: CueItem[] = cueSnap.exists() ? Object.values(cueSnap.val()) : []
+    cueItems.sort((a, b) => a.order - b.order)
+
+    const checkSnap = await get(ref(db, `checkItems/${projectId}/${part.id}`))
+    const checkItems: CheckItem[] = checkSnap.exists() ? Object.values(checkSnap.val()) : []
+
+    templateParts.push({
+      name: part.name,
+      color: part.color,
+      order: part.order,
+      cueItems: cueItems.map((c) => ({
+        title: c.title,
+        startTime: c.startTime,
+        durationMin: c.durationMin,
+        memo: c.memo,
+      })),
+      checkItems: checkItems.map((c) => ({
+        title: c.title,
+        category: c.category,
+      })),
+    })
+  }
+
+  const templateFile: TemplateFile = {
+    version: '1.0',
+    name: templateName,
+    fieldType,
+    description,
+    authorName,
+    createdAt: new Date().toISOString(),
+    parts: templateParts,
+    ...(password ? { passwordHash: await hashPassword(password) } : {}),
+    ...(allowedEmail ? { allowedEmail: allowedEmail.trim().toLowerCase() } : {}),
+  }
+
+  return JSON.stringify(templateFile, null, 2)
+}
+
 // ─── .thanq 파일 → 프로젝트 파트/큐시트에 적용 ───────────────
 export async function applyTemplateToProject(
   projectId: string,
