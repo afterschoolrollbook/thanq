@@ -1,6 +1,4 @@
 import { useState } from 'react'
-import { ref, push, set } from 'firebase/database'
-import { db } from '@/lib/firebase'
 import { exportProjectAsTemplateJson } from '@/utils/templateUtils'
 import { useAuthStore } from '@/store/authStore'
 import type { Project } from '@/types'
@@ -28,7 +26,6 @@ export default function TemplateExportModal({ project, onClose }: Props) {
   const [exporting, setExporting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState('')
-  const [lastExportJson, setLastExportJson] = useState<string | null>(null)
 
   async function handleExport() {
     if (!name.trim()) { setError('템플릿 이름을 입력해주세요'); return }
@@ -59,7 +56,6 @@ export default function TemplateExportModal({ project, onClose }: Props) {
       const a = document.createElement('a')
       a.href = url; a.download = `${name.trim()}.thanq`; a.click()
       URL.revokeObjectURL(url)
-      setLastExportJson(exportedJson)
       setDone(true)
     } catch {
       setError('내보내기 중 오류가 발생했어요')
