@@ -23,6 +23,7 @@ import BlogPostPage from '@/pages/BlogPostPage'
 import BlogWritePage from '@/pages/BlogWritePage'
 import LandingPage from '@/pages/LandingPage'
 import TemplatePage from '@/pages/TemplatePage'
+import MyPage from '@/pages/MyPage'
 
 export default function App() {
   // 앱 최상단에서 Firebase 인증 상태 감지 → 모든 페이지에서 user 사용 가능
@@ -39,6 +40,9 @@ export default function App() {
         <Route path="/blog/:postId" element={<BlogPostPage />} />
         {/* 템플릿 — 비로그인도 탐색 가능 */}
         <Route path="/templates" element={<TemplatePage />} />
+        <Route element={<PrivateRoute />}>
+          <Route path="/my" element={<MyPage />} />
+        </Route>
         <Route element={<PrivateRoute />}>
           <Route path="/blog/write" element={<BlogWritePage />} />
         </Route>
