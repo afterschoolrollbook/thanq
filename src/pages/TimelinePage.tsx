@@ -6,7 +6,7 @@ import { db, storage } from '@/lib/firebase'
 import { timeToMinutes, minutesToTime } from '@/utils/joinCode'
 import { Topbar, StatusBadge, BottomTabBar } from '@/components/ui/Common'
 import { useAuthStore } from '@/store/authStore'
-import type { Part, CueItem, CheckItem, Project, Notice } from '@/types'
+import type { Part, CueItem, CheckItem, Project } from '@/types'
 
 interface CueWithPart extends CueItem { partName: string; partColor: string; partId: string }
 
@@ -46,104 +46,142 @@ function MiniCalendar({ selectedDate, onChange, eventDates, onClose }: {
   )
 }
 
-// ── 무전 패널 ─────────────────────────────────────────────
-function RadioPanel({ notices, onSend }: { notices: Notice[]; onSend: (type: Notice['type'], title: string, content: string) => Promise<void> }) {
-  const [type, setType] = useState<Notice['type']>('notice')
-  const [title, setTitle] = useState('')
-  const [content, setContent] = useState('')
-  const [sending, setSending] = useState(false)
-  const [showForm, setShowForm] = useState(false)
+// ── 무전 패널 (실시간 채팅) ──────────────────────────────
 
-  async function handleSend() {
-    if (!title.trim() || !content.trim()) return
-    setSending(true)
-    await onSend(type, title.trim(), content.trim())
-    setTitle(''); setContent(''); setShowForm(false); setSending(false)
+
+// ── PTT 패널 (무전) ───────────────────────────────────────
+function PTTPanel({ projectId }: { projectId: string }) {
+  const user = useAuthStore((s) => s.user)
+  const [parts, setParts] = useState<Part[]>([])
+  const [target, setTarget] = useState<string>('crew-all')
+  const [pressing, setPressing] = useState(false)
+  const [micPermission, setMicPermission] = useState<'unknown'|'granted'|'denied'|'prompt'>('unknown')
+  const [favorites, setFavorites] = useState<string[]>([])
+  const mediaRef = useRef<MediaRecorder | null>(null)
+  const startRef = useRef<number>(0)
+
+  useEffect(() => {
+    onValue(dbRef(db, `parts/${projectId}`), s => {
+      if (s.exists()) { const l: Part[] = Object.values(s.val()); l.sort((a,b)=>a.order-b.order); setParts(l) }
+    })
+    checkMic()
+    if (!user) return
+    onValue(dbRef(db, `pttFavorites/${projectId}/${user.uid}`), s => { if (s.exists()) setFavorites(s.val()??[]) })
+  }, [projectId, user])
+
+  async function checkMic() {
+    try {
+      if (navigator.permissions) {
+        const r = await navigator.permissions.query({ name: 'microphone' as PermissionName })
+        setMicPermission(r.state as typeof micPermission)
+        r.onchange = () => setMicPermission(r.state as typeof micPermission)
+      } else {
+        const s = await navigator.mediaDevices.getUserMedia({ audio: true })
+        s.getTracks().forEach(t => t.stop()); setMicPermission('granted')
+      }
+    } catch { setMicPermission('denied') }
   }
 
-  const timeAgo = (d: string) => {
-    const m = Math.floor((Date.now() - new Date(d).getTime()) / 60000)
-    if (m < 1) return '방금'; if (m < 60) return m+'분 전'; if (m < 1440) return Math.floor(m/60)+'시간 전'; return Math.floor(m/1440)+'일 전'
+  async function requestMic() {
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({ audio: true })
+      s.getTracks().forEach(t => t.stop()); setMicPermission('granted')
+    } catch { setMicPermission('denied') }
   }
-  const typeMap: Record<string, {icon:string;bg:string;color:string}> = {
-    notice: {icon:'ti-bell',bg:'#E6F1FB',color:'#185FA5'},
-    urgent: {icon:'ti-alert-triangle',bg:'#FCEBEB',color:'#A32D2D'},
-    meeting: {icon:'ti-users',bg:'#EAF3DE',color:'#3B6D11'},
+
+  async function startPTT() {
+    if (micPermission !== 'granted' || !user) return
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } })
+      const mr = new MediaRecorder(stream)
+      mr.start(); mediaRef.current = mr; startRef.current = Date.now(); setPressing(true)
+    } catch { setMicPermission('denied') }
   }
+
+  async function stopPTT() {
+    if (!mediaRef.current || !user || !projectId) return
+    setPressing(false)
+    const duration = Math.round((Date.now() - startRef.current) / 1000)
+    mediaRef.current.stop(); mediaRef.current.stream.getTracks().forEach(t => t.stop())
+    const targetItems = [
+      { id: 'crew-all', label: '크루 전체' },
+      ...parts.map(p => ({ id: p.id, label: p.managerName ?? p.name }))
+    ]
+    const sel = targetItems.find(t => t.id === target)
+    const r = push(dbRef(db, `pttHistory/${projectId}`))
+    await set(r, { id: r.key, senderName: user.displayName ?? '익명', senderColor: '#185FA5', target, targetLabel: sel?.label ?? target, duration, createdAt: new Date().toISOString() })
+  }
+
+  function toggleFav(id: string) {
+    const next = favorites.includes(id) ? favorites.filter(f => f !== id) : [...favorites, id]
+    setFavorites(next)
+    if (user) set(dbRef(db, `pttFavorites/${projectId}/${user.uid}`), next)
+  }
+
+  const targetItems = [
+    { id: 'crew-all', label: '크루 전체', sublabel: '모든 멤버', icon: 'ti-users', color: '#185FA5' },
+    ...parts.map(p => ({ id: p.id, label: p.managerName ?? `${p.name} 책임자`, sublabel: p.name, icon: 'ti-user', color: p.color }))
+  ]
+  const selTarget = targetItems.find(t => t.id === target)
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <span className="text-[12px] text-[#64748B]">공지 · 긴급 연락</span>
-        <button onClick={() => setShowForm(v => !v)}
-          className="h-[30px] px-3 bg-[#185FA5] text-white rounded-[8px] text-[11px] font-semibold flex items-center gap-1">
-          <i className="ti ti-plus text-[11px]"/>공지 작성
+      {/* 마이크 권한 */}
+      {micPermission !== 'granted' && (
+        <div className={`flex items-center gap-3 p-3 rounded-[12px] ${micPermission === 'denied' ? 'bg-[#FCEBEB]' : 'bg-[#F4F6F9]'}`}>
+          <i className={`ti ${micPermission === 'denied' ? 'ti-microphone-off text-[#A32D2D]' : 'ti-microphone text-[#64748B]'} text-[20px]`}/>
+          <div className="flex-1">
+            <div className="text-[12px] font-semibold">{micPermission === 'denied' ? '마이크가 차단됐어요' : '마이크 권한이 필요해요'}</div>
+            <div className="text-[11px] text-[#64748B]">무전을 사용하려면 마이크를 허용해주세요</div>
+          </div>
+          {micPermission !== 'denied' && (
+            <button onClick={requestMic} className="px-3 py-1.5 bg-[#185FA5] text-white rounded-[8px] text-[11px] font-semibold">허용</button>
+          )}
+        </div>
+      )}
+
+      {/* PTT 버튼 */}
+      <div className={`flex flex-col items-center py-4 ${micPermission !== 'granted' ? 'opacity-40 pointer-events-none' : ''}`}>
+        <button
+          onPointerDown={startPTT} onPointerUp={stopPTT} onPointerLeave={stopPTT}
+          className={`w-24 h-24 rounded-full flex flex-col items-center justify-center gap-1.5 transition-all select-none touch-none ${pressing ? 'bg-[#E24B4A] shadow-[0_0_0_16px_rgba(226,75,74,0.2)]' : 'bg-[#185FA5] shadow-[0_0_0_12px_#E6F1FB]'}`}>
+          <i className={`ti ti-microphone text-[28px] text-white ${pressing ? 'animate-pulse' : ''}`}/>
+          <span className="text-white text-[10px] font-semibold">{pressing ? '전송 중' : '누르고 말하기'}</span>
         </button>
+        <div className="mt-3 flex items-center gap-1.5 text-[11px] text-[#64748B]">
+          <span>수신:</span>
+          {selTarget?.color && <span className="w-2.5 h-2.5 rounded-full inline-block" style={{background:selTarget.color}}/>}
+          <span className="font-semibold text-[#1A1A2E]">{selTarget?.label}</span>
+        </div>
       </div>
 
-      {showForm && (
-        <div className="bg-[#F4F6F9] rounded-[12px] p-3 flex flex-col gap-2">
-          <div className="flex gap-1.5">
-            {(['notice','urgent','meeting'] as Notice['type'][]).map((k) => {
-              const labels: Record<string,string> = {notice:'일반',urgent:'긴급',meeting:'미팅'}
-              const icons: Record<string,string> = {notice:'ti-bell',urgent:'ti-alert-triangle',meeting:'ti-users'}
-              const isActive = type === k
-              const isUrgent = k === 'urgent'
-              return (
-                <button key={k} onClick={() => setType(k)}
-                  className={`flex-1 py-1.5 rounded-[8px] text-[11px] font-semibold flex items-center justify-center gap-1 border transition-colors ${isActive ? (isUrgent ? 'bg-[#A32D2D] text-white border-[#A32D2D]' : 'bg-[#185FA5] text-white border-[#185FA5]') : 'border-[#E2E8F0] text-[#64748B] bg-white'}`}>
-                  <i className={`ti ${icons[k]}`}/>{labels[k]}
-                </button>
-              )
-            })}
-          </div>
-          <input className="w-full h-9 border border-[#E2E8F0] rounded-[8px] px-3 text-[12px] bg-white focus:outline-none focus:border-[#185FA5]"
-            placeholder="제목" value={title} onChange={e => setTitle(e.target.value)}/>
-          <textarea className="w-full h-16 border border-[#E2E8F0] rounded-[8px] px-3 py-2 text-[12px] resize-none bg-white focus:outline-none focus:border-[#185FA5]"
-            placeholder="내용" value={content} onChange={e => setContent(e.target.value)}/>
-          <div className="flex gap-2">
-            <button onClick={() => setShowForm(false)} className="flex-1 h-9 border border-[#E2E8F0] rounded-[8px] text-[12px] text-[#64748B] bg-white">취소</button>
-            <button onClick={handleSend} disabled={sending || !title.trim() || !content.trim()}
-              className="flex-1 h-9 bg-[#185FA5] text-white rounded-[8px] text-[12px] font-semibold disabled:opacity-40 flex items-center justify-center gap-1">
-              <i className="ti ti-send text-[12px]"/>{sending ? '전송 중...' : '발송'}
+      {/* 대상 선택 */}
+      <div className="flex flex-col gap-1.5">
+        <div className="text-[11px] font-semibold text-[#64748B] mb-1">보낼 대상</div>
+        {targetItems.map(item => (
+          <div key={item.id} onClick={() => setTarget(item.id)}
+            className={`flex items-center gap-2.5 px-3 py-2 rounded-[10px] border-2 cursor-pointer transition-all ${target === item.id ? 'border-[#185FA5] bg-[#E6F1FB]' : 'border-[#E2E8F0] bg-white hover:border-[#B5D4F4]'}`}>
+            <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{background:(item.color??'#185FA5')+'22'}}>
+              <i className={`ti ${item.icon} text-[14px]`} style={{color:item.color}}/>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className={`text-[12px] font-semibold truncate ${target===item.id?'text-[#185FA5]':'text-[#1A1A2E]'}`}>{item.label}</div>
+              <div className="text-[10px] text-[#A0AEC0] truncate">{item.sublabel}</div>
+            </div>
+            <button onClick={e=>{e.stopPropagation();toggleFav(item.id)}} className="p-1">
+              <i className={`ti text-[14px] ${favorites.includes(item.id)?'ti-star-filled text-[#F59E0B]':'ti-star text-[#E2E8F0]'}`}/>
             </button>
+            {target === item.id && <div className="w-4 h-4 rounded-full bg-[#185FA5] flex items-center justify-center"><i className="ti ti-check text-white text-[9px]"/></div>}
           </div>
-        </div>
-      )}
-
-      {notices.length === 0 ? (
-        <div className="text-center py-6 text-[#A0AEC0]">
-          <i className="ti ti-bell-off text-[32px] block mb-2 opacity-30"/>
-          <p className="text-[12px]">공지가 없어요</p>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-2">
-          {notices.slice(0, 10).map(n => {
-            const t = typeMap[n.type] ?? typeMap['notice']
-            return (
-              <div key={n.id} className="bg-white border border-[#E2E8F0] rounded-[12px] p-3 flex items-start gap-2.5">
-                <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{background:t.bg}}>
-                  <i className={`ti ${t.icon} text-[13px]`} style={{color:t.color}}/>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2 mb-0.5">
-                    <p className="text-[12px] font-semibold truncate">{n.title}</p>
-                    <span className="text-[10px] text-[#A0AEC0] flex-shrink-0">{timeAgo(n.createdAt)}</span>
-                  </div>
-                  <p className="text-[11px] text-[#64748B] line-clamp-2">{n.content}</p>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
+        ))}
+      </div>
     </div>
   )
 }
 
 // ── 큐 상세 모달 ──────────────────────────────────────────
-function CueModal({ cue, projectId, notices, onSendNotice, onClose }: {
-  cue: CueWithPart; projectId: string; notices: Notice[]; onSendNotice: (type: Notice["type"], title: string, content: string) => Promise<void>; onClose: () => void
+function CueModal({ cue, projectId, onClose }: {
+  cue: CueWithPart; projectId: string; onClose: () => void
 }) {
   const [checks, setChecks] = useState<CheckItem[]>([])
   const [tab, setTab] = useState<'radio'|'check'|'memo'|'photo'>('check')
@@ -327,7 +365,7 @@ function CueModal({ cue, projectId, notices, onSendNotice, onClose }: {
 
           {/* 무전 탭 */}
           {tab === 'radio' && (
-            <RadioPanel notices={notices} onSend={onSendNotice}/>
+            <PTTPanel projectId={projectId}/>
           )}
 
           {/* 사진 탭 */}
@@ -390,14 +428,7 @@ export default function TimelinePage() {
   const [selectedPartId, setSelectedPartId] = useState<string | null>(null)
   const [zoom, setZoom] = useState(1)
   const [activeCue, setActiveCue] = useState<CueWithPart | null>(null)
-  const [notices, setNotices] = useState<Notice[]>([])
-  const user = useAuthStore((s) => s.user)
 
-  async function onSendNotice(type: Notice['type'], title: string, content: string) {
-    if (!user || !projectId) return
-    const r = push(dbRef(db, `notices/${projectId}`))
-    await set(r, { id: r.key, projectId, type, title, content, targetPartIds: [], authorId: user.uid, authorName: user.displayName ?? '익명', readByUids: [], createdAt: new Date().toISOString() })
-  }
   const calendarRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -413,17 +444,6 @@ export default function TimelinePage() {
     }, { onlyOnce: true })
   }, [projectId])
 
-  // 공지 실시간 로딩
-  useEffect(() => {
-    if (!projectId) return
-    return onValue(dbRef(db, `notices/${projectId}`), s => {
-      if (s.exists()) {
-        const l: Notice[] = Object.values(s.val())
-        l.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        setNotices(l)
-      } else setNotices([])
-    })
-  }, [projectId])
 
   useEffect(() => {
     if (!projectId) return
@@ -538,7 +558,7 @@ export default function TimelinePage() {
             <i className="ti ti-calendar-off text-[48px] opacity-30"/><p className="text-[13px]">큐시트 항목이 없어요</p>
           </div>
         ) : (
-          <div className="flex-1 flex justify-center" style={{overflow:'scroll'}} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}>
+          <div className="flex-1" style={{overflow:'scroll'}} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}>
             <div style={{minWidth: totalGridW, width: totalGridW}}>
 
               {/* 파트 헤더 sticky */}
@@ -585,16 +605,24 @@ export default function TimelinePage() {
                             </div>
                             <div className="flex items-center justify-between mt-1 gap-1 flex-wrap">
                               <StatusBadge status={cue.status}/>
-                              {/* 체크리스트 배지 */}
-                              {total > 0 ? (
-                                <span className={`flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${allDone?'bg-[#E1F5EE] text-[#3B6D11]':'bg-[#FEF3C7] text-[#92400E]'}`}>
-                                  <i className={`ti ${allDone?'ti-check':'ti-checklist'} text-[10px]`}/>{done}/{total}
-                                </span>
-                              ) : (
-                                <span className="flex items-center gap-0.5 text-[10px] text-[#E2E8F0] flex-shrink-0">
-                                  <i className="ti ti-checklist text-[10px]"/>
-                                </span>
-                              )}
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                {/* 메모 아이콘 */}
+                                {cue.memo && (
+                                  <span className="flex items-center text-[10px] text-[#185FA5]">
+                                    <i className="ti ti-notes text-[11px]"/>
+                                  </span>
+                                )}
+                                {/* 체크리스트 배지 */}
+                                {total > 0 ? (
+                                  <span className={`flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${allDone?'bg-[#E1F5EE] text-[#3B6D11]':'bg-[#FEF3C7] text-[#92400E]'}`}>
+                                    <i className={`ti ${allDone?'ti-check':'ti-checklist'} text-[10px]`}/>{done}/{total}
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] text-[#E2E8F0]">
+                                    <i className="ti ti-checklist text-[11px]"/>
+                                  </span>
+                                )}
+                              </div>
                             </div>
                             {/* 미완료 체크 있으면 왼쪽 테두리 강조 */}
                             {hasPending && <div className="absolute left-0 top-0 bottom-0 w-0.5 rounded-l-[8px]" style={{background:part.color}}/>}
@@ -612,7 +640,7 @@ export default function TimelinePage() {
 
       <BottomTabBar/>
       {activeCue && projectId && (
-        <CueModal cue={activeCue} projectId={projectId} notices={notices} onSendNotice={onSendNotice} onClose={() => setActiveCue(null)}/>
+        <CueModal cue={activeCue} projectId={projectId} onClose={() => setActiveCue(null)}/>
       )}
     </div>
   )
