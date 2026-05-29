@@ -1,0 +1,1650 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ThanQ — PC 화면 전체 미리보기</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;900&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.x/tabler-icons.min.css"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0A0F1E;--blue:#185FA5;--blue2:#1470BE;--blue-light:#E6F1FB;
+  --green:#0F6E56;--green-light:#E1F5EE;
+  --amber:#854F0B;--amber-light:#FAEEDA;
+  --purple:#534AB7;--purple-light:#EEEDFE;
+  --red:#993C1D;--red-light:#FAECE7;
+  --teal:#0D7E7E;
+  --text:#1A1A2E;--muted:#64748B;--border:#E2E8F0;--bg:#F4F6F9;--white:#fff;
+}
+body{font-family:'Noto Sans KR',sans-serif;background:#1A1D27;color:var(--text)}
+
+/* ── 사이드 네비 ── */
+.shell{display:flex;height:100vh;overflow:hidden}
+.sidenav{width:220px;background:#111827;flex-shrink:0;display:flex;flex-direction:column;padding:20px 0;border-right:1px solid rgba(255,255,255,0.06)}
+.sidenav-logo{display:flex;align-items:center;gap:10px;padding:0 20px 20px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:12px}
+.sidenav-logo-icon{width:32px;height:32px;background:var(--blue);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.sidenav-logo-icon i{color:#fff;font-size:16px}
+.sidenav-title{color:#fff;font-weight:900;font-size:16px}
+.sidenav-section{font-size:10px;font-weight:700;color:rgba(255,255,255,0.25);letter-spacing:1.5px;text-transform:uppercase;padding:8px 20px 4px}
+.sidenav-item{display:flex;align-items:center;gap:10px;padding:9px 20px;font-size:13px;color:rgba(255,255,255,0.5);cursor:pointer;transition:all .15s;border-left:2px solid transparent}
+.sidenav-item:hover{background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.8)}
+.sidenav-item.active{background:rgba(24,95,165,0.15);color:#fff;border-left-color:var(--blue)}
+.sidenav-item i{font-size:16px;width:18px;text-align:center}
+.sidenav-badge{margin-left:auto;font-size:10px;padding:2px 6px;border-radius:10px}
+
+/* ── 메인 콘텐츠 ── */
+.main{flex:1;overflow-y:auto;background:var(--bg)}
+
+/* ── 탑바 ── */
+.topbar{background:var(--blue);padding:0 28px;height:54px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:30}
+.topbar-left{display:flex;align-items:center;gap:10px}
+.topbar-brand{color:#fff;font-weight:900;font-size:17px;cursor:pointer}
+.topbar-project{color:rgba(255,255,255,0.6);font-size:13px;display:flex;align-items:center;gap:4px}
+.topbar-right{display:flex;align-items:center;gap:8px}
+.topbar-btn{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.topbar-btn i{color:#fff;font-size:15px}
+.topbar-admin{display:flex;align-items:center;gap:4px;padding:4px 10px;background:rgba(250,238,218,0.2);border:1px solid rgba(250,238,218,0.3);border-radius:20px;font-size:11px;font-weight:700;color:#FAEEDA;cursor:pointer}
+
+/* ── 페이지 구분선 ── */
+.page-divider{text-align:center;padding:48px 0 24px;font-size:11px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,0.3);text-transform:uppercase;display:flex;align-items:center;gap:16px}
+.page-divider::before,.page-divider::after{content:'';flex:1;height:1px;background:rgba(255,255,255,0.08)}
+.page-label{background:#111827;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:6px 16px;display:inline-block;margin:0 auto 8px;font-size:11px;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,0.5)}
+.page-url{font-family:monospace;font-size:12px;color:var(--blue);background:rgba(24,95,165,0.1);padding:3px 10px;border-radius:4px;display:inline-block;margin-bottom:16px}
+
+/* ── 공통 카드 ── */
+.card{background:var(--white);border-radius:14px;border:1px solid var(--border)}
+.section-title{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:16px}
+
+/* ─────────────────────────────────────────
+   LANDING PAGE
+───────────────────────────────────────── */
+.landing-nav{background:rgba(10,15,30,0.9);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,0.06);padding:0 40px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.landing-nav-logo{display:flex;align-items:center;gap:8px;cursor:pointer}
+.landing-nav-logo-icon{width:28px;height:28px;background:var(--blue);border-radius:7px;display:flex;align-items:center;justify-content:center}
+.landing-nav-links{display:flex;align-items:center;gap:4px}
+.landing-nav-link{padding:8px 16px;font-size:13px;color:rgba(255,255,255,0.6);background:none;border:none;cursor:pointer;border-radius:8px;font-family:inherit;transition:all .15s}
+.landing-nav-link:hover{background:rgba(255,255,255,0.06);color:#fff}
+.landing-nav-cta{padding:8px 18px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+
+.hero{background:var(--navy);padding:100px 40px 80px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 30% 40%,rgba(24,95,165,0.15),transparent),radial-gradient(ellipse 40% 40% at 70% 60%,rgba(15,110,86,0.1),transparent);pointer-events:none}
+.hero-grid{position:absolute;inset:0;opacity:.03;background-image:linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px);background-size:40px 40px;pointer-events:none}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);font-size:12px;color:rgba(255,255,255,0.6);margin-bottom:24px}
+.hero-badge-dot{width:6px;height:6px;border-radius:50%;background:#4ADE80;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.hero h1{font-size:60px;font-weight:900;line-height:1.1;color:#fff;margin-bottom:20px;letter-spacing:-1px}
+.hero-grad{background:linear-gradient(135deg,#3B9EE8,#4ADE80);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero-sub{font-size:17px;color:rgba(255,255,255,0.55);line-height:1.7;max-width:520px;margin:0 auto 36px}
+.hero-btns{display:flex;justify-content:center;gap:12px;margin-bottom:36px}
+.hero-btn-primary{padding:14px 28px;background:var(--blue);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:8px;transition:background .15s}
+.hero-btn-ghost{padding:14px 24px;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.8);border:1px solid rgba(255,255,255,0.15);border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:8px}
+.hero-tags{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.hero-tag{padding:6px 14px;border-radius:20px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);font-size:12px;color:rgba(255,255,255,0.5)}
+.features-section{background:var(--navy);padding:60px 40px}
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:1100px;margin:0 auto}
+.feature-card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:24px;transition:all .2s}
+.feature-card:hover{background:rgba(255,255,255,0.07)}
+.feature-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+.feature-title{font-size:15px;font-weight:700;color:#fff;margin-bottom:8px}
+.feature-desc{font-size:13px;color:rgba(255,255,255,0.45);line-height:1.6}
+.cta-section{background:var(--navy);padding:40px;display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:860px;margin:0 auto}
+.cta-card{border-radius:20px;padding:32px;display:flex;flex-direction:column}
+.cta-card-blue{background:linear-gradient(135deg,rgba(24,95,165,0.3),rgba(24,95,165,0.1));border:1px solid rgba(255,255,255,0.1)}
+.cta-card-amber{background:linear-gradient(135deg,rgba(133,79,11,0.3),rgba(133,79,11,0.1));border:1px solid rgba(255,255,255,0.1)}
+.cta-card i{font-size:32px;margin-bottom:16px}
+.cta-card h3{font-size:20px;font-weight:900;color:#fff;margin-bottom:8px}
+.cta-card p{font-size:13px;color:rgba(255,255,255,0.5);line-height:1.6;flex:1;margin-bottom:20px}
+.cta-btn-blue{padding:12px 20px;background:var(--blue);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit}
+.cta-btn-amber{padding:12px 20px;background:var(--amber);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit}
+.landing-footer{background:#060A14;border-top:1px solid rgba(255,255,255,0.06);padding:28px 40px;display:flex;align-items:center;justify-content:space-between}
+.footer-logo{display:flex;align-items:center;gap:8px}
+.footer-logo span{color:#fff;font-weight:700;font-size:14px}
+.footer-links{display:flex;gap:24px}
+.footer-link{font-size:12px;color:rgba(255,255,255,0.35);background:none;border:none;cursor:pointer;font-family:inherit}
+.footer-copy{font-size:12px;color:rgba(255,255,255,0.2)}
+
+/* ─────────────────────────────────────────
+   BLOG PAGE
+───────────────────────────────────────── */
+.blog-layout{display:flex;gap:0;min-height:calc(100vh - 54px)}
+.blog-sidebar{width:240px;flex-shrink:0;background:var(--white);border-right:1px solid var(--border);padding:24px 16px;display:flex;flex-direction:column;gap:4px}
+.blog-sidebar-title{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;padding:0 8px;margin-bottom:8px}
+.blog-cat{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;font-size:13px;color:var(--muted);cursor:pointer;transition:all .15s}
+.blog-cat:hover{background:var(--bg);color:var(--text)}
+.blog-cat.active{background:var(--blue-light);color:var(--blue);font-weight:700}
+.blog-cat i{font-size:15px;width:16px}
+.blog-main{flex:1;padding:32px 40px}
+.blog-header-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.blog-search{display:flex;align-items:center;gap:8px;background:var(--white);border:1px solid var(--border);border-radius:10px;padding:0 14px;height:40px;width:320px}
+.blog-search i{color:var(--muted);font-size:15px}
+.blog-search input{border:none;outline:none;font-size:13px;font-family:inherit;background:transparent;color:var(--text);width:100%}
+.blog-write-btn{display:flex;align-items:center;gap:6px;padding:0 16px;height:40px;background:var(--blue);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+.post-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.post-card{background:var(--white);border-radius:14px;padding:20px;border:1px solid var(--border);cursor:pointer;transition:all .2s}
+.post-card:hover{box-shadow:0 4px 20px rgba(0,0,0,0.08);border-color:transparent}
+.post-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:3px 8px;border-radius:10px;margin-bottom:10px}
+.post-title{font-size:15px;font-weight:700;margin-bottom:8px;color:var(--text)}
+.post-excerpt{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:14px}
+.post-meta{display:flex;align-items:center;gap:10px;font-size:11px;color:#A0AEC0;border-top:1px solid var(--bg);padding-top:12px}
+.post-meta i{font-size:12px}
+.post-tmpl-badge{display:flex;align-items:center;gap:4px;font-size:10px;padding:2px 6px;background:var(--amber-light);color:var(--amber);border-radius:6px;font-weight:700;margin-left:auto}
+
+/* ─────────────────────────────────────────
+   BLOG WRITE PAGE
+───────────────────────────────────────── */
+.write-layout{max-width:800px;margin:0 auto;padding:32px 40px}
+.write-back{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);margin-bottom:20px;cursor:pointer;background:none;border:none;font-family:inherit}
+.write-form{background:var(--white);border-radius:16px;padding:28px;display:flex;flex-direction:column;gap:20px}
+.form-row{display:flex;flex-direction:column;gap:6px}
+.form-label{font-size:12px;font-weight:700;color:var(--muted)}
+.form-input{height:42px;border:1px solid var(--border);border-radius:10px;padding:0 14px;font-size:14px;font-family:inherit;color:var(--text);outline:none}
+.form-input:focus{border-color:var(--blue)}
+.form-textarea{min-height:200px;border:1px solid var(--border);border-radius:10px;padding:14px;font-size:14px;font-family:inherit;color:var(--text);outline:none;resize:vertical}
+.cat-chips{display:flex;gap:8px;flex-wrap:wrap}
+.cat-chip{display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;border:1px solid var(--border);background:var(--white);color:var(--muted);cursor:pointer}
+.cat-chip.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.file-drop{border:2px dashed var(--border);border-radius:12px;height:80px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px;color:var(--muted);cursor:pointer}
+.file-drop:hover{border-color:var(--blue);color:var(--blue)}
+.submit-btn{height:48px;background:var(--blue);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit}
+
+/* ─────────────────────────────────────────
+   TEMPLATE PAGE
+───────────────────────────────────────── */
+.tmpl-layout{display:flex;min-height:calc(100vh - 54px)}
+.tmpl-sidebar{width:260px;flex-shrink:0;background:var(--white);border-right:1px solid var(--border);padding:24px 16px}
+.tmpl-sidebar-title{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;padding:0 8px;margin-bottom:12px}
+.tmpl-field-btn{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;font-size:13px;color:var(--muted);cursor:pointer;width:100%;text-align:left;background:none;border:none;font-family:inherit;transition:all .15s}
+.tmpl-field-btn:hover,.tmpl-field-btn.active{background:var(--amber-light);color:var(--amber);font-weight:700}
+.tmpl-main{flex:1;padding:32px 40px}
+.tmpl-header-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.tmpl-header-left h2{font-size:22px;font-weight:900;color:var(--text)}
+.tmpl-header-left p{font-size:13px;color:var(--muted);margin-top:3px}
+.tmpl-share-btn{display:flex;align-items:center;gap:6px;padding:0 18px;height:40px;background:var(--amber);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+.tmpl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.tmpl-card{background:var(--white);border-radius:14px;padding:20px;border:1px solid var(--border);transition:all .2s}
+.tmpl-card:hover{box-shadow:0 4px 20px rgba(0,0,0,0.08)}
+.tmpl-card-top{display:flex;align-items:flex-start;gap:14px;margin-bottom:14px}
+.tmpl-emoji-box{width:48px;height:48px;background:var(--amber-light);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.tmpl-card-name{font-size:15px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px}
+.tmpl-field-badge{font-size:10px;padding:2px 7px;background:var(--amber-light);color:var(--amber);border-radius:6px;font-weight:700}
+.tmpl-card-desc{font-size:12px;color:var(--muted);line-height:1.5;margin-top:3px}
+.tmpl-parts{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px}
+.tmpl-part-tag{display:flex;align-items:center;gap:4px;font-size:11px;padding:3px 8px;background:var(--bg);border-radius:6px;color:var(--muted)}
+.tmpl-part-dot{width:8px;height:8px;border-radius:50%}
+.tmpl-card-meta{font-size:11px;color:#A0AEC0;margin-bottom:14px}
+.tmpl-card-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;border-top:1px solid var(--bg);padding-top:14px}
+.tmpl-btn-preview{height:36px;background:var(--bg);border:none;border-radius:8px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit}
+.tmpl-btn-dl{height:36px;background:var(--amber);border:none;border-radius:8px;font-size:12px;font-weight:700;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit}
+
+/* ─────────────────────────────────────────
+   DASHBOARD
+───────────────────────────────────────── */
+.dash-layout{padding:32px 40px;max-width:1200px}
+.dash-greeting{margin-bottom:28px}
+.dash-greeting h2{font-size:24px;font-weight:900;color:var(--text)}
+.dash-greeting p{font-size:13px;color:var(--muted);margin-top:4px}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px}
+.stat-card{background:var(--white);border-radius:14px;padding:20px;border:1px solid var(--border)}
+.stat-label{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.stat-label i{font-size:14px}
+.stat-value{font-size:28px;font-weight:900}
+.proj-section-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+.proj-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:32px}
+.proj-card{background:var(--white);border-radius:14px;padding:20px;border:1px solid var(--border);cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.proj-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px}
+.proj-card:hover{box-shadow:0 4px 20px rgba(0,0,0,0.08)}
+.proj-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.proj-card-name{font-size:15px;font-weight:700;color:var(--text)}
+.status-badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:8px}
+.proj-card-sub{font-size:12px;color:var(--muted);margin-bottom:14px}
+.prog-bar-wrap{height:6px;background:var(--bg);border-radius:3px;overflow:hidden}
+.prog-bar{height:6px;border-radius:3px}
+.prog-label{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:5px}
+.new-proj-card{background:var(--white);border-radius:14px;padding:20px;border:2px dashed var(--border);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:140px;transition:all .2s}
+.new-proj-card:hover{border-color:var(--blue);background:var(--blue-light)}
+.new-proj-card i{font-size:28px;color:#CBD5E0}
+.new-proj-card:hover i{color:var(--blue)}
+.new-proj-card span{font-size:13px;font-weight:700;color:var(--muted)}
+.new-proj-card:hover span{color:var(--blue)}
+
+/* ─────────────────────────────────────────
+   PROJECT HOME
+───────────────────────────────────────── */
+.proj-home-layout{padding:28px 40px;max-width:1100px}
+.proj-dday-bar{background:var(--blue-light);border-radius:12px;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.proj-dday-left{display:flex;align-items:center;gap:12px}
+.dday-pill{background:var(--blue);color:#fff;font-size:13px;font-weight:700;padding:4px 12px;border-radius:20px}
+.proj-dday-info h3{font-size:15px;font-weight:700;color:#0C447C}
+.proj-dday-info p{font-size:12px;color:#378ADD;margin-top:2px}
+.proj-tmpl-btns{display:flex;gap:8px}
+.proj-tmpl-btn{display:flex;align-items:center;gap:6px;padding:0 14px;height:36px;background:var(--white);border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;font-family:inherit;transition:all .15s}
+.proj-tmpl-btn:hover{border-color:var(--blue);color:var(--blue)}
+.parts-table{background:var(--white);border-radius:14px;border:1px solid var(--border);overflow:hidden;margin-bottom:24px}
+.parts-table-header{display:grid;grid-template-columns:3fr 1fr 1fr 1fr 2fr;gap:16px;padding:12px 20px;background:var(--bg);font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.5px;text-transform:uppercase}
+.parts-table-row{display:grid;grid-template-columns:3fr 1fr 1fr 1fr 2fr;gap:16px;padding:14px 20px;border-top:1px solid var(--bg);align-items:center}
+.part-name-cell{display:flex;align-items:center;gap:10px}
+.part-color-strip{width:10px;height:36px;border-radius:4px;flex-shrink:0}
+.part-name{font-size:14px;font-weight:700}
+.part-manager{font-size:12px;color:var(--muted);margin-top:2px}
+.part-count{font-size:13px;color:var(--text);font-weight:600}
+.part-prog{display:flex;align-items:center;gap:10px}
+.part-prog-bar{flex:1;height:6px;background:var(--bg);border-radius:3px;overflow:hidden}
+.part-prog-fill{height:6px;border-radius:3px}
+.part-prog-pct{font-size:12px;font-weight:700;color:var(--muted);width:32px;text-align:right}
+.part-status{font-size:11px;font-weight:700;padding:3px 10px;border-radius:8px}
+
+/* ─────────────────────────────────────────
+   MY PART / 큐시트
+───────────────────────────────────────── */
+.mypart-layout{padding:28px 40px;max-width:1000px}
+.mypart-header{background:var(--white);border-radius:14px;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;border:1px solid var(--border)}
+.mypart-part-info{display:flex;align-items:center;gap:12px}
+.mypart-color{width:14px;height:48px;border-radius:6px}
+.mypart-part-name{font-size:18px;font-weight:900}
+.mypart-part-sub{font-size:12px;color:var(--muted);margin-top:3px}
+.mypart-add-btn{display:flex;align-items:center;gap:6px;padding:0 16px;height:40px;background:var(--blue);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+.cue-table{background:var(--white);border-radius:14px;border:1px solid var(--border);overflow:hidden;margin-bottom:24px}
+.cue-table-header{display:grid;grid-template-columns:80px 1fr 80px 80px 80px;gap:16px;padding:12px 20px;background:var(--bg);font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.cue-table-row{display:grid;grid-template-columns:80px 1fr 80px 80px 80px;gap:16px;padding:14px 20px;border-top:1px solid var(--bg);align-items:center}
+.cue-time{font-size:14px;font-weight:700;color:var(--blue);font-family:monospace}
+.cue-title{font-size:14px;font-weight:700}
+.cue-memo{font-size:11px;color:var(--muted);margin-top:2px}
+.cue-duration{font-size:13px;color:var(--muted)}
+.cue-status{font-size:11px;font-weight:700;padding:3px 10px;border-radius:8px;text-align:center}
+.cue-actions{display:flex;gap:6px}
+.cue-action-btn{width:28px;height:28px;border-radius:6px;background:var(--bg);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.cue-action-btn i{font-size:13px;color:var(--muted)}
+
+/* ─────────────────────────────────────────
+   SITE ADMIN
+───────────────────────────────────────── */
+.admin-layout{display:flex;height:100vh}
+.admin-sidenav{width:200px;background:#0F1829;display:flex;flex-direction:column;padding:20px 0}
+.admin-logo{display:flex;align-items:center;gap:8px;padding:0 16px 20px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:12px}
+.admin-logo-icon{width:30px;height:30px;background:var(--blue);border-radius:7px;display:flex;align-items:center;justify-content:center}
+.admin-logo-icon i{color:#fff;font-size:14px}
+.admin-logo span{color:#fff;font-weight:900;font-size:14px}
+.admin-logo sub{color:rgba(255,255,255,0.4);font-size:10px;display:block;margin-top:1px}
+.admin-nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:12px;color:rgba(255,255,255,0.4);cursor:pointer;border-left:2px solid transparent;transition:all .15s}
+.admin-nav-item i{font-size:15px}
+.admin-nav-item:hover{background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.7)}
+.admin-nav-item.active{background:rgba(24,95,165,0.15);color:#fff;border-left-color:var(--blue)}
+.admin-content{flex:1;background:var(--bg);overflow-y:auto;padding:28px 32px}
+.admin-page-title{font-size:20px;font-weight:900;color:var(--text);margin-bottom:4px}
+.admin-page-sub{font-size:13px;color:var(--muted);margin-bottom:24px}
+.admin-stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
+.admin-stat-card{background:var(--white);border-radius:12px;padding:18px;border:1px solid var(--border)}
+.admin-stat-label{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.admin-stat-value{font-size:26px;font-weight:900}
+.admin-table-wrap{background:var(--white);border-radius:14px;border:1px solid var(--border);overflow:hidden}
+.admin-table-header{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 120px;gap:16px;padding:12px 20px;background:var(--bg);font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase}
+.admin-table-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 120px;gap:16px;padding:13px 20px;border-top:1px solid var(--bg);align-items:center;font-size:13px}
+.admin-plan-badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px}
+.admin-action-btn{padding:5px 12px;border-radius:6px;font-size:11px;font-weight:700;border:1px solid var(--border);background:var(--white);cursor:pointer;font-family:inherit}
+
+/* ─────────────────────────────────────────
+   PTT PAGE
+───────────────────────────────────────── */
+.ptt-layout{display:flex;gap:0;height:calc(100vh - 54px)}
+.ptt-left{flex:1;background:#0D1117;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;gap:28px}
+.ptt-target-section{width:100%;max-width:400px}
+.ptt-target-label{font-size:12px;font-weight:700;color:rgba(255,255,255,0.4);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px;text-align:center}
+.ptt-target-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.ptt-chip{padding:7px 16px;border-radius:20px;font-size:13px;cursor:pointer;border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.5);background:rgba(255,255,255,0.04);font-family:inherit;transition:all .15s}
+.ptt-chip.active{background:var(--blue);color:#fff;border-color:var(--blue);font-weight:700}
+.ptt-btn-wrap{display:flex;flex-direction:column;align-items:center;gap:12px}
+.ptt-btn{width:160px;height:160px;border-radius:50%;background:linear-gradient(135deg,#E24B4A,#C0392B);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 16px rgba(226,75,74,0.12),0 0 0 32px rgba(226,75,74,0.06);transition:all .2s}
+.ptt-btn:hover{transform:scale(1.04)}
+.ptt-btn i{font-size:56px;color:#fff}
+.ptt-btn-label{font-size:13px;color:rgba(255,255,255,0.4)}
+.ptt-right{width:320px;background:#111827;border-left:1px solid rgba(255,255,255,0.06);padding:24px;overflow-y:auto}
+.ptt-history-title{font-size:11px;font-weight:700;color:rgba(255,255,255,0.3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:16px}
+.ptt-history-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
+.ptt-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0}
+.ptt-item-info{flex:1}
+.ptt-item-name{font-size:13px;color:rgba(255,255,255,0.7);font-weight:600}
+.ptt-item-meta{font-size:11px;color:rgba(255,255,255,0.3);margin-top:2px}
+.ptt-play-btn{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,0.06);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.ptt-play-btn i{color:rgba(255,255,255,0.4);font-size:13px}
+
+/* ─────────────────────────────────────────
+   LOGIN PAGE
+───────────────────────────────────────── */
+.login-wrap{min-height:100vh;background:var(--navy);display:flex;align-items:center;justify-content:center;padding:40px}
+.login-box{width:100%;max-width:400px}
+.login-logo{display:flex;flex-direction:column;align-items:center;margin-bottom:32px}
+.login-logo-icon{width:56px;height:56px;background:var(--blue);border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+.login-logo-icon i{color:#fff;font-size:26px}
+.login-logo h1{color:#fff;font-size:24px;font-weight:900;margin-bottom:4px}
+.login-logo p{color:rgba(255,255,255,0.4);font-size:13px}
+.login-form{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:28px;display:flex;flex-direction:column;gap:16px}
+.login-input{height:46px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:0 16px;font-size:14px;font-family:inherit;color:#fff;outline:none}
+.login-input::placeholder{color:rgba(255,255,255,0.3)}
+.login-btn{height:48px;background:var(--blue);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s}
+.login-divider{text-align:center;color:rgba(255,255,255,0.2);font-size:12px;position:relative}
+.login-divider::before,.login-divider::after{content:'';position:absolute;top:50%;width:40%;height:1px;background:rgba(255,255,255,0.1)}
+.login-divider::before{left:0}.login-divider::after{right:0}
+.google-btn{height:46px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:rgba(255,255,255,0.7);font-size:14px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .15s}
+.google-btn:hover{background:rgba(255,255,255,0.1)}
+
+/* ─────────────────────────────────────────
+   PAGE WRAPPER
+───────────────────────────────────────── */
+.page-block{background:#111827;border-radius:16px;overflow:hidden;margin-bottom:48px;box-shadow:0 8px 40px rgba(0,0,0,0.4)}
+.page-block-label{background:#0D1117;padding:12px 20px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,255,255,0.06)}
+.page-block-name{font-size:13px;font-weight:700;color:rgba(255,255,255,0.7)}
+.page-block-url{font-family:monospace;font-size:12px;color:var(--blue);background:rgba(24,95,165,0.15);padding:3px 10px;border-radius:5px}
+.page-block-access{font-size:10px;padding:2px 8px;border-radius:4px;font-weight:700;margin-left:auto}
+.access-public{background:rgba(24,95,165,0.2);color:#3B9EE8}
+.access-private{background:rgba(251,191,36,0.15);color:#FBBF24}
+.access-admin{background:rgba(239,68,68,0.15);color:#F87171}
+
+.outer{padding:32px;max-width:1400px;margin:0 auto}
+.outer-title{font-size:28px;font-weight:900;color:#fff;margin-bottom:4px}
+.outer-sub{font-size:14px;color:rgba(255,255,255,0.4);margin-bottom:40px}
+</style>
+</head>
+<body>
+<div class="outer">
+  <div style="padding-bottom:32px;border-bottom:1px solid rgba(255,255,255,0.08);margin-bottom:40px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <div style="width:36px;height:36px;background:var(--blue);border-radius:9px;display:flex;align-items:center;justify-content:center"><i class="ti ti-bolt" style="color:#fff;font-size:18px"></i></div>
+      <span style="color:#fff;font-size:22px;font-weight:900">ThanQ</span>
+    </div>
+    <div class="outer-title">전체 화면 PC 미리보기</div>
+    <div class="outer-sub">20개 페이지 · 공개 / 로그인 / 관리자</div>
+    <div style="display:flex;gap:10px">
+      <span style="font-size:12px;padding:4px 12px;border-radius:6px;font-weight:700;background:rgba(24,95,165,0.2);color:#3B9EE8"><i class="ti ti-globe" style="margin-right:4px"></i>공개</span>
+      <span style="font-size:12px;padding:4px 12px;border-radius:6px;font-weight:700;background:rgba(251,191,36,0.15);color:#FBBF24"><i class="ti ti-lock" style="margin-right:4px"></i>로그인 필요</span>
+      <span style="font-size:12px;padding:4px 12px;border-radius:6px;font-weight:700;background:rgba(239,68,68,0.15);color:#F87171"><i class="ti ti-shield" style="margin-right:4px"></i>관리자</span>
+    </div>
+  </div>
+
+  <!-- ① 메인 랜딩 -->
+  <div class="page-block">
+    <div class="page-block-label">
+      <span class="page-block-name">메인 랜딩 페이지</span>
+      <span class="page-block-url">/</span>
+      <span class="page-block-access access-public">공개</span>
+    </div>
+    <div>
+      <nav class="landing-nav">
+        <div class="landing-nav-logo"><div class="landing-nav-logo-icon"><i class="ti ti-bolt" style="color:#fff;font-size:14px"></i></div><span style="color:#fff;font-weight:900;font-size:16px">ThanQ</span></div>
+        <div class="landing-nav-links">
+          <button class="landing-nav-link">블로그</button>
+          <button class="landing-nav-link">템플릿</button>
+          <button class="landing-nav-cta">로그인</button>
+        </div>
+      </nav>
+      <div class="hero">
+        <div class="hero-grid"></div>
+        <div style="position:relative;z-index:1">
+          <div class="hero-badge"><span class="hero-badge-dot"></span>현장 운영팀을 위한 실시간 협업 도구</div>
+          <h1>현장을 하나로<br><span class="hero-grad">연결하세요</span></h1>
+          <p class="hero-sub">행사, 공연, 촬영 현장에서 팀 전체가 큐시트를 실시간으로 공유하고, 파트 간 소통을 앱 하나로 해결해요.</p>
+          <div class="hero-btns">
+            <button class="hero-btn-primary"><i class="ti ti-rocket"></i>무료로 시작하기</button>
+            <button class="hero-btn-ghost"><i class="ti ti-news"></i>블로그</button>
+            <button class="hero-btn-ghost"><i class="ti ti-file-export"></i>템플릿</button>
+          </div>
+          <div class="hero-tags">
+            <span class="hero-tag">🎪 행사/축제</span><span class="hero-tag">🎬 드라마/영화</span><span class="hero-tag">🎵 콘서트/공연</span><span class="hero-tag">👗 패션쇼</span><span class="hero-tag">⚽ 스포츠</span><span class="hero-tag">📺 방송</span><span class="hero-tag">🏔 모임/클럽</span>
+          </div>
+        </div>
+      </div>
+      <div class="features-section">
+        <div style="text-align:center;margin-bottom:40px"><div style="font-size:11px;font-weight:700;color:#3B9EE8;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">Features</div><h2 style="font-size:32px;font-weight:900;color:#fff">현장 운영의 모든 것</h2></div>
+        <div class="features-grid">
+          <div class="feature-card"><div class="feature-icon" style="background:rgba(24,95,165,0.15);border:1px solid rgba(24,95,165,0.3)"><i class="ti ti-layout-list" style="color:var(--blue);font-size:20px"></i></div><div class="feature-title">큐시트 실시간 공유</div><div class="feature-desc">파트별 큐시트를 팀 전원이 동시에 보고 수정해요.</div></div>
+          <div class="feature-card"><div class="feature-icon" style="background:rgba(15,110,86,0.15);border:1px solid rgba(15,110,86,0.3)"><i class="ti ti-radio" style="color:var(--green);font-size:20px"></i></div><div class="feature-title">PTT 무전 통신</div><div class="feature-desc">앱 하나로 파트 간 무전을 주고받아요.</div></div>
+          <div class="feature-card"><div class="feature-icon" style="background:rgba(133,79,11,0.15);border:1px solid rgba(133,79,11,0.3)"><i class="ti ti-file-export" style="color:var(--amber);font-size:20px"></i></div><div class="feature-title">템플릿 파일 공유</div><div class="feature-desc">.thanq 파일로 행사 구성을 팀원과 공유해요.</div></div>
+          <div class="feature-card"><div class="feature-icon" style="background:rgba(83,74,183,0.15);border:1px solid rgba(83,74,183,0.3)"><i class="ti ti-checkbox" style="color:var(--purple);font-size:20px"></i></div><div class="feature-title">체크리스트 관리</div><div class="feature-desc">파트별 준비 항목을 실시간으로 체크해요.</div></div>
+          <div class="feature-card"><div class="feature-icon" style="background:rgba(153,60,29,0.15);border:1px solid rgba(153,60,29,0.3)"><i class="ti ti-chart-bar" style="color:var(--red);font-size:20px"></i></div><div class="feature-title">진행 현황 대시보드</div><div class="feature-desc">전체 파트의 진행률을 한눈에 확인해요.</div></div>
+          <div class="feature-card"><div class="feature-icon" style="background:rgba(24,95,165,0.15);border:1px solid rgba(24,95,165,0.3)"><i class="ti ti-users" style="color:var(--blue);font-size:20px"></i></div><div class="feature-title">분야별 자동 세팅</div><div class="feature-desc">분야를 선택하면 용어와 구성이 자동으로 맞춰져요.</div></div>
+        </div>
+      </div>
+      <div style="background:var(--navy);padding:40px 40px 60px">
+        <div style="text-align:center;margin-bottom:32px"><div style="font-size:11px;font-weight:700;color:#4ADE80;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">Quick Links</div><h2 style="font-size:28px;font-weight:900;color:#fff">블로그와 템플릿 바로가기</h2></div>
+        <div class="cta-section" style="padding:0;display:grid">
+          <div class="cta-card cta-card-blue"><i class="ti ti-news" style="color:#3B9EE8"></i><h3>블로그</h3><p>사용자들의 노하우, 운영 후기, 공지사항을 확인해요.</p><button class="cta-btn-blue"><i class="ti ti-arrow-right"></i>블로그 바로가기</button></div>
+          <div class="cta-card cta-card-amber"><i class="ti ti-file-export" style="color:#F59E0B"></i><h3>템플릿 공유</h3><p>다른 사람의 행사 구성을 .thanq 파일로 받아 바로 적용해요.</p><button class="cta-btn-amber"><i class="ti ti-arrow-right"></i>템플릿 보러가기</button></div>
+        </div>
+      </div>
+      <!-- 요금제 섹션 -->
+      <div style="background:var(--navy);padding:60px 40px">
+        <div style="text-align:center;margin-bottom:40px">
+          <div style="font-size:11px;font-weight:700;color:#A78BFA;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">Pricing</div>
+          <h2 style="font-size:32px;font-weight:900;color:#fff">간단하고 투명한 요금제</h2>
+          <p style="font-size:14px;color:rgba(255,255,255,0.4);margin-top:10px">쿠폰 코드가 있으신가요? Pro 업그레이드 시 입력하세요.</p>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:700px;margin:0 auto">
+          <!-- Free 플랜 -->
+          <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:28px">
+            <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.5);margin-bottom:8px">Free</div>
+            <div style="font-size:36px;font-weight:900;color:#fff;margin-bottom:4px">무료</div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.3);margin-bottom:24px">영원히 무료</div>
+            <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:24px">
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(255,255,255,0.6)"><i class="ti ti-check" style="color:#4ADE80"></i>프로젝트 생성</div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(255,255,255,0.6)"><i class="ti ti-check" style="color:#4ADE80"></i>파트 직접 입력</div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(255,255,255,0.6)"><i class="ti ti-check" style="color:#4ADE80"></i>큐시트 · 체크리스트</div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(255,255,255,0.6)"><i class="ti ti-check" style="color:#4ADE80"></i>팀원 초대</div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(255,255,255,0.3)"><i class="ti ti-x" style="color:rgba(255,255,255,0.2)"></i>템플릿 저장 · 불러오기</div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(255,255,255,0.3)"><i class="ti ti-x" style="color:rgba(255,255,255,0.2)"></i>PTT 무전</div>
+            </div>
+            <button style="width:100%;height:44px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.12);border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">무료로 시작</button>
+          </div>
+          <!-- Pro 플랜 -->
+          <div style="background:linear-gradient(135deg,rgba(24,95,165,0.3),rgba(24,95,165,0.1));border:1px solid rgba(24,95,165,0.5);border-radius:20px;padding:28px;position:relative">
+            <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--blue);color:#fff;font-size:11px;font-weight:700;padding:3px 12px;border-radius:20px;white-space:nowrap">추천</div>
+            <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.7);margin-bottom:8px">Pro</div>
+            <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:4px"><span style="font-size:36px;font-weight:900;color:#fff">₩9,900</span><span style="font-size:13px;color:rgba(255,255,255,0.4)">/ 월</span></div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.3);margin-bottom:24px">연간 결제 시 20% 할인</div>
+            <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:24px">
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(255,255,255,0.8)"><i class="ti ti-check" style="color:#4ADE80"></i>프로젝트 생성</div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(255,255,255,0.8)"><i class="ti ti-check" style="color:#4ADE80"></i>파트 직접 입력</div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(255,255,255,0.8)"><i class="ti ti-check" style="color:#4ADE80"></i>큐시트 · 체크리스트</div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(255,255,255,0.8)"><i class="ti ti-check" style="color:#4ADE80"></i>팀원 초대</div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(255,255,255,0.8)"><i class="ti ti-check" style="color:#4ADE80"></i>템플릿 저장 · 불러오기</div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(255,255,255,0.8)"><i class="ti ti-check" style="color:#4ADE80"></i>PTT 무전 (즐겨찾기·단축키)</div>
+            </div>
+            <button style="width:100%;height:44px;background:var(--blue);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Pro 시작하기</button>
+            <div style="margin-top:12px">
+              <div style="display:flex;gap:8px;align-items:center">
+                <input placeholder="쿠폰 코드 입력" style="flex:1;height:36px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:0 10px;font-size:12px;color:#fff;outline:none;font-family:inherit">
+                <button style="height:36px;padding:0 12px;background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.15);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">적용</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="landing-footer">
+        <div class="footer-logo"><div style="width:24px;height:24px;background:var(--blue);border-radius:6px;display:flex;align-items:center;justify-content:center"><i class="ti ti-bolt" style="color:#fff;font-size:12px"></i></div><span>ThanQ</span></div>
+        <div class="footer-links"><button class="footer-link">블로그</button><button class="footer-link">템플릿</button><button class="footer-link">시작하기</button></div>
+        <span class="footer-copy">© 2026 ThanQ. All rights reserved.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ② 로그인 -->
+  <div class="page-block">
+    <div class="page-block-label"><span class="page-block-name">로그인 / 회원가입</span><span class="page-block-url">/login</span><span class="page-block-access access-public">공개</span></div>
+    <div class="login-wrap" style="min-height:500px">
+      <div class="login-box">
+        <div class="login-logo">
+          <div class="login-logo-icon"><i class="ti ti-bolt"></i></div>
+          <h1>ThanQ</h1>
+          <p>현장 운영을 더 스마트하게</p>
+        </div>
+        <div class="login-form">
+          <input class="login-input" placeholder="이메일" />
+          <input class="login-input" placeholder="비밀번호" type="password"/>
+          <button class="login-btn">로그인</button>
+          <div class="login-divider">또는</div>
+          <button class="google-btn"><i class="ti ti-brand-google" style="font-size:16px"></i>Google로 계속하기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ③ 블로그 목록 -->
+  <div class="page-block">
+    <div class="page-block-label"><span class="page-block-name">블로그 목록</span><span class="page-block-url">/blog</span><span class="page-block-access access-public">공개</span></div>
+    <div>
+      <div class="topbar"><div class="topbar-left"><span class="topbar-brand">ThanQ</span></div><div class="topbar-right"><div class="topbar-btn"><i class="ti ti-bell"></i></div><div class="topbar-btn"><i class="ti ti-user"></i></div></div></div>
+      <div class="blog-layout">
+        <div class="blog-sidebar">
+          <div class="blog-sidebar-title">카테고리</div>
+          <div class="blog-cat active"><i class="ti ti-layout-grid"></i>전체</div>
+          <div class="blog-cat"><i class="ti ti-speakerphone" style="color:var(--red)"></i>공지</div>
+          <div class="blog-cat"><i class="ti ti-bulb" style="color:var(--green)"></i>노하우</div>
+          <div class="blog-cat"><i class="ti ti-file-export" style="color:var(--amber)"></i>템플릿 공유</div>
+          <div class="blog-cat"><i class="ti ti-message" style="color:var(--purple)"></i>자유게시판</div>
+        </div>
+        <div class="blog-main">
+          <div class="blog-header-row">
+            <div class="blog-search"><i class="ti ti-search"></i><input placeholder="게시글 검색..."/></div>
+            <button class="blog-write-btn"><i class="ti ti-pencil"></i>글쓰기</button>
+          </div>
+          <div class="post-grid">
+            <div class="post-card"><div class="post-badge" style="background:var(--red-light);color:var(--red)"><i class="ti ti-speakerphone"></i>공지</div><div class="post-title">v1.2 업데이트 — 템플릿 공유 기능 출시</div><div class="post-excerpt">.thanq 파일로 행사 구성을 팀원과 주고받을 수 있는 템플릿 공유 기능이 출시됐어요. 블로그에 파일을 첨부해서 공유해보세요.</div><div class="post-meta"><i class="ti ti-user"></i>관리자<i class="ti ti-calendar"></i>2026.05.28<span class="post-tmpl-badge"><i class="ti ti-file-zip"></i>템플릿 첨부</span></div></div>
+            <div class="post-card"><div class="post-badge" style="background:var(--amber-light);color:var(--amber)"><i class="ti ti-file-export"></i>템플릿 공유</div><div class="post-title">🏔 등산 모임 3파트 템플릿 공유해요</div><div class="post-excerpt">선두팀 / 후미팀 / 사진팀 구성으로 큐시트 20개, 체크리스트 15개 포함된 템플릿이에요. 바로 다운받아 사용하세요!</div><div class="post-meta"><i class="ti ti-user"></i>김철수<i class="ti ti-eye"></i>127<i class="ti ti-heart"></i>34<span class="post-tmpl-badge"><i class="ti ti-file-zip"></i>템플릿 첨부</span></div></div>
+            <div class="post-card"><div class="post-badge" style="background:var(--green-light);color:var(--green)"><i class="ti ti-bulb"></i>노하우</div><div class="post-title">행사 당일 체크리스트 작성 팁 5가지</div><div class="post-excerpt">3년 100개 행사를 운영하며 쌓은 노하우를 공유해요. 체크리스트는 파트별로 분리하고, 우선순위 태그를 꼭 달아두세요.</div><div class="post-meta"><i class="ti ti-user"></i>박지영<i class="ti ti-eye"></i>89<i class="ti ti-heart"></i>31</div></div>
+            <div class="post-card"><div class="post-badge" style="background:var(--purple-light);color:var(--purple)"><i class="ti ti-message"></i>자유</div><div class="post-title">콘서트 운영 후기 - 처음 써봤는데 진짜 편하네요</div><div class="post-excerpt">PTT 무전 기능이 특히 좋았어요. 무전기 없이 스마트폰으로 전 파트 소통이 되니까 너무 편했고, 큐시트 공유도 실시간으로 되니까...</div><div class="post-meta"><i class="ti ti-user"></i>이민수<i class="ti ti-eye"></i>56<i class="ti ti-heart"></i>18</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ④ 블로그 글쓰기 -->
+  <div class="page-block">
+    <div class="page-block-label"><span class="page-block-name">블로그 글쓰기</span><span class="page-block-url">/blog/write</span><span class="page-block-access access-private">로그인</span></div>
+    <div>
+      <div class="topbar"><div class="topbar-left"><span class="topbar-brand">ThanQ</span></div><div class="topbar-right"><div class="topbar-btn"><i class="ti ti-user"></i></div></div></div>
+      <div class="write-layout">
+        <button class="write-back"><i class="ti ti-arrow-left"></i>블로그로</button>
+        <div class="write-form">
+          <div class="form-row"><div class="form-label">카테고리</div><div class="cat-chips"><div class="cat-chip"><i class="ti ti-speakerphone" style="color:var(--red)"></i>공지</div><div class="cat-chip"><i class="ti ti-bulb" style="color:var(--green)"></i>노하우</div><div class="cat-chip active"><i class="ti ti-file-export"></i>템플릿 공유</div><div class="cat-chip"><i class="ti ti-message" style="color:var(--purple)"></i>자유게시판</div></div></div>
+          <div class="form-row"><div class="form-label">제목</div><input class="form-input" placeholder="제목을 입력하세요" value="🏔 등산 모임 기본 템플릿 공유"/></div>
+          <div class="form-row"><div class="form-label">내용</div><textarea class="form-textarea">선두/후미/사진팀 3파트로 구성된 등산 모임용 템플릿입니다.
+큐시트 20개, 체크리스트 15개가 포함되어 있어요.
+.thanq 파일로 첨부했으니 다운받아서 바로 사용하세요!</textarea></div>
+          <div class="form-row"><div class="form-label">템플릿 파일 첨부 <span style="font-weight:400;color:#A0AEC0">(선택 · .thanq 파일)</span></div>
+            <div style="background:var(--amber-light);border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:12px">
+              <i class="ti ti-file-zip" style="color:var(--amber);font-size:24px"></i>
+              <div><div style="font-size:14px;font-weight:700;color:var(--amber)">등산모임기본.thanq</div><div style="font-size:12px;color:var(--muted)">3파트 포함 · 45KB</div></div>
+              <button style="margin-left:auto;background:none;border:none;cursor:pointer"><i class="ti ti-x" style="color:var(--muted);font-size:16px"></i></button>
+            </div>
+          </div>
+          <button class="submit-btn"><i class="ti ti-send"></i>게시하기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑤ 템플릿 페이지 -->
+  <div class="page-block">
+    <div class="page-block-label"><span class="page-block-name">템플릿 공유</span><span class="page-block-url">/templates</span><span class="page-block-access access-public">공개</span></div>
+    <div>
+      <div class="topbar"><div class="topbar-left"><span class="topbar-brand">ThanQ</span></div><div class="topbar-right"><div class="topbar-btn"><i class="ti ti-user"></i></div></div></div>
+      <div class="tmpl-layout">
+        <div class="tmpl-sidebar">
+          <div class="tmpl-sidebar-title">분야 필터</div>
+          <button class="tmpl-field-btn active">전체</button>
+          <button class="tmpl-field-btn">🎪 행사/축제</button>
+          <button class="tmpl-field-btn">🎬 드라마/영화</button>
+          <button class="tmpl-field-btn">🎵 콘서트/공연</button>
+          <button class="tmpl-field-btn">👗 패션쇼</button>
+          <button class="tmpl-field-btn">⚽ 스포츠/대회</button>
+          <button class="tmpl-field-btn">📺 방송/생방송</button>
+          <button class="tmpl-field-btn">🏔 모임/클럽</button>
+        </div>
+        <div class="tmpl-main">
+          <div class="tmpl-header-row">
+            <div class="tmpl-header-left"><h2>템플릿 공유</h2><p>.thanq 파일을 받아 프로젝트에 바로 적용해요</p></div>
+            <button class="tmpl-share-btn"><i class="ti ti-upload"></i>내 템플릿 공유하기</button>
+          </div>
+          <div class="tmpl-grid">
+            <div class="tmpl-card">
+              <div class="tmpl-card-top"><div class="tmpl-emoji-box">🏔</div><div><div class="tmpl-card-name">등산 모임 기본<span class="tmpl-field-badge">모임</span></div><div class="tmpl-card-desc">선두/후미/사진팀 3파트 구성</div></div></div>
+              <div class="tmpl-parts"><div class="tmpl-part-tag"><div class="tmpl-part-dot" style="background:#E24B4A"></div>선두팀</div><div class="tmpl-part-tag"><div class="tmpl-part-dot" style="background:#185FA5"></div>후미팀</div><div class="tmpl-part-tag"><div class="tmpl-part-dot" style="background:#0F6E56"></div>사진팀</div></div>
+              <div class="tmpl-card-meta">김철수 · 파트 3개 · 큐시트 20개 · 2026.05.20</div>
+              <div class="tmpl-card-btns"><button class="tmpl-btn-preview"><i class="ti ti-eye"></i>미리보기</button><button class="tmpl-btn-dl"><i class="ti ti-download"></i>.thanq 받기</button></div>
+            </div>
+            <div class="tmpl-card">
+              <div class="tmpl-card-top"><div class="tmpl-emoji-box">🎪</div><div><div class="tmpl-card-name">소규모 행사<span class="tmpl-field-badge">행사</span></div><div class="tmpl-card-desc">운영/음향/무대 3파트 기본 구성</div></div></div>
+              <div class="tmpl-parts"><div class="tmpl-part-tag"><div class="tmpl-part-dot" style="background:#854F0B"></div>운영팀</div><div class="tmpl-part-tag"><div class="tmpl-part-dot" style="background:#534AB7"></div>음향팀</div><div class="tmpl-part-tag"><div class="tmpl-part-dot" style="background:#993C1D"></div>무대팀</div></div>
+              <div class="tmpl-card-meta">이진우 · 파트 3개 · 큐시트 15개 · 2026.05.18</div>
+              <div class="tmpl-card-btns"><button class="tmpl-btn-preview"><i class="ti ti-eye"></i>미리보기</button><button class="tmpl-btn-dl"><i class="ti ti-download"></i>.thanq 받기</button></div>
+            </div>
+            <div class="tmpl-card">
+              <div class="tmpl-card-top"><div class="tmpl-emoji-box">🎵</div><div><div class="tmpl-card-name">콘서트 6파트<span class="tmpl-field-badge">공연</span></div><div class="tmpl-card-desc">대형 콘서트 전체 파트 구성</div></div></div>
+              <div class="tmpl-parts"><div class="tmpl-part-tag"><div class="tmpl-part-dot" style="background:#185FA5"></div>기획팀</div><div class="tmpl-part-tag"><div class="tmpl-part-dot" style="background:#0F6E56"></div>무대팀</div><div class="tmpl-part-tag"><div class="tmpl-part-dot" style="background:#854F0B"></div>음향팀</div><div class="tmpl-part-tag"><div class="tmpl-part-dot" style="background:#534AB7"></div>조명팀</div></div>
+              <div class="tmpl-card-meta">박소연 · 파트 6개 · 큐시트 40개 · 2026.05.15</div>
+              <div class="tmpl-card-btns"><button class="tmpl-btn-preview"><i class="ti ti-eye"></i>미리보기</button><button class="tmpl-btn-dl"><i class="ti ti-download"></i>.thanq 받기</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑥ 메인 대시보드 -->
+  <div class="page-block">
+    <div class="page-block-label"><span class="page-block-name">메인 대시보드</span><span class="page-block-url">/dashboard</span><span class="page-block-access access-private">로그인</span></div>
+    <div>
+      <div class="topbar"><div class="topbar-left"><span class="topbar-brand">ThanQ</span></div><div class="topbar-right"><div class="topbar-btn"><i class="ti ti-bell"></i></div><div class="topbar-btn" style="width:auto;border-radius:20px;padding:0 12px;font-size:12px;color:#fff;gap:6px"><i class="ti ti-user"></i>김운영</div></div></div>
+      <div class="dash-layout">
+        <div class="dash-greeting"><h2>안녕하세요, 김운영님 👋</h2><p>진행 중인 프로젝트 3개가 있어요</p></div>
+        <div class="stat-grid">
+          <div class="stat-card"><div class="stat-label" style="color:var(--blue)"><i class="ti ti-folder"></i>전체 프로젝트</div><div class="stat-value" style="color:var(--blue)">3</div></div>
+          <div class="stat-card"><div class="stat-label" style="color:var(--green)"><i class="ti ti-activity"></i>진행 중</div><div class="stat-value" style="color:var(--green)">2</div></div>
+          <div class="stat-card"><div class="stat-label" style="color:var(--amber)"><i class="ti ti-calendar"></i>이번 달 행사</div><div class="stat-value" style="color:var(--amber)">1</div></div>
+          <div class="stat-card"><div class="stat-label" style="color:var(--purple)"><i class="ti ti-users"></i>참여 팀원</div><div class="stat-value" style="color:var(--purple)">12</div></div>
+        </div>
+        <div class="proj-section-title"><span>내 프로젝트</span><button style="font-size:13px;font-weight:700;color:var(--blue);background:none;border:none;cursor:pointer">+ 새 프로젝트</button></div>
+        <div class="proj-grid">
+          <div class="proj-card" style="--c:var(--blue)"><div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--blue)"></div><div class="proj-card-header"><span class="proj-card-name">2026 봄 축제</span><span class="status-badge" style="background:var(--blue-light);color:var(--blue)">진행 중</span></div><div class="proj-card-sub">2026.06.15 · 파트 5개 · 팀원 8명</div><div class="prog-bar-wrap"><div class="prog-bar" style="width:65%;background:var(--blue)"></div></div><div class="prog-label"><span>전체 진행률</span><span style="font-weight:700">65%</span></div></div>
+          <div class="proj-card"><div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--green)"></div><div class="proj-card-header"><span class="proj-card-name">한라산 등반 모임</span><span class="status-badge" style="background:var(--green-light);color:var(--green)">D-3</span></div><div class="proj-card-sub">2026.05.31 · 파트 3개 · 팀원 4명</div><div class="prog-bar-wrap"><div class="prog-bar" style="width:85%;background:var(--green)"></div></div><div class="prog-label"><span>전체 진행률</span><span style="font-weight:700">85%</span></div></div>
+          <div class="proj-card"><div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--amber)"></div><div class="proj-card-header"><span class="proj-card-name">여름 콘서트 A</span><span class="status-badge" style="background:var(--amber-light);color:var(--amber)">준비 중</span></div><div class="proj-card-sub">2026.07.20 · 파트 6개 · 팀원 14명</div><div class="prog-bar-wrap"><div class="prog-bar" style="width:30%;background:var(--amber)"></div></div><div class="prog-label"><span>전체 진행률</span><span style="font-weight:700">30%</span></div></div>
+          <div class="new-proj-card"><i class="ti ti-plus"></i><span>새 프로젝트 만들기</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑦ 프로젝트 홈 -->
+  <div class="page-block">
+    <div class="page-block-label"><span class="page-block-name">프로젝트 홈</span><span class="page-block-url">/p/:id/home</span><span class="page-block-access access-private">로그인</span></div>
+    <div>
+      <div class="topbar"><div class="topbar-left"><span class="topbar-brand">ThanQ</span><span class="topbar-project"><i class="ti ti-chevron-right"></i>2026 봄 축제</span></div><div class="topbar-right"><div class="topbar-btn"><i class="ti ti-bell"></i></div><div class="topbar-btn"><i class="ti ti-user"></i></div></div></div>
+      <div class="proj-home-layout">
+        <div class="proj-dday-bar">
+          <div class="proj-dday-left"><span class="dday-pill">D-18</span><div class="proj-dday-info"><h3>2026 봄 축제</h3><p>2026.06.15 · 14:00 ~ 22:00</p></div></div>
+          <div class="proj-tmpl-btns">
+            <button class="proj-tmpl-btn"><i class="ti ti-file-import"></i>템플릿 가져오기</button>
+            <button class="proj-tmpl-btn"><i class="ti ti-file-export"></i>템플릿으로 저장</button>
+          </div>
+        </div>
+        <div class="parts-table">
+          <div class="parts-table-header"><span>파트</span><span>큐시트</span><span>체크리스트</span><span>팀원</span><span>진행률</span></div>
+          <div class="parts-table-row"><div class="part-name-cell"><div class="part-color-strip" style="background:#E24B4A"></div><div><div class="part-name">운영팀</div><div class="part-manager">팀장 · 김운영</div></div></div><div class="part-count">12개</div><div class="part-count">8개</div><div class="part-count">3명</div><div class="part-prog"><div class="part-prog-bar"><div class="part-prog-fill" style="width:70%;background:#E24B4A"></div></div><span class="part-prog-pct">70%</span></div></div>
+          <div class="parts-table-row"><div class="part-name-cell"><div class="part-color-strip" style="background:#185FA5"></div><div><div class="part-name">음향팀</div><div class="part-manager">팀장 · 이음향</div></div></div><div class="part-count">8개</div><div class="part-count">12개</div><div class="part-count">2명</div><div class="part-prog"><div class="part-prog-bar"><div class="part-prog-fill" style="width:50%;background:#185FA5"></div></div><span class="part-prog-pct">50%</span></div></div>
+          <div class="parts-table-row"><div class="part-name-cell"><div class="part-color-strip" style="background:#0F6E56"></div><div><div class="part-name">무대팀</div><div class="part-manager">팀장 · 박무대</div></div></div><div class="part-count">15개</div><div class="part-count">6개</div><div class="part-count">4명</div><div class="part-prog"><div class="part-prog-bar"><div class="part-prog-fill" style="width:85%;background:#0F6E56"></div></div><span class="part-prog-pct">85%</span></div></div>
+          <div class="parts-table-row"><div class="part-name-cell"><div class="part-color-strip" style="background:#534AB7"></div><div><div class="part-name">조명팀</div><div class="part-manager">팀장 · 최조명</div></div></div><div class="part-count">6개</div><div class="part-count">4개</div><div class="part-count">2명</div><div class="part-prog"><div class="part-prog-bar"><div class="part-prog-fill" style="width:40%;background:#534AB7"></div></div><span class="part-prog-pct">40%</span></div></div>
+          <div class="parts-table-row"><div class="part-name-cell"><div class="part-color-strip" style="background:#993C1D"></div><div><div class="part-name">안전팀</div><div class="part-manager">팀장 · 정안전</div></div></div><div class="part-count">4개</div><div class="part-count">10개</div><div class="part-count">3명</div><div class="part-prog"><div class="part-prog-bar"><div class="part-prog-fill" style="width:60%;background:#993C1D"></div></div><span class="part-prog-pct">60%</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑧ 담당자 큐시트 -->
+  <div class="page-block">
+    <div class="page-block-label"><span class="page-block-name">담당자 작업 화면 (큐시트)</span><span class="page-block-url">/p/:id/my-part</span><span class="page-block-access access-private">로그인</span></div>
+    <div>
+      <div class="topbar"><div class="topbar-left"><span class="topbar-brand">ThanQ</span><span class="topbar-project"><i class="ti ti-chevron-right"></i>2026 봄 축제</span></div><div class="topbar-right"><div class="topbar-btn"><i class="ti ti-user"></i></div></div></div>
+      <div class="mypart-layout">
+        <div class="mypart-header">
+          <div class="mypart-part-info"><div class="mypart-color" style="background:#E24B4A"></div><div><div class="mypart-part-name">운영팀</div><div class="mypart-part-sub">큐시트 12개 · 체크리스트 8개 · 팀원 3명</div></div></div>
+          <button class="mypart-add-btn"><i class="ti ti-plus"></i>큐시트 추가</button>
+        </div>
+        <div class="cue-table">
+          <div class="cue-table-header"><span>시작 시간</span><span>항목</span><span>소요시간</span><span>상태</span><span>액션</span></div>
+          <div class="cue-table-row"><span class="cue-time">13:00</span><div><div class="cue-title">스태프 집결 및 역할 확인</div><div class="cue-memo">전체 파트 팀장 미팅</div></div><span class="cue-duration">30분</span><span class="cue-status" style="background:var(--green-light);color:var(--green)">완료</span><div class="cue-actions"><button class="cue-action-btn"><i class="ti ti-edit"></i></button><button class="cue-action-btn"><i class="ti ti-trash"></i></button></div></div>
+          <div class="cue-table-row"><span class="cue-time">13:30</span><div><div class="cue-title">무대 설치 최종 점검</div><div class="cue-memo">음향/조명팀 협조</div></div><span class="cue-duration">60분</span><span class="cue-status" style="background:var(--green-light);color:var(--green)">완료</span><div class="cue-actions"><button class="cue-action-btn"><i class="ti ti-edit"></i></button><button class="cue-action-btn"><i class="ti ti-trash"></i></button></div></div>
+          <div class="cue-table-row" style="background:rgba(24,95,165,0.04)"><span class="cue-time" style="color:var(--green)">14:00</span><div><div class="cue-title">관객 입장 시작</div><div class="cue-memo">안전팀과 동시 진행</div></div><span class="cue-duration">60분</span><span class="cue-status" style="background:var(--blue-light);color:var(--blue)">진행 중</span><div class="cue-actions"><button class="cue-action-btn"><i class="ti ti-edit"></i></button><button class="cue-action-btn"><i class="ti ti-trash"></i></button></div></div>
+          <div class="cue-table-row"><span class="cue-time">15:00</span><div><div class="cue-title">개막식 시작</div></div><span class="cue-duration">30분</span><span class="cue-status" style="background:var(--bg);color:var(--muted)">대기</span><div class="cue-actions"><button class="cue-action-btn"><i class="ti ti-edit"></i></button><button class="cue-action-btn"><i class="ti ti-trash"></i></button></div></div>
+          <div class="cue-table-row"><span class="cue-time">15:30</span><div><div class="cue-title">1부 공연 진행</div></div><span class="cue-duration">90분</span><span class="cue-status" style="background:var(--bg);color:var(--muted)">대기</span><div class="cue-actions"><button class="cue-action-btn"><i class="ti ti-edit"></i></button><button class="cue-action-btn"><i class="ti ti-trash"></i></button></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑨ PTT 무전 -->
+  <div class="page-block">
+    <div class="page-block-label"><span class="page-block-name">PTT 무전</span><span class="page-block-url">/p/:id/ptt</span><span class="page-block-access access-private">로그인</span></div>
+    <div>
+      <div class="topbar"><div class="topbar-left"><span class="topbar-brand">ThanQ</span><span class="topbar-project"><i class="ti ti-chevron-right"></i>2026 봄 축제</span></div><div class="topbar-right"><div class="topbar-btn"><i class="ti ti-user"></i></div></div></div>
+      <div class="ptt-layout" style="height:620px">
+        <!-- 왼쪽: 대상 목록 패널 -->
+        <div style="width:260px;background:#111827;border-right:1px solid rgba(255,255,255,0.06);overflow-y:auto;padding:20px 0">
+          <!-- 오디오 기기 선택 -->
+          <div style="padding:0 16px 14px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:14px">
+            <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px">마이크 기기</div>
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;cursor:pointer">
+              <i class="ti ti-microphone" style="color:rgba(255,255,255,0.4);font-size:14px"></i>
+              <span style="font-size:12px;color:rgba(255,255,255,0.6);flex:1">내장 마이크</span>
+              <i class="ti ti-chevron-down" style="color:rgba(255,255,255,0.3);font-size:12px"></i>
+            </div>
+          </div>
+          <!-- 즐겨찾기 그룹 -->
+          <div style="padding:0 16px;margin-bottom:6px">
+            <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between"><span>즐겨찾기</span><i class="ti ti-chevron-up" style="font-size:12px"></i></div>
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:rgba(24,95,165,0.15);border:1px solid rgba(24,95,165,0.2);cursor:pointer">
+                <div style="width:28px;height:28px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff">전</div>
+                <div style="flex:1"><div style="font-size:12px;font-weight:700;color:#fff">📢 전체</div><div style="font-size:10px;color:rgba(255,255,255,0.35)">모든 파트에 전송</div></div>
+                <span style="font-size:10px;padding:1px 5px;background:rgba(255,255,255,0.1);border-radius:4px;color:rgba(255,255,255,0.4)">1</span>
+                <i class="ti ti-star-filled" style="color:#FBBF24;font-size:13px"></i>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.03);cursor:pointer">
+                <div style="width:28px;height:28px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff">무</div>
+                <div style="flex:1"><div style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.7)">무대팀</div><div style="font-size:10px;color:rgba(255,255,255,0.3)">파트 전송</div></div>
+                <span style="font-size:10px;padding:1px 5px;background:rgba(255,255,255,0.1);border-radius:4px;color:rgba(255,255,255,0.4)">2</span>
+                <i class="ti ti-star-filled" style="color:#FBBF24;font-size:13px"></i>
+              </div>
+            </div>
+          </div>
+          <!-- 총괄 그룹 -->
+          <div style="padding:0 16px;margin-top:12px;margin-bottom:6px">
+            <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between"><span>총괄</span><i class="ti ti-chevron-up" style="font-size:12px"></i></div>
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.03);cursor:pointer">
+                <div style="width:28px;height:28px;border-radius:50%;background:var(--amber);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff">김</div>
+                <div style="flex:1"><div style="font-size:12px;color:rgba(255,255,255,0.6)">김총괄 <span style="font-size:10px;color:rgba(255,255,255,0.3)">(별명: 보스)</span></div><div style="font-size:10px;color:rgba(255,255,255,0.3)">1:1 전송</div></div>
+                <i class="ti ti-star" style="color:rgba(255,255,255,0.2);font-size:13px"></i>
+              </div>
+            </div>
+          </div>
+          <!-- 파트 담당자 그룹 -->
+          <div style="padding:0 16px;margin-top:12px;margin-bottom:6px">
+            <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between"><span>파트 담당자</span><i class="ti ti-chevron-up" style="font-size:12px"></i></div>
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.03);cursor:pointer">
+                <div style="width:28px;height:28px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff">박</div>
+                <div style="flex:1"><div style="font-size:12px;color:rgba(255,255,255,0.6)">🔴 운영팀</div><div style="font-size:10px;color:rgba(255,255,255,0.3)">파트 전송</div></div>
+                <span style="font-size:10px;padding:1px 5px;background:rgba(255,255,255,0.1);border-radius:4px;color:rgba(255,255,255,0.4)">3</span>
+                <i class="ti ti-star" style="color:rgba(255,255,255,0.2);font-size:13px"></i>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.03);cursor:pointer">
+                <div style="width:28px;height:28px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff">이</div>
+                <div style="flex:1"><div style="font-size:12px;color:rgba(255,255,255,0.6)">🔵 음향팀</div><div style="font-size:10px;color:rgba(255,255,255,0.3)">파트 전송</div></div>
+                <i class="ti ti-star" style="color:rgba(255,255,255,0.2);font-size:13px"></i>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.03);cursor:pointer">
+                <div style="width:28px;height:28px;border-radius:50%;background:var(--purple);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff">최</div>
+                <div style="flex:1"><div style="font-size:12px;color:rgba(255,255,255,0.6)">🟣 조명팀</div><div style="font-size:10px;color:rgba(255,255,255,0.3)">파트 전송</div></div>
+                <i class="ti ti-star" style="color:rgba(255,255,255,0.2);font-size:13px"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- 중앙: PTT 버튼 -->
+        <div class="ptt-left">
+          <div style="text-align:center;margin-bottom:4px">
+            <div style="display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;background:rgba(24,95,165,0.2);border:1px solid rgba(24,95,165,0.3)">
+              <i class="ti ti-radio" style="color:var(--blue);font-size:13px"></i>
+              <span style="font-size:12px;font-weight:700;color:var(--blue)">📢 전체 — 단축키 1</span>
+            </div>
+          </div>
+          <div class="ptt-btn-wrap">
+            <button class="ptt-btn"><i class="ti ti-microphone"></i></button>
+            <span class="ptt-btn-label">버튼을 누르는 동안 전송</span>
+          </div>
+          <div style="display:flex;gap:12px;font-size:12px;color:rgba(255,255,255,0.25)">
+            <span><i class="ti ti-keyboard" style="margin-right:4px"></i>단축키로 빠르게 선택</span>
+            <span><i class="ti ti-tag" style="margin-right:4px"></i>별명 설정 가능</span>
+          </div>
+        </div>
+        <!-- 오른쪽: 히스토리 -->
+        <div class="ptt-right">
+          <div class="ptt-history-title">무전 히스토리</div>
+          <div class="ptt-history-item"><div class="ptt-avatar" style="background:var(--blue)">김</div><div class="ptt-item-info"><div class="ptt-item-name">김운영 → 전체</div><div class="ptt-item-meta">2초 · 1분 전</div></div><button class="ptt-play-btn"><i class="ti ti-player-play"></i></button></div>
+          <div class="ptt-history-item"><div class="ptt-avatar" style="background:var(--green)">박</div><div class="ptt-item-info"><div class="ptt-item-name">박무대 → 음향팀</div><div class="ptt-item-meta">4초 · 3분 전</div></div><button class="ptt-play-btn"><i class="ti ti-player-play"></i></button></div>
+          <div class="ptt-history-item"><div class="ptt-avatar" style="background:var(--amber)">이</div><div class="ptt-item-info"><div class="ptt-item-name">이음향 → 전체</div><div class="ptt-item-meta">1초 · 7분 전</div></div><button class="ptt-play-btn"><i class="ti ti-player-play"></i></button></div>
+          <div class="ptt-history-item"><div class="ptt-avatar" style="background:var(--purple)">최</div><div class="ptt-item-info"><div class="ptt-item-name">최조명 → 운영팀</div><div class="ptt-item-meta">3초 · 12분 전</div></div><button class="ptt-play-btn"><i class="ti ti-player-play"></i></button></div>
+          <div class="ptt-history-item"><div class="ptt-avatar" style="background:var(--red)">정</div><div class="ptt-item-info"><div class="ptt-item-name">정안전 → 전체</div><div class="ptt-item-meta">5초 · 18분 전</div></div><button class="ptt-play-btn"><i class="ti ti-player-play"></i></button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑩ 사이트 관리자 — ① 대시보드 탭 -->
+  <div class="page-block">
+    <div class="page-block-label"><span class="page-block-name">사이트 관리자 — ① 대시보드</span><span class="page-block-url">/admin</span><span class="page-block-access access-admin">관리자</span></div>
+    <div class="admin-layout" style="height:560px">
+      <div class="admin-sidenav">
+        <div class="admin-logo"><div class="admin-logo-icon"><i class="ti ti-shield"></i></div><div><span>ThanQ</span><sub>관리자 콘솔</sub></div></div>
+        <div class="admin-nav-item active"><i class="ti ti-layout-dashboard"></i>대시보드</div>
+        <div class="admin-nav-item"><i class="ti ti-users"></i>회원 관리</div>
+        <div class="admin-nav-item"><i class="ti ti-radio"></i>PTT AI</div>
+        <div class="admin-nav-item"><i class="ti ti-ticket"></i>쿠폰 발행</div>
+        <div class="admin-nav-item"><i class="ti ti-credit-card"></i>플랜</div>
+        <div class="admin-nav-item"><i class="ti ti-speakerphone"></i>공지</div>
+      </div>
+      <div class="admin-content">
+        <div class="admin-page-title">서비스 현황</div>
+        <div class="admin-page-sub">Site Admin Console</div>
+        <div class="admin-stat-grid">
+          <div class="admin-stat-card"><div class="admin-stat-label" style="color:var(--blue)"><i class="ti ti-users"></i>전체 회원</div><div class="admin-stat-value" style="color:var(--blue)">247</div></div>
+          <div class="admin-stat-card"><div class="admin-stat-label" style="color:var(--green)"><i class="ti ti-folder"></i>전체 프로젝트</div><div class="admin-stat-value" style="color:var(--green)">83</div></div>
+          <div class="admin-stat-card"><div class="admin-stat-label" style="color:var(--amber)"><i class="ti ti-activity"></i>오늘 활성</div><div class="admin-stat-value" style="color:var(--amber)">14</div></div>
+          <div class="admin-stat-card"><div class="admin-stat-label" style="color:var(--purple)"><i class="ti ti-radio"></i>PTT 호출</div><div class="admin-stat-value" style="color:var(--purple)">321</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div style="background:var(--white);border-radius:12px;border:1px solid var(--border);padding:16px">
+            <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px">요금제 분포</div>
+            <div style="display:flex;align-items:center;gap:20px">
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <div style="display:flex;align-items:center;gap:8px"><div style="width:10px;height:10px;border-radius:50%;background:var(--muted)"></div><span style="font-size:12px;color:var(--muted)">Free</span><span style="font-size:14px;font-weight:900;color:var(--text)">219명</span></div>
+                <div style="display:flex;align-items:center;gap:8px"><div style="width:10px;height:10px;border-radius:50%;background:var(--blue)"></div><span style="font-size:12px;color:var(--muted)">Pro</span><span style="font-size:14px;font-weight:900;color:var(--blue)">28명</span></div>
+              </div>
+              <div style="flex:1;height:56px;background:var(--bg);border-radius:8px;overflow:hidden;display:flex">
+                <div style="width:89%;background:var(--muted);opacity:0.3"></div>
+                <div style="width:11%;background:var(--blue)"></div>
+              </div>
+            </div>
+          </div>
+          <div style="background:var(--white);border-radius:12px;border:1px solid var(--border);padding:16px">
+            <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px">쿠폰 현황</div>
+            <div style="display:flex;gap:20px">
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="display:flex;align-items:center;gap:8px"><div style="width:8px;height:8px;border-radius:50%;background:#3B9EE8"></div><span style="font-size:11px;color:var(--muted)">발행</span><span style="font-size:13px;font-weight:700">12개</span></div>
+                <div style="display:flex;align-items:center;gap:8px"><div style="width:8px;height:8px;border-radius:50%;background:#4ADE80"></div><span style="font-size:11px;color:var(--muted)">활성</span><span style="font-size:13px;font-weight:700">8개</span></div>
+                <div style="display:flex;align-items:center;gap:8px"><div style="width:8px;height:8px;border-radius:50%;background:#F59E0B"></div><span style="font-size:11px;color:var(--muted)">사용됨</span><span style="font-size:13px;font-weight:700">156회</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 사이트 관리자 — ② 회원 관리 탭 -->
+  <div class="page-block">
+    <div class="page-block-label"><span class="page-block-name">사이트 관리자 — ② 회원 관리</span><span class="page-block-url">/admin</span><span class="page-block-access access-admin">관리자</span></div>
+    <div class="admin-layout" style="height:520px">
+      <div class="admin-sidenav">
+        <div class="admin-logo"><div class="admin-logo-icon"><i class="ti ti-shield"></i></div><div><span>ThanQ</span><sub>관리자 콘솔</sub></div></div>
+        <div class="admin-nav-item"><i class="ti ti-layout-dashboard"></i>대시보드</div>
+        <div class="admin-nav-item active"><i class="ti ti-users"></i>회원 관리</div>
+        <div class="admin-nav-item"><i class="ti ti-radio"></i>PTT AI</div>
+        <div class="admin-nav-item"><i class="ti ti-ticket"></i>쿠폰 발행</div>
+        <div class="admin-nav-item"><i class="ti ti-credit-card"></i>플랜</div>
+        <div class="admin-nav-item"><i class="ti ti-speakerphone"></i>공지</div>
+      </div>
+      <div class="admin-content">
+        <div class="admin-page-title">회원 관리</div>
+        <div class="admin-page-sub">이름 또는 이메일로 검색 · 플랜 수동 변경</div>
+        <div style="display:flex;align-items:center;gap:8px;background:var(--white);border:1px solid var(--border);border-radius:10px;padding:0 12px;height:40px;margin-bottom:16px">
+          <i class="ti ti-search" style="color:var(--muted);font-size:15px"></i>
+          <span style="font-size:13px;color:#C0C8D4">이름 또는 이메일 검색...</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="background:var(--white);border:1px solid var(--border);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px">
+            <div style="width:36px;height:36px;border-radius:50%;background:#E24B4A;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff">관</div>
+            <div style="flex:1"><div style="display:flex;align-items:center;gap:6px"><span style="font-size:13px;font-weight:700">관리자</span><span style="font-size:10px;padding:1px 6px;background:#FCEBEB;color:var(--red);border-radius:10px;font-weight:700">ADMIN</span></div><div style="font-size:11px;color:var(--muted)">admin@thanq.io</div></div>
+            <select style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px;color:var(--text);font-family:inherit"><option>관리자</option></select>
+          </div>
+          <div style="background:var(--white);border:1px solid var(--border);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px">
+            <div style="width:36px;height:36px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff">김</div>
+            <div style="flex:1"><div style="display:flex;align-items:center;gap:6px"><span style="font-size:13px;font-weight:700">김철수</span><span style="font-size:10px;padding:1px 6px;background:var(--bg);color:var(--muted);border-radius:10px;border:1px solid var(--border);font-weight:700">Free</span></div><div style="font-size:11px;color:var(--muted)">user1@gmail.com</div></div>
+            <select style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px;color:var(--text);font-family:inherit"><option selected>Free</option><option>Pro</option></select>
+          </div>
+          <div style="background:var(--white);border:1px solid var(--border);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px">
+            <div style="width:36px;height:36px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff">이</div>
+            <div style="flex:1"><div style="display:flex;align-items:center;gap-6px"><span style="font-size:13px;font-weight:700">이지영</span><span style="font-size:10px;padding:1px 6px;background:var(--blue-light);color:var(--blue);border-radius:10px;font-weight:700;margin-left:6px">PRO</span></div><div style="font-size:11px;color:var(--muted)">user2@naver.com</div><div style="font-size:10px;color:#F59E0B">Pro 만료: 2026.08.15</div></div>
+            <select style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px;color:var(--text);font-family:inherit"><option>Free</option><option selected>Pro</option></select>
+          </div>
+          <div style="background:var(--white);border:1px solid var(--border);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px">
+            <div style="width:36px;height:36px;border-radius:50%;background:var(--amber);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff">박</div>
+            <div style="flex:1"><div style="display:flex;align-items:center;gap:6px"><span style="font-size:13px;font-weight:700">박민준</span><span style="font-size:10px;padding:1px 6px;background:var(--bg);color:var(--muted);border-radius:10px;border:1px solid var(--border);font-weight:700">Free</span></div><div style="font-size:11px;color:var(--muted)">minjun@kakao.com</div></div>
+            <select style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px;color:var(--text);font-family:inherit"><option selected>Free</option><option>Pro</option></select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 사이트 관리자 — ③ PTT AI 탭 -->
+  <div class="page-block">
+    <div class="page-block-label"><span class="page-block-name">사이트 관리자 — ③ PTT AI</span><span class="page-block-url">/admin</span><span class="page-block-access access-admin">관리자</span></div>
+    <div class="admin-layout" style="height:580px">
+      <div class="admin-sidenav">
+        <div class="admin-logo"><div class="admin-logo-icon"><i class="ti ti-shield"></i></div><div><span>ThanQ</span><sub>관리자 콘솔</sub></div></div>
+        <div class="admin-nav-item"><i class="ti ti-layout-dashboard"></i>대시보드</div>
+        <div class="admin-nav-item"><i class="ti ti-users"></i>회원 관리</div>
+        <div class="admin-nav-item active"><i class="ti ti-radio"></i>PTT AI</div>
+        <div class="admin-nav-item"><i class="ti ti-ticket"></i>쿠폰 발행</div>
+        <div class="admin-nav-item"><i class="ti ti-credit-card"></i>플랜</div>
+        <div class="admin-nav-item"><i class="ti ti-speakerphone"></i>공지</div>
+      </div>
+      <div class="admin-content">
+        <div class="admin-page-title">PTT AI 채널 관리</div>
+        <div class="admin-page-sub">음성 명령으로 프로젝트 채널에 연결해요</div>
+        <!-- 프로젝트 선택 -->
+        <div style="margin-bottom:16px">
+          <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">프로젝트 선택</div>
+          <div style="display:flex;align-items:center;gap:8px;height:40px;border:1px solid var(--blue);border-radius:10px;padding:0 12px;background:var(--blue-light)">
+            <i class="ti ti-folder" style="color:var(--blue);font-size:14px"></i>
+            <span style="font-size:13px;font-weight:600;color:var(--blue)">2026 봄 축제</span>
+            <i class="ti ti-chevron-down" style="margin-left:auto;color:var(--blue);font-size:13px"></i>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <!-- AI 음성 제어 -->
+          <div>
+            <div style="background:#0D1117;border-radius:14px;padding:20px;text-align:center;margin-bottom:12px">
+              <div style="width:64px;height:64px;border-radius:50%;background:var(--blue);display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto 12px;box-shadow:0 0 0 12px rgba(24,95,165,0.15)">
+                <i class="ti ti-microphone" style="color:#fff;font-size:22px"></i>
+                <span style="color:#fff;font-size:8px;font-weight:700;margin-top:2px">AI 명령</span>
+              </div>
+              <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:8px">버튼 누르고 채널 번호나 이름을 말하세요</div>
+              <div style="font-size:11px;color:rgba(255,255,255,0.25)">예) "3번 연결" · "음향팀" · "크루 전체"</div>
+            </div>
+            <!-- 채널 목록 -->
+            <div style="background:var(--white);border-radius:12px;border:1px solid var(--border);overflow:hidden">
+              <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-size:12px;font-weight:700;color:var(--text)">채널 목록</div>
+              <div style="padding:8px">
+                <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;border:1px solid var(--green-light);background:var(--green-light);margin-bottom:4px">
+                  <div style="width:22px;height:22px;border-radius:6px;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff">1</div>
+                  <i class="ti ti-crown" style="color:var(--amber);font-size:16px"></i>
+                  <div style="flex:1"><div style="font-size:12px;font-weight:700;color:var(--text)">총책임자</div><div style="font-size:10px;color:var(--muted)">2026 봄 축제</div></div>
+                  <span style="font-size:10px;color:var(--green);font-weight:700"><i class="ti ti-radio" style="margin-right:2px"></i>연결됨</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);margin-bottom:4px;cursor:pointer">
+                  <div style="width:22px;height:22px;border-radius:6px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--muted)">2</div>
+                  <div style="width:28px;height:28px;border-radius:50%;background:#E24B4A22;display:flex;align-items:center;justify-content:center"><i class="ti ti-user" style="color:#E24B4A;font-size:14px"></i></div>
+                  <div style="flex:1"><div style="font-size:12px;font-weight:600;color:var(--text)">운영팀 담당자</div><div style="font-size:10px;color:var(--muted)">운영팀</div></div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);margin-bottom:4px;cursor:pointer">
+                  <div style="width:22px;height:22px;border-radius:6px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--muted)">3</div>
+                  <div style="width:28px;height:28px;border-radius:50%;background:var(--blue)22;display:flex;align-items:center;justify-content:center"><i class="ti ti-user" style="color:var(--blue);font-size:14px"></i></div>
+                  <div style="flex:1"><div style="font-size:12px;font-weight:600;color:var(--text)">음향팀 담당자</div><div style="font-size:10px;color:var(--muted)">음향팀</div></div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);cursor:pointer">
+                  <div style="width:22px;height:22px;border-radius:6px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--muted)">4</div>
+                  <div style="width:28px;height:28px;border-radius:50%;background:var(--blue)22;display:flex;align-items:center;justify-content:center"><i class="ti ti-users" style="color:var(--blue);font-size:14px"></i></div>
+                  <div style="flex:1"><div style="font-size:12px;font-weight:600;color:var(--text)">크루 전체</div><div style="font-size:10px;color:var(--muted)">모든 멤버</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- 최근 연결 기록 -->
+          <div>
+            <div style="background:var(--white);border-radius:12px;border:1px solid var(--border);overflow:hidden">
+              <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-size:12px;font-weight:700;color:var(--text)">최근 연결 기록</div>
+              <div style="padding:8px;display:flex;flex-direction:column;gap:4px">
+                <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:var(--bg)">
+                  <div style="width:28px;height:28px;border-radius:50%;background:var(--amber);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff">관</div>
+                  <div style="flex:1"><div style="font-size:12px;font-weight:600;color:var(--text)">[관리자] 관리자</div><div style="font-size:10px;color:var(--muted)">→ 총책임자</div></div>
+                  <span style="font-size:10px;color:var(--muted)">방금</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:var(--bg)">
+                  <div style="width:28px;height:28px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff">김</div>
+                  <div style="flex:1"><div style="font-size:12px;font-weight:600;color:var(--text)">김운영</div><div style="font-size:10px;color:var(--muted)">→ 전체 · 2초</div></div>
+                  <span style="font-size:10px;color:var(--muted)">3분 전</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:var(--bg)">
+                  <div style="width:28px;height:28px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff">박</div>
+                  <div style="flex:1"><div style="font-size:12px;font-weight:600;color:var(--text)">박무대</div><div style="font-size:10px;color:var(--muted)">→ 음향팀 · 4초</div></div>
+                  <span style="font-size:10px;color:var(--muted)">7분 전</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:var(--bg)">
+                  <div style="width:28px;height:28px;border-radius:50%;background:var(--purple);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff">최</div>
+                  <div style="flex:1"><div style="font-size:12px;font-weight:600;color:var(--text)">최조명</div><div style="font-size:10px;color:var(--muted)">→ 운영팀 · 3초</div></div>
+                  <span style="font-size:10px;color:var(--muted)">12분 전</span>
+                </div>
+              </div>
+            </div>
+            <div style="background:var(--blue-light);border-radius:10px;padding:10px 14px;margin-top:12px;border:1px solid #B5D4F4">
+              <div style="font-size:11px;font-weight:700;color:var(--blue);margin-bottom:4px"><i class="ti ti-info-circle" style="margin-right:4px"></i>음성 파싱 우선순위</div>
+              <div style="font-size:11px;color:var(--blue);line-height:1.6;opacity:0.8">① "N번" 숫자 매칭 → ② 이름/파트명 직접 매칭 → ③ "전체"/"크루" 키워드 → ④ Claude AI 자연어 분석</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 사이트 관리자 — ④ 쿠폰 발행 탭 -->
+  <div class="page-block">
+    <div class="page-block-label"><span class="page-block-name">사이트 관리자 — ④ 쿠폰 발행</span><span class="page-block-url">/admin</span><span class="page-block-access access-admin">관리자</span></div>
+    <div class="admin-layout" style="height:640px">
+      <div class="admin-sidenav">
+        <div class="admin-logo"><div class="admin-logo-icon"><i class="ti ti-shield"></i></div><div><span>ThanQ</span><sub>관리자 콘솔</sub></div></div>
+        <div class="admin-nav-item"><i class="ti ti-layout-dashboard"></i>대시보드</div>
+        <div class="admin-nav-item"><i class="ti ti-users"></i>회원 관리</div>
+        <div class="admin-nav-item"><i class="ti ti-radio"></i>PTT AI</div>
+        <div class="admin-nav-item active"><i class="ti ti-ticket"></i>쿠폰 발행</div>
+        <div class="admin-nav-item"><i class="ti ti-credit-card"></i>플랜</div>
+        <div class="admin-nav-item"><i class="ti ti-speakerphone"></i>공지</div>
+      </div>
+      <div class="admin-content">
+        <div class="admin-page-title">쿠폰 발행</div>
+        <div class="admin-page-sub">마케팅용 무료 Pro 쿠폰을 발행해요</div>
+        <!-- 발행 폼 -->
+        <div style="background:var(--white);border-radius:14px;border:1px solid var(--border);padding:18px;margin-bottom:20px">
+          <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:14px;display:flex;align-items:center;gap:6px"><i class="ti ti-ticket" style="color:var(--blue)"></i>새 쿠폰 만들기</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+            <!-- 코드 -->
+            <div>
+              <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px">쿠폰 코드</div>
+              <div style="display:flex;gap:6px">
+                <div style="flex:1;height:36px;border:1px solid var(--blue);border-radius:8px;padding:0 10px;display:flex;align-items:center;font-size:12px;font-weight:700;color:var(--text);letter-spacing:1px;background:var(--blue-light)">SUMM-ER26</div>
+                <button style="height:36px;padding:0 10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;font-family:inherit;white-space:nowrap">자동 생성</button>
+              </div>
+            </div>
+            <!-- 타입 -->
+            <div>
+              <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px">쿠폰 종류</div>
+              <div style="display:flex;gap:6px">
+                <div style="flex:1;height:36px;border-radius:8px;border:1px solid var(--blue);background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;cursor:pointer">기간 무료</div>
+                <div style="flex:1;height:36px;border-radius:8px;border:1px solid var(--border);background:var(--white);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer">영구 Pro</div>
+              </div>
+            </div>
+            <!-- 기간 -->
+            <div>
+              <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px">무료 기간 (일)</div>
+              <div style="display:flex;gap:4px">
+                <div style="flex:1;height:36px;border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;background:var(--white)">7일</div>
+                <div style="flex:1;height:36px;border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;background:var(--white)">14일</div>
+                <div style="flex:1;height:36px;border-radius:8px;border:1px solid var(--blue);background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;cursor:pointer">30일</div>
+                <div style="flex:1;height:36px;border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;background:var(--white)">90일</div>
+                <input placeholder="직접" style="width:44px;height:36px;border:1px solid var(--border);border-radius:8px;text-align:center;font-size:11px;color:var(--text);outline:none;font-family:inherit">
+              </div>
+            </div>
+            <!-- 최대 사용 -->
+            <div>
+              <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px">최대 사용 횟수 <span style="font-weight:400">(0=무제한)</span></div>
+              <div style="display:flex;gap:4px">
+                <div style="flex:1;height:36px;border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;background:var(--white)">무제한</div>
+                <div style="flex:1;height:36px;border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;background:var(--white)">1</div>
+                <div style="flex:1;height:36px;border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;background:var(--white)">10</div>
+                <div style="flex:1;height:36px;border-radius:8px;border:1px solid var(--blue);background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;cursor:pointer">50</div>
+                <div style="flex:1;height:36px;border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;background:var(--white)">100</div>
+              </div>
+            </div>
+            <!-- 만료일 -->
+            <div>
+              <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px">쿠폰 만료일 <span style="font-weight:400">(선택)</span></div>
+              <div style="height:36px;border:1px solid var(--border);border-radius:8px;padding:0 10px;display:flex;align-items:center;font-size:12px;color:var(--muted);background:var(--bg)">2026-12-31</div>
+            </div>
+            <!-- 메모 -->
+            <div>
+              <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px">관리자 메모 <span style="font-weight:400">(선택)</span></div>
+              <div style="height:36px;border:1px solid var(--border);border-radius:8px;padding:0 10px;display:flex;align-items:center;font-size:12px;color:var(--text);background:var(--bg)">2026 여름 SNS 이벤트</div>
+            </div>
+          </div>
+          <button style="height:40px;padding:0 20px;background:var(--blue);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:inherit"><i class="ti ti-ticket"></i>쿠폰 발행</button>
+        </div>
+        <!-- 발행된 쿠폰 목록 -->
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px">발행된 쿠폰 (3개)</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="background:var(--white);border:1px solid var(--border);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px">
+            <span style="font-family:monospace;font-size:14px;font-weight:700;color:var(--text);letter-spacing:1px;min-width:100px">SUMM-ER26</span>
+            <span style="font-size:10px;padding:2px 8px;border-radius:10px;background:var(--blue-light);color:var(--blue);font-weight:700">30일 무료</span>
+            <span style="font-size:10px;padding:2px 8px;border-radius:10px;background:var(--bg);color:var(--muted);font-weight:700">0/50회</span>
+            <span style="font-size:11px;color:var(--muted);flex:1">2026 여름 SNS 이벤트</span>
+            <span style="font-size:10px;color:var(--muted)">2026.12.31</span>
+            <!-- 토글 ON -->
+            <div style="width:36px;height:20px;border-radius:10px;background:var(--blue);display:flex;align-items:center;padding:2px;cursor:pointer">
+              <div style="width:16px;height:16px;border-radius:50%;background:#fff;margin-left:auto"></div>
+            </div>
+            <button style="width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;font-size:13px"><i class="ti ti-trash"></i></button>
+          </div>
+          <div style="background:var(--white);border:1px solid var(--border);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px">
+            <span style="font-family:monospace;font-size:14px;font-weight:700;color:var(--text);letter-spacing:1px;min-width:100px">VIPPASS</span>
+            <span style="font-size:10px;padding:2px 8px;border-radius:10px;background:var(--amber-light);color:var(--amber);font-weight:700">영구 Pro</span>
+            <span style="font-size:10px;padding:2px 8px;border-radius:10px;background:var(--bg);color:var(--muted);font-weight:700">5/10회</span>
+            <span style="font-size:11px;color:var(--muted);flex:1">내부 테스터용</span>
+            <span style="font-size:10px;color:var(--muted)">-</span>
+            <div style="width:36px;height:20px;border-radius:10px;background:var(--blue);display:flex;align-items:center;padding:2px;cursor:pointer">
+              <div style="width:16px;height:16px;border-radius:50%;background:#fff;margin-left:auto"></div>
+            </div>
+            <button style="width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;font-size:13px"><i class="ti ti-trash"></i></button>
+          </div>
+          <div style="background:var(--white);border:1px solid var(--border);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px;opacity:0.6">
+            <span style="font-family:monospace;font-size:14px;font-weight:700;color:var(--muted);letter-spacing:1px;text-decoration:line-through;min-width:100px">EXPIRE01</span>
+            <span style="font-size:10px;padding:2px 8px;border-radius:10px;background:var(--blue-light);color:var(--blue);font-weight:700">7일 무료</span>
+            <span style="font-size:10px;padding:2px 8px;border-radius:10px;background:var(--bg);color:var(--muted);font-weight:700">88/100회</span>
+            <span style="font-size:10px;padding:2px 8px;border-radius:10px;background:#FCEBEB;color:var(--red);font-weight:700">만료됨</span>
+            <span style="font-size:11px;color:var(--muted);flex:1">베타 초기 이벤트</span>
+            <span style="font-size:10px;color:var(--red)">2026.04.30</span>
+            <div style="width:36px;height:20px;border-radius:10px;background:#E2E8F0;display:flex;align-items:center;padding:2px;cursor:pointer">
+              <div style="width:16px;height:16px;border-radius:50%;background:#fff"></div>
+            </div>
+            <button style="width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:none;color:var(--red);cursor:pointer;font-size:13px"><i class="ti ti-trash"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 사이트 관리자 — ⑤ 플랜 + ⑥ 공지 탭 -->
+  <div class="page-block">
+    <div class="page-block-label"><span class="page-block-name">사이트 관리자 — ⑤ 플랜 &amp; ⑥ 공지</span><span class="page-block-url">/admin</span><span class="page-block-access access-admin">관리자</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+      <!-- 플랜 탭 -->
+      <div class="admin-layout" style="height:440px;border-right:1px solid rgba(255,255,255,0.1)">
+        <div class="admin-sidenav">
+          <div class="admin-logo"><div class="admin-logo-icon"><i class="ti ti-shield"></i></div><div><span>ThanQ</span><sub>관리자 콘솔</sub></div></div>
+          <div class="admin-nav-item"><i class="ti ti-layout-dashboard"></i>대시보드</div>
+          <div class="admin-nav-item"><i class="ti ti-users"></i>회원 관리</div>
+          <div class="admin-nav-item"><i class="ti ti-radio"></i>PTT AI</div>
+          <div class="admin-nav-item"><i class="ti ti-ticket"></i>쿠폰 발행</div>
+          <div class="admin-nav-item active"><i class="ti ti-credit-card"></i>플랜</div>
+          <div class="admin-nav-item"><i class="ti ti-speakerphone"></i>공지</div>
+        </div>
+        <div class="admin-content">
+          <div class="admin-page-title">플랜 현황</div>
+          <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:12px">
+            <div style="background:var(--white);border-radius:12px;border:1px solid var(--border);padding:14px">
+              <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:4px">Free</div>
+              <div style="font-size:18px;font-weight:900;color:var(--text);margin-bottom:10px">무료</div>
+              <div style="display:flex;flex-direction:column;gap:5px">
+                <div style="font-size:11px;color:var(--text);display:flex;align-items:center;gap:6px"><i class="ti ti-check" style="color:var(--green);font-size:12px"></i>프로젝트 생성 · 파트 입력</div>
+                <div style="font-size:11px;color:var(--text);display:flex;align-items:center;gap:6px"><i class="ti ti-check" style="color:var(--green);font-size:12px"></i>큐시트 · 체크리스트 · 팀원 초대</div>
+              </div>
+            </div>
+            <div style="background:var(--blue-light);border-radius:12px;border:1px solid #B5D4F4;padding:14px">
+              <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:4px">Pro</div>
+              <div style="font-size:18px;font-weight:900;color:var(--text);margin-bottom:10px">₩9,900 / 월</div>
+              <div style="display:flex;flex-direction:column;gap:5px">
+                <div style="font-size:11px;color:var(--text);display:flex;align-items:center;gap:6px"><i class="ti ti-check" style="color:var(--blue);font-size:12px"></i>Free 전체 포함</div>
+                <div style="font-size:11px;color:var(--text);display:flex;align-items:center;gap:6px"><i class="ti ti-check" style="color:var(--blue);font-size:12px"></i>템플릿 저장 · 불러오기</div>
+                <div style="font-size:11px;color:var(--text);display:flex;align-items:center;gap:6px"><i class="ti ti-check" style="color:var(--blue);font-size:12px"></i>PTT 무전 (즐겨찾기·단축키)</div>
+              </div>
+            </div>
+          </div>
+          <div style="background:var(--blue-light);border-radius:10px;padding:10px 12px;border:1px solid #B5D4F4;font-size:11px;color:var(--blue)">
+            <i class="ti ti-info-circle" style="margin-right:4px"></i>현재 쿠폰으로만 Pro 활성화 가능. 카드 결제(Stripe) 연동은 Phase 4 예정.
+          </div>
+        </div>
+      </div>
+      <!-- 공지 탭 -->
+      <div class="admin-layout" style="height:440px">
+        <div class="admin-sidenav">
+          <div class="admin-logo"><div class="admin-logo-icon"><i class="ti ti-shield"></i></div><div><span>ThanQ</span><sub>관리자 콘솔</sub></div></div>
+          <div class="admin-nav-item"><i class="ti ti-layout-dashboard"></i>대시보드</div>
+          <div class="admin-nav-item"><i class="ti ti-users"></i>회원 관리</div>
+          <div class="admin-nav-item"><i class="ti ti-radio"></i>PTT AI</div>
+          <div class="admin-nav-item"><i class="ti ti-ticket"></i>쿠폰 발행</div>
+          <div class="admin-nav-item"><i class="ti ti-credit-card"></i>플랜</div>
+          <div class="admin-nav-item active"><i class="ti ti-speakerphone"></i>공지</div>
+        </div>
+        <div class="admin-content">
+          <div class="admin-page-title">전체 공지 발송</div>
+          <div class="admin-page-sub">모든 사용자에게 표시될 공지를 작성해요</div>
+          <div style="background:var(--white);border-radius:14px;border:1px solid var(--border);padding:16px">
+            <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">공지 내용</div>
+            <div style="height:100px;border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--muted);background:var(--bg);margin-bottom:12px;line-height:1.6">모든 사용자에게 표시될 공지를 입력하세요</div>
+            <button style="height:38px;padding:0 16px;background:var(--blue);color:#fff;border:none;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:inherit"><i class="ti ti-speakerphone"></i>전체 발송</button>
+          </div>
+          <div style="margin-top:12px;background:#EAF3DE;border-radius:10px;padding:10px 14px;border:1px solid #B5D4A0;display:flex;align-items:center;gap:8px">
+            <i class="ti ti-check" style="color:var(--green);font-size:16px"></i>
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--green)">✓ 공지가 발송되었어요</div>
+              <div style="font-size:11px;color:var(--green);opacity:0.7">Firebase siteNotices/ 에 저장 완료</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑪ 블로그 게시글 상세 -->
+  <div class="page-block">
+    <div class="page-block-label"><span class="page-block-name">블로그 게시글 상세</span><span class="page-block-url">/blog/:postId</span><span class="page-block-access access-public">공개</span></div>
+    <div>
+      <div class="topbar"><div class="topbar-left"><span class="topbar-brand">ThanQ</span></div><div class="topbar-right"><div class="topbar-btn"><i class="ti ti-user"></i></div></div></div>
+      <div style="max-width:800px;margin:0 auto;padding:32px 40px 48px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px">
+          <button style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:13px;display:flex;align-items:center;gap:4px"><i class="ti ti-arrow-left"></i>블로그 목록</button>
+          <span style="color:var(--border)">·</span>
+          <span style="font-size:12px;padding:2px 10px;border-radius:4px;background:var(--blue-light);color:var(--blue);font-weight:700">노하우</span>
+        </div>
+        <h1 style="font-size:28px;font-weight:900;color:var(--text);line-height:1.4;margin-bottom:12px">대규모 페스티벌 현장 운영 큐시트 작성법</h1>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid var(--border)">
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff">김</div>
+          <div><div style="font-size:14px;font-weight:600;color:var(--text)">김행사</div><div style="font-size:12px;color:var(--muted)">2026.05.20 · 조회 1,240 · ♥ 48</div></div>
+          <div style="margin-left:auto;display:flex;gap:8px">
+            <button style="padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:none;font-size:12px;color:var(--muted);cursor:pointer;font-family:inherit"><i class="ti ti-heart" style="margin-right:4px"></i>48</button>
+            <button style="padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:none;font-size:12px;color:var(--muted);cursor:pointer;font-family:inherit"><i class="ti ti-share" style="margin-right:4px"></i>공유</button>
+          </div>
+        </div>
+        <div style="background:var(--blue-light);border-radius:12px;padding:16px 20px;margin-bottom:24px;display:flex;align-items:center;gap:12px">
+          <i class="ti ti-file-zip" style="color:var(--blue);font-size:22px;flex-shrink:0"></i>
+          <div><div style="font-size:13px;font-weight:700;color:var(--blue)">페스티벌기본.thanq</div><div style="font-size:12px;color:var(--muted)">5파트 · 큐시트 40개 포함</div></div>
+          <button style="margin-left:auto;padding:7px 16px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit"><i class="ti ti-download" style="margin-right:4px"></i>.thanq 받기</button>
+        </div>
+        <div style="font-size:15px;color:var(--text);line-height:1.8">
+          <p style="margin-bottom:16px">현장 운영에서 큐시트는 단순한 타임테이블이 아닙니다. 각 파트가 언제 무엇을 해야 하는지, 누가 책임지는지를 명확히 합니다.</p>
+          <h2 style="font-size:18px;font-weight:700;margin:24px 0 12px;color:var(--text)">1. 파트별 큐시트 분리가 핵심</h2>
+          <p style="margin-bottom:16px">전체 타임라인을 하나로 만들면 각 팀이 자신과 무관한 항목까지 봐야 합니다. ThanQ는 파트별로 큐시트를 분리해 담당자가 자신의 항목에만 집중할 수 있습니다.</p>
+          <h2 style="font-size:18px;font-weight:700;margin:24px 0 12px;color:var(--text)">2. 사전 알림 설정</h2>
+          <p>10분 전, 5분 전 알림을 설정하면 담당자가 놓치는 항목을 크게 줄일 수 있습니다.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑫ 내 프로젝트 목록 -->
+  <div class="page-block">
+    <div class="page-block-label"><span class="page-block-name">내 프로젝트 목록</span><span class="page-block-url">/projects</span><span class="page-block-access access-private">로그인</span></div>
+    <div>
+      <div class="topbar"><div class="topbar-left"><span class="topbar-brand">ThanQ</span></div><div class="topbar-right"><div class="topbar-btn"><i class="ti ti-bell"></i></div><div class="topbar-btn" style="width:auto;border-radius:20px;padding:0 12px;font-size:12px;color:#fff;gap:6px;display:flex;align-items:center"><i class="ti ti-user"></i>김운영</div></div></div>
+      <div style="max-width:1100px;margin:0 auto;padding:28px 40px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+          <div><div style="font-size:22px;font-weight:900;color:var(--text)">내 프로젝트</div><div style="font-size:13px;color:var(--muted);margin-top:2px">총 5개 · 진행 중 3개</div></div>
+          <button style="padding:10px 20px;background:var(--blue);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px"><i class="ti ti-plus"></i>새 프로젝트</button>
+        </div>
+        <div style="display:flex;gap:10px;margin-bottom:20px">
+          <button style="padding:6px 16px;border-radius:20px;font-size:13px;font-weight:700;border:none;background:var(--blue);color:#fff;cursor:pointer;font-family:inherit">전체</button>
+          <button style="padding:6px 16px;border-radius:20px;font-size:13px;font-weight:600;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;font-family:inherit">진행 중</button>
+          <button style="padding:6px 16px;border-radius:20px;font-size:13px;font-weight:600;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;font-family:inherit">완료</button>
+          <button style="padding:6px 16px;border-radius:20px;font-size:13px;font-weight:600;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;font-family:inherit">내가 만든</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+          <div style="background:#fff;border-radius:14px;border:1px solid var(--border);padding:20px;position:relative;overflow:hidden;cursor:pointer">
+            <div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:#E24B4A"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <span style="font-size:15px;font-weight:700;color:var(--text)">2026 봄 축제</span>
+              <span style="font-size:11px;padding:2px 10px;border-radius:12px;background:var(--blue-light);color:var(--blue);font-weight:700">진행 중</span>
+            </div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:12px">2026.06.15 · 파트 5개 · 팀원 8명</div>
+            <div style="background:var(--bg);border-radius:6px;height:6px;margin-bottom:6px"><div style="width:65%;height:100%;border-radius:6px;background:#E24B4A"></div></div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted)"><span>전체 진행률</span><span style="font-weight:700;color:#E24B4A">65%</span></div>
+          </div>
+          <div style="background:#fff;border-radius:14px;border:1px solid var(--border);padding:20px;position:relative;overflow:hidden;cursor:pointer">
+            <div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--green)"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <span style="font-size:15px;font-weight:700;color:var(--text)">한라산 등반 모임</span>
+              <span style="font-size:11px;padding:2px 10px;border-radius:12px;background:#E1F5EE;color:var(--green);font-weight:700">D-3</span>
+            </div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:12px">2026.05.31 · 파트 3개 · 팀원 4명</div>
+            <div style="background:var(--bg);border-radius:6px;height:6px;margin-bottom:6px"><div style="width:85%;height:100%;border-radius:6px;background:var(--green)"></div></div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted)"><span>전체 진행률</span><span style="font-weight:700;color:var(--green)">85%</span></div>
+          </div>
+          <div style="background:#fff;border-radius:14px;border:1px solid var(--border);padding:20px;position:relative;overflow:hidden;cursor:pointer">
+            <div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--amber)"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <span style="font-size:15px;font-weight:700;color:var(--text)">여름 콘서트 A</span>
+              <span style="font-size:11px;padding:2px 10px;border-radius:12px;background:var(--amber-light);color:var(--amber);font-weight:700">준비 중</span>
+            </div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:12px">2026.07.20 · 파트 6개 · 팀원 14명</div>
+            <div style="background:var(--bg);border-radius:6px;height:6px;margin-bottom:6px"><div style="width:30%;height:100%;border-radius:6px;background:var(--amber)"></div></div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted)"><span>전체 진행률</span><span style="font-weight:700;color:var(--amber)">30%</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑬ 분야 선택 (온보딩 1단계) -->
+  <div class="page-block">
+    <div class="page-block-label"><span class="page-block-name">분야 선택 (온보딩 1/3)</span><span class="page-block-url">/onboarding/field</span><span class="page-block-access access-private">로그인</span></div>
+    <div>
+      <div class="topbar"><div class="topbar-left"><span class="topbar-brand">ThanQ</span></div><div class="topbar-right"></div></div>
+      <div style="max-width:680px;margin:0 auto;padding:40px 32px">
+        <div style="display:flex;align-items:center;gap:0;margin-bottom:32px">
+          <div style="display:flex;align-items:center;gap:8px;flex:1"><div style="width:28px;height:28px;border-radius:50%;background:var(--blue);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center">1</div><span style="font-size:13px;font-weight:700;color:var(--blue)">분야 선택</span></div>
+          <div style="height:2px;flex:1;background:var(--border)"></div>
+          <div style="display:flex;align-items:center;gap:8px;flex:1;justify-content:center"><div style="width:28px;height:28px;border-radius:50%;background:var(--border);color:var(--muted);font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center">2</div><span style="font-size:13px;color:var(--muted)">프로젝트 정보</span></div>
+          <div style="height:2px;flex:1;background:var(--border)"></div>
+          <div style="display:flex;align-items:center;gap:8px;flex:1;justify-content:flex-end"><div style="width:28px;height:28px;border-radius:50%;background:var(--border);color:var(--muted);font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center">3</div><span style="font-size:13px;color:var(--muted)">파트 구성</span></div>
+        </div>
+        <h2 style="font-size:24px;font-weight:900;color:var(--text);margin-bottom:6px">어떤 현장을 운영하시나요?</h2>
+        <p style="font-size:14px;color:var(--muted);margin-bottom:28px">분야를 선택하면 현장에 맞는 용어로 자동 설정됩니다</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+          <div style="padding:18px;border-radius:12px;border:2px solid var(--blue);background:var(--blue-light);cursor:pointer;display:flex;align-items:center;gap:14px">
+            <div style="width:44px;height:44px;border-radius:10px;background:var(--blue);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-confetti" style="color:#fff;font-size:20px"></i></div>
+            <div><div style="font-size:15px;font-weight:700;color:var(--text)">행사 / 축제</div><div style="font-size:12px;color:var(--muted)">대학 축제, 기업 행사, 박람회</div></div>
+          </div>
+          <div style="padding:18px;border-radius:12px;border:1px solid var(--border);background:#fff;cursor:pointer;display:flex;align-items:center;gap:14px">
+            <div style="width:44px;height:44px;border-radius:10px;background:#EEEDFE;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-video" style="color:#534AB7;font-size:20px"></i></div>
+            <div><div style="font-size:15px;font-weight:700;color:var(--text)">드라마 / 영화</div><div style="font-size:12px;color:var(--muted)">촬영 현장, 광고, MV</div></div>
+          </div>
+          <div style="padding:18px;border-radius:12px;border:1px solid var(--border);background:#fff;cursor:pointer;display:flex;align-items:center;gap:14px">
+            <div style="width:44px;height:44px;border-radius:10px;background:#E1F5EE;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-music" style="color:var(--green);font-size:20px"></i></div>
+            <div><div style="font-size:15px;font-weight:700;color:var(--text)">콘서트 / 공연</div><div style="font-size:12px;color:var(--muted)">콘서트, 뮤지컬, 연극</div></div>
+          </div>
+          <div style="padding:18px;border-radius:12px;border:1px solid var(--border);background:#fff;cursor:pointer;display:flex;align-items:center;gap:14px">
+            <div style="width:44px;height:44px;border-radius:10px;background:#FAEEDA;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-trophy" style="color:var(--amber);font-size:20px"></i></div>
+            <div><div style="font-size:15px;font-weight:700;color:var(--text)">스포츠 / 대회</div><div style="font-size:12px;color:var(--muted)">마라톤, 체육대회, e스포츠</div></div>
+          </div>
+          <div style="padding:18px;border-radius:12px;border:1px solid var(--border);background:#fff;cursor:pointer;display:flex;align-items:center;gap:14px">
+            <div style="width:44px;height:44px;border-radius:10px;background:#FAECE7;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-broadcast" style="color:var(--red);font-size:20px"></i></div>
+            <div><div style="font-size:15px;font-weight:700;color:var(--text)">방송 / 생방송</div><div style="font-size:12px;color:var(--muted)">TV, 유튜브 라이브</div></div>
+          </div>
+          <div style="padding:18px;border-radius:12px;border:1px solid var(--border);background:#fff;cursor:pointer;display:flex;align-items:center;gap:14px">
+            <div style="width:44px;height:44px;border-radius:10px;background:#E8F5E9;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-users-group" style="color:#2E7D32;font-size:20px"></i></div>
+            <div><div style="font-size:15px;font-weight:700;color:var(--text)">모임 / 클럽</div><div style="font-size:12px;color:var(--muted)">드라이브, 라이딩, 등산</div></div>
+          </div>
+        </div>
+        <div style="background:#fff;border-radius:12px;border:1px solid var(--border);padding:14px 18px;display:flex;align-items:center;gap:10px;margin-bottom:24px">
+          <i class="ti ti-pencil" style="color:var(--muted);font-size:18px"></i>
+          <input style="flex:1;border:none;outline:none;font-size:14px;font-family:inherit;color:var(--text)" placeholder="직접 입력 (예: 소방, 병원, 건설)" readonly/>
+        </div>
+        <button style="width:100%;padding:14px;background:var(--blue);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">다음 단계 →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑭ 프로젝트 생성 (온보딩 2단계) -->
+  <div class="page-block">
+    <div class="page-block-label"><span class="page-block-name">프로젝트 생성 (온보딩 2/3)</span><span class="page-block-url">/onboarding/create</span><span class="page-block-access access-private">로그인</span></div>
+    <div>
+      <div class="topbar"><div class="topbar-left"><span class="topbar-brand">ThanQ</span></div></div>
+      <div style="max-width:680px;margin:0 auto;padding:40px 32px">
+        <div style="display:flex;align-items:center;gap:0;margin-bottom:32px">
+          <div style="display:flex;align-items:center;gap:8px;flex:1"><div style="width:28px;height:28px;border-radius:50%;background:#E1F5EE;display:flex;align-items:center;justify-content:center;color:var(--green);font-weight:700;font-size:13px"><i class="ti ti-check" style="font-size:14px"></i></div><span style="font-size:13px;color:var(--green)">분야 선택</span></div>
+          <div style="height:2px;flex:1;background:var(--blue)"></div>
+          <div style="display:flex;align-items:center;gap:8px;flex:1;justify-content:center"><div style="width:28px;height:28px;border-radius:50%;background:var(--blue);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center">2</div><span style="font-size:13px;font-weight:700;color:var(--blue)">프로젝트 정보</span></div>
+          <div style="height:2px;flex:1;background:var(--border)"></div>
+          <div style="display:flex;align-items:center;gap:8px;flex:1;justify-content:flex-end"><div style="width:28px;height:28px;border-radius:50%;background:var(--border);color:var(--muted);font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center">3</div><span style="font-size:13px;color:var(--muted)">파트 구성</span></div>
+        </div>
+        <h2 style="font-size:24px;font-weight:900;color:var(--text);margin-bottom:6px">프로젝트 기본 정보</h2>
+        <p style="font-size:14px;color:var(--muted);margin-bottom:28px">행사 이름과 일정을 입력해주세요</p>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div>
+            <label style="font-size:13px;font-weight:700;color:var(--text);display:block;margin-bottom:6px">행사 이름 *</label>
+            <div style="height:46px;background:#fff;border:1px solid var(--border);border-radius:10px;padding:0 16px;display:flex;align-items:center;font-size:14px;color:var(--text)">2026 봄 축제</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div>
+              <label style="font-size:13px;font-weight:700;color:var(--text);display:block;margin-bottom:6px">행사 날짜 *</label>
+              <div style="height:46px;background:#fff;border:1px solid var(--border);border-radius:10px;padding:0 16px;display:flex;align-items:center;font-size:14px;color:var(--text)">2026-06-15</div>
+            </div>
+            <div>
+              <label style="font-size:13px;font-weight:700;color:var(--text);display:block;margin-bottom:6px">시작 시간</label>
+              <div style="height:46px;background:#fff;border:1px solid var(--border);border-radius:10px;padding:0 16px;display:flex;align-items:center;font-size:14px;color:var(--text)">14:00</div>
+            </div>
+          </div>
+          <div>
+            <label style="font-size:13px;font-weight:700;color:var(--text);display:block;margin-bottom:6px">행사 장소</label>
+            <div style="height:46px;background:#fff;border:1px solid var(--border);border-radius:10px;padding:0 16px;display:flex;align-items:center;font-size:14px;color:var(--text)">서울 올림픽공원 잔디마당</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div>
+              <label style="font-size:13px;font-weight:700;color:var(--text);display:block;margin-bottom:6px">예상 인원</label>
+              <div style="height:46px;background:#fff;border:1px solid var(--border);border-radius:10px;padding:0 16px;display:flex;align-items:center;font-size:14px;color:var(--text)">500명</div>
+            </div>
+            <div>
+              <label style="font-size:13px;font-weight:700;color:var(--text);display:block;margin-bottom:6px">예산</label>
+              <div style="height:46px;background:#fff;border:1px solid var(--border);border-radius:10px;padding:0 16px;display:flex;align-items:center;font-size:14px;color:var(--text)">50,000,000원</div>
+            </div>
+          </div>
+          <div>
+            <label style="font-size:13px;font-weight:700;color:var(--text);display:block;margin-bottom:6px">행사 개요</label>
+            <div style="min-height:80px;background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px 16px;font-size:14px;color:var(--text)">봄 시즌 대학 축제. 공연 3팀, 부스 20개, 푸드코트 운영</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:28px">
+          <button style="flex:1;padding:14px;background:#fff;color:var(--text);border:1px solid var(--border);border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">← 이전</button>
+          <button style="flex:2;padding:14px;background:var(--blue);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">다음: 파트 구성 →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑮ 파트 구성 & 초대 (온보딩 3단계) -->
+  <div class="page-block">
+    <div class="page-block-label"><span class="page-block-name">파트 구성 & 초대 (온보딩 3/3)</span><span class="page-block-url">/onboarding/parts/:id</span><span class="page-block-access access-private">로그인</span></div>
+    <div>
+      <div class="topbar"><div class="topbar-left"><span class="topbar-brand">ThanQ</span></div></div>
+      <div style="max-width:760px;margin:0 auto;padding:40px 32px">
+        <div style="display:flex;align-items:center;gap:0;margin-bottom:32px">
+          <div style="display:flex;align-items:center;gap:8px;flex:1"><div style="width:28px;height:28px;border-radius:50%;background:#E1F5EE;display:flex;align-items:center;justify-content:center;color:var(--green);font-weight:700;font-size:13px"><i class="ti ti-check" style="font-size:14px"></i></div><span style="font-size:13px;color:var(--green)">분야 선택</span></div>
+          <div style="height:2px;flex:1;background:var(--blue)"></div>
+          <div style="display:flex;align-items:center;gap:8px;flex:1;justify-content:center"><div style="width:28px;height:28px;border-radius:50%;background:#E1F5EE;display:flex;align-items:center;justify-content:center;color:var(--green);font-weight:700;font-size:13px"><i class="ti ti-check" style="font-size:14px"></i></div><span style="font-size:13px;color:var(--green)">프로젝트 정보</span></div>
+          <div style="height:2px;flex:1;background:var(--blue)"></div>
+          <div style="display:flex;align-items:center;gap:8px;flex:1;justify-content:flex-end"><div style="width:28px;height:28px;border-radius:50%;background:var(--blue);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center">3</div><span style="font-size:13px;font-weight:700;color:var(--blue)">파트 구성</span></div>
+        </div>
+        <h2 style="font-size:24px;font-weight:900;color:var(--text);margin-bottom:6px">파트를 구성해주세요</h2>
+        <p style="font-size:14px;color:var(--muted);margin-bottom:20px">파트별 담당자를 초대하거나 나중에 추가할 수 있어요</p>
+        <div style="background:var(--blue-light);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px;margin-bottom:20px">
+          <i class="ti ti-link" style="color:var(--blue);font-size:18px"></i>
+          <div style="flex:1"><div style="font-size:12px;color:var(--muted)">참여 코드</div><div style="font-size:15px;font-weight:900;color:var(--blue);letter-spacing:2px">AB3X7F</div></div>
+          <button style="padding:6px 14px;border-radius:8px;background:var(--blue);color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit"><i class="ti ti-copy" style="margin-right:4px"></i>복사</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
+          <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:12px">
+            <div style="width:12px;height:12px;border-radius:50%;background:#E24B4A;flex-shrink:0"></div>
+            <input style="flex:1;border:none;outline:none;font-size:14px;font-family:inherit;color:var(--text)" value="운영팀" readonly/>
+            <button style="padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:none;font-size:12px;color:var(--muted);cursor:pointer;font-family:inherit"><i class="ti ti-user-plus" style="margin-right:4px"></i>담당자 초대</button>
+            <div style="font-size:12px;color:var(--green);display:flex;align-items:center;gap:4px"><i class="ti ti-check"></i>김운영</div>
+          </div>
+          <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:12px">
+            <div style="width:12px;height:12px;border-radius:50%;background:#185FA5;flex-shrink:0"></div>
+            <input style="flex:1;border:none;outline:none;font-size:14px;font-family:inherit;color:var(--text)" value="음향팀" readonly/>
+            <button style="padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:none;font-size:12px;color:var(--muted);cursor:pointer;font-family:inherit"><i class="ti ti-user-plus" style="margin-right:4px"></i>담당자 초대</button>
+            <div style="font-size:12px;color:var(--muted)">미지정</div>
+          </div>
+          <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:12px">
+            <div style="width:12px;height:12px;border-radius:50%;background:#0F6E56;flex-shrink:0"></div>
+            <input style="flex:1;border:none;outline:none;font-size:14px;font-family:inherit;color:var(--text)" value="무대팀" readonly/>
+            <button style="padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:none;font-size:12px;color:var(--muted);cursor:pointer;font-family:inherit"><i class="ti ti-user-plus" style="margin-right:4px"></i>담당자 초대</button>
+            <div style="font-size:12px;color:var(--muted)">미지정</div>
+          </div>
+        </div>
+        <button style="width:100%;padding:10px;border:1px dashed var(--border);border-radius:12px;background:none;font-size:14px;color:var(--muted);cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:24px"><i class="ti ti-plus"></i>파트 추가</button>
+        <button style="width:100%;padding:14px;background:var(--blue);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">프로젝트 시작하기 🚀</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑯ 본부 대시보드 -->
+  <div class="page-block">
+    <div class="page-block-label"><span class="page-block-name">본부 대시보드</span><span class="page-block-url">/p/:id/dashboard</span><span class="page-block-access access-private">로그인</span></div>
+    <div>
+      <div class="topbar"><div class="topbar-left"><span class="topbar-brand">ThanQ</span><span class="topbar-project"><i class="ti ti-chevron-right"></i>2026 봄 축제</span></div><div class="topbar-right"><div class="topbar-btn"><i class="ti ti-bell"></i></div></div></div>
+      <div style="max-width:1100px;margin:0 auto;padding:28px 40px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <div><div style="font-size:20px;font-weight:900;color:var(--text)">본부 대시보드</div><div style="font-size:13px;color:var(--muted)">전체 현황 모니터링</div></div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:12px;padding:4px 12px;border-radius:6px;background:#E1F5EE;color:var(--green);font-weight:700"><i class="ti ti-activity" style="margin-right:4px"></i>LIVE</span>
+            <span style="font-size:13px;font-weight:700;color:var(--text)">14:32</span>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px">
+          <div style="background:#fff;border-radius:12px;border:1px solid var(--border);padding:16px;text-align:center">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:8px"><i class="ti ti-chart-pie" style="margin-right:4px"></i>전체 진행률</div>
+            <div style="font-size:28px;font-weight:900;color:var(--blue)">65%</div>
+          </div>
+          <div style="background:#fff;border-radius:12px;border:1px solid var(--border);padding:16px;text-align:center">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:8px"><i class="ti ti-users" style="margin-right:4px"></i>파트 수</div>
+            <div style="font-size:28px;font-weight:900;color:var(--text)">5</div>
+          </div>
+          <div style="background:#fff;border-radius:12px;border:1px solid var(--amber);padding:16px;text-align:center;background:var(--amber-light)">
+            <div style="font-size:11px;color:var(--amber);margin-bottom:8px"><i class="ti ti-clock-exclamation" style="margin-right:4px"></i>지연</div>
+            <div style="font-size:28px;font-weight:900;color:var(--amber)">2</div>
+          </div>
+          <div style="background:#fff;border-radius:12px;border:1px solid var(--border);padding:16px;text-align:center">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:8px"><i class="ti ti-check" style="margin-right:4px"></i>완료 큐</div>
+            <div style="font-size:28px;font-weight:900;color:var(--green)">18</div>
+          </div>
+        </div>
+        <div style="background:#fff;border-radius:14px;border:1px solid var(--border);overflow:hidden">
+          <div style="padding:14px 20px;border-bottom:1px solid var(--border);font-size:14px;font-weight:700;color:var(--text)">파트별 현황</div>
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 2fr;gap:0;padding:10px 20px;background:var(--bg);font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.5px;text-transform:uppercase">
+            <span>파트</span><span>상태</span><span>큐 완료</span><span>체크리스트</span><span>진행률</span>
+          </div>
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 2fr;gap:0;padding:12px 20px;align-items:center;border-bottom:1px solid var(--border)">
+            <div style="display:flex;align-items:center;gap:10px"><div style="width:10px;height:10px;border-radius:50%;background:#E24B4A"></div><span style="font-size:14px;font-weight:600">운영팀</span></div>
+            <span style="font-size:12px;padding:3px 10px;border-radius:10px;background:var(--blue-light);color:var(--blue);font-weight:700">진행 중</span>
+            <span style="font-size:13px;color:var(--text)">8/12</span>
+            <span style="font-size:13px;color:var(--text)">6/8</span>
+            <div style="display:flex;align-items:center;gap:8px"><div style="flex:1;background:var(--bg);border-radius:4px;height:8px"><div style="width:70%;height:100%;border-radius:4px;background:#E24B4A"></div></div><span style="font-size:12px;font-weight:700;color:#E24B4A">70%</span></div>
+          </div>
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 2fr;gap:0;padding:12px 20px;align-items:center;border-bottom:1px solid var(--border)">
+            <div style="display:flex;align-items:center;gap:10px"><div style="width:10px;height:10px;border-radius:50%;background:#185FA5"></div><span style="font-size:14px;font-weight:600">음향팀</span></div>
+            <span style="font-size:12px;padding:3px 10px;border-radius:10px;background:var(--amber-light);color:var(--amber);font-weight:700">지연</span>
+            <span style="font-size:13px;color:var(--text)">4/8</span>
+            <span style="font-size:13px;color:var(--text)">9/12</span>
+            <div style="display:flex;align-items:center;gap:8px"><div style="flex:1;background:var(--bg);border-radius:4px;height:8px"><div style="width:50%;height:100%;border-radius:4px;background:#185FA5"></div></div><span style="font-size:12px;font-weight:700;color:#185FA5">50%</span></div>
+          </div>
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 2fr;gap:0;padding:12px 20px;align-items:center;border-bottom:1px solid var(--border)">
+            <div style="display:flex;align-items:center;gap:10px"><div style="width:10px;height:10px;border-radius:50%;background:#0F6E56"></div><span style="font-size:14px;font-weight:600">무대팀</span></div>
+            <span style="font-size:12px;padding:3px 10px;border-radius:10px;background:#E1F5EE;color:var(--green);font-weight:700">완료</span>
+            <span style="font-size:13px;color:var(--text)">15/15</span>
+            <span style="font-size:13px;color:var(--text)">6/6</span>
+            <div style="display:flex;align-items:center;gap:8px"><div style="flex:1;background:var(--bg);border-radius:4px;height:8px"><div style="width:85%;height:100%;border-radius:4px;background:#0F6E56"></div></div><span style="font-size:12px;font-weight:700;color:#0F6E56">85%</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑰ 통합 타임라인 -->
+  <div class="page-block">
+    <div class="page-block-label"><span class="page-block-name">통합 타임라인</span><span class="page-block-url">/p/:id/timeline</span><span class="page-block-access access-private">로그인</span></div>
+    <div>
+      <div class="topbar"><div class="topbar-left"><span class="topbar-brand">ThanQ</span><span class="topbar-project"><i class="ti ti-chevron-right"></i>2026 봄 축제</span></div></div>
+      <div style="max-width:900px;margin:0 auto;padding:28px 40px">
+        <div style="background:#fff;border-radius:12px;border:1px solid var(--border);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div><div style="font-size:11px;color:var(--muted)">현재 시각</div><div style="font-size:30px;font-weight:900;color:var(--blue);letter-spacing:2px">14:32</div></div>
+          <div style="text-align:right"><div style="font-size:11px;color:var(--muted)">지금 진행 중</div><div style="font-size:14px;font-weight:700;color:var(--text)">관객 입장 시작</div><div style="font-size:12px;color:#E24B4A;margin-top:2px">운영팀</div></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:20px;overflow-x:auto;padding-bottom:4px">
+          <button style="padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;background:var(--blue);color:#fff;border:none;cursor:pointer;font-family:inherit;white-space:nowrap">전체</button>
+          <button style="padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid #E24B4A;color:#E24B4A;background:none;cursor:pointer;font-family:inherit;white-space:nowrap">운영팀</button>
+          <button style="padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid var(--border);color:var(--muted);background:none;cursor:pointer;font-family:inherit;white-space:nowrap">음향팀</button>
+          <button style="padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid var(--border);color:var(--muted);background:none;cursor:pointer;font-family:inherit;white-space:nowrap">무대팀</button>
+          <button style="padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid var(--border);color:var(--muted);background:none;cursor:pointer;font-family:inherit;white-space:nowrap">조명팀</button>
+        </div>
+        <div style="position:relative">
+          <div style="position:absolute;left:52px;top:0;bottom:0;width:1px;background:var(--border)"></div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <div style="display:flex;align-items:flex-start;gap:12px;opacity:.5">
+              <div style="width:48px;text-align:right;padding-top:12px;flex-shrink:0"><span style="font-size:12px;font-weight:700;color:var(--muted)">13:00</span></div>
+              <div style="padding-top:14px;flex-shrink:0;z-index:10"><div style="width:12px;height:12px;border-radius:50%;background:#fff;border:2px solid #E24B4A"></div></div>
+              <div style="flex:1;margin-bottom:8px;border-radius:10px;padding:12px 14px;border:1px solid var(--border);background:#fff"><div style="font-size:13px;font-weight:700;color:var(--text)">스태프 집결 및 역할 확인</div><div style="font-size:12px;color:#E24B4A;margin-top:2px">운영팀 · 30분</div></div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:12px;opacity:.5">
+              <div style="width:48px;text-align:right;padding-top:12px;flex-shrink:0"><span style="font-size:12px;font-weight:700;color:var(--muted)">13:00</span></div>
+              <div style="padding-top:14px;flex-shrink:0;z-index:10"><div style="width:12px;height:12px;border-radius:50%;background:#fff;border:2px solid #0F6E56"></div></div>
+              <div style="flex:1;margin-bottom:8px;border-radius:10px;padding:12px 14px;border:1px solid var(--border);background:#fff"><div style="font-size:13px;font-weight:700;color:var(--text)">무대 셋팅 시작</div><div style="font-size:12px;color:#0F6E56;margin-top:2px">무대팀 · 90분</div></div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:12px">
+              <div style="width:48px;text-align:right;padding-top:12px;flex-shrink:0"><span style="font-size:12px;font-weight:900;color:var(--blue)">14:00</span></div>
+              <div style="padding-top:12px;flex-shrink:0;z-index:10"><div style="width:14px;height:14px;border-radius:50%;background:var(--blue)"></div></div>
+              <div style="flex:1;margin-bottom:8px;border-radius:10px;padding:12px 14px;border:2px solid var(--blue);background:var(--blue-light)">
+                <div style="font-size:13px;font-weight:700;color:var(--blue)">관객 입장 시작</div>
+                <div style="font-size:12px;color:#E24B4A;margin-top:2px">운영팀 · 60분</div>
+                <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--blue);font-size:12px;color:var(--blue);font-weight:700;display:flex;align-items:center;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:#E24B4A;display:inline-block;animation:pulse 1s infinite"></span>지금 진행 중</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:12px;opacity:.7">
+              <div style="width:48px;text-align:right;padding-top:12px;flex-shrink:0"><span style="font-size:12px;font-weight:700;color:var(--muted)">15:00</span></div>
+              <div style="padding-top:14px;flex-shrink:0;z-index:10"><div style="width:12px;height:12px;border-radius:50%;background:#fff;border:2px solid var(--muted)"></div></div>
+              <div style="flex:1;margin-bottom:8px;border-radius:10px;padding:12px 14px;border:1px solid var(--border);background:#fff"><div style="font-size:13px;font-weight:700;color:var(--text)">개막식 시작</div><div style="font-size:12px;color:var(--muted);margin-top:2px">전체 · 30분</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑱ 소통 허브 -->
+  <div class="page-block">
+    <div class="page-block-label"><span class="page-block-name">소통 허브</span><span class="page-block-url">/p/:id/comms</span><span class="page-block-access access-private">로그인</span></div>
+    <div>
+      <div class="topbar"><div class="topbar-left"><span class="topbar-brand">ThanQ</span><span class="topbar-project"><i class="ti ti-chevron-right"></i>2026 봄 축제</span></div></div>
+      <div style="max-width:800px;margin:0 auto;padding:28px 40px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <div style="font-size:20px;font-weight:900;color:var(--text)">소통 허브</div>
+          <button style="padding:9px 18px;background:var(--blue);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px"><i class="ti ti-speakerphone"></i>공지 보내기</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="background:#fff;border-radius:12px;border:2px solid #E24B4A;padding:16px 20px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+              <span style="font-size:11px;padding:2px 8px;border-radius:4px;background:#FCEBEB;color:#E24B4A;font-weight:700">🚨 긴급</span>
+              <span style="font-size:13px;font-weight:700;color:var(--text)">음향 장비 이상 — 즉시 확인 요청</span>
+              <span style="font-size:11px;color:var(--muted);margin-left:auto">2분 전</span>
+            </div>
+            <p style="font-size:13px;color:var(--text)">메인 무대 앰프에서 잡음 발생. 음향팀 즉시 확인 바랍니다.</p>
+            <div style="font-size:12px;color:var(--muted);margin-top:8px">이운영 발송</div>
+          </div>
+          <div style="background:#fff;border-radius:12px;border:1px solid var(--border);padding:16px 20px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+              <span style="font-size:11px;padding:2px 8px;border-radius:4px;background:var(--blue-light);color:var(--blue);font-weight:700">📢 공지</span>
+              <span style="font-size:13px;font-weight:700;color:var(--text)">관객 입장 시작 — 전 파트 준비 완료</span>
+              <span style="font-size:11px;color:var(--muted);margin-left:auto">8분 전</span>
+            </div>
+            <p style="font-size:13px;color:var(--text)">14:00 정각에 메인 게이트 오픈합니다. 각 파트 대기 위치 확인해주세요.</p>
+            <div style="font-size:12px;color:var(--muted);margin-top:8px">김운영 발송 · 읽음 5/6</div>
+          </div>
+          <div style="background:#fff;border-radius:12px;border:1px solid var(--border);padding:16px 20px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+              <span style="font-size:11px;padding:2px 8px;border-radius:4px;background:#F1EFE8;color:var(--muted);font-weight:700">💬 일반</span>
+              <span style="font-size:13px;font-weight:700;color:var(--text)">점심 식사 완료 후 13:30까지 복귀</span>
+              <span style="font-size:11px;color:var(--muted);margin-left:auto">52분 전</span>
+            </div>
+            <p style="font-size:13px;color:var(--text)">13시 이후 외부 식사 가능. 늦지 않게 복귀 부탁드립니다.</p>
+            <div style="font-size:12px;color:var(--muted);margin-top:8px">김운영 발송 · 읽음 6/6</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑲ 당일 실시간 운영 -->
+  <div class="page-block">
+    <div class="page-block-label"><span class="page-block-name">당일 실시간 운영 (LIVE)</span><span class="page-block-url">/p/:id/live</span><span class="page-block-access access-private">로그인</span></div>
+    <div>
+      <div class="topbar" style="background:#1A1A2E"><div class="topbar-left"><span class="topbar-brand">ThanQ</span><span class="topbar-project"><i class="ti ti-chevron-right"></i>2026 봄 축제</span></div><div class="topbar-right"><span style="font-size:11px;padding:3px 10px;border-radius:12px;background:#E24B4A;color:#fff;font-weight:700;animation:pulse 1s infinite">● LIVE</span></div></div>
+      <div style="max-width:900px;margin:0 auto;padding:28px 40px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+          <div style="background:#1A1A2E;border-radius:14px;border:1px solid rgba(255,255,255,.08);padding:20px">
+            <div style="font-size:11px;color:rgba(255,255,255,.4);margin-bottom:4px">현재 시각</div>
+            <div style="font-size:40px;font-weight:900;color:#fff;letter-spacing:3px;font-variant-numeric:tabular-nums">14:32</div>
+            <div style="font-size:12px;color:rgba(255,255,255,.4);margin-top:4px">2026년 6월 15일 일요일</div>
+          </div>
+          <div style="background:#1A1A2E;border-radius:14px;border:1px solid rgba(255,255,255,.08);padding:20px">
+            <div style="font-size:11px;color:rgba(255,255,255,.4);margin-bottom:8px">지금 진행 중</div>
+            <div style="font-size:18px;font-weight:700;color:#fff">관객 입장 시작</div>
+            <div style="font-size:13px;color:#E24B4A;margin-top:4px">운영팀 · 14:00 ~ 15:00</div>
+            <div style="margin-top:12px;background:rgba(255,255,255,.06);border-radius:6px;height:6px"><div style="width:53%;height:100%;border-radius:6px;background:var(--blue)"></div></div>
+            <div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:4px">32분 경과 / 60분</div>
+          </div>
+        </div>
+        <div style="background:#fff;border-radius:14px;border:1px solid var(--border);overflow:hidden">
+          <div style="padding:14px 20px;background:var(--bg);border-bottom:1px solid var(--border);font-size:14px;font-weight:700;color:var(--text);display:flex;align-items:center;justify-content:space-between">
+            <span>큐시트 진행</span>
+            <button style="padding:6px 14px;border-radius:8px;background:var(--blue);color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">다음 →</button>
+          </div>
+          <div style="padding:12px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;opacity:.5">
+            <i class="ti ti-check" style="font-size:18px;color:var(--green);flex-shrink:0"></i>
+            <div><div style="font-size:13px;font-weight:600;color:var(--text)">스태프 집결 및 역할 확인</div><div style="font-size:12px;color:var(--muted)">13:00 · 완료</div></div>
+          </div>
+          <div style="padding:12px 20px;border-bottom:1px solid var(--blue);display:flex;align-items:center;gap:14px;background:var(--blue-light)">
+            <span style="width:6px;height:6px;border-radius:50%;background:#E24B4A;flex-shrink:0;animation:pulse 1s infinite"></span>
+            <div><div style="font-size:13px;font-weight:700;color:var(--blue)">관객 입장 시작</div><div style="font-size:12px;color:var(--blue)">14:00 · 진행 중 (32분 경과)</div></div>
+            <span style="margin-left:auto;font-size:11px;padding:2px 8px;border-radius:4px;background:var(--blue);color:#fff;font-weight:700">NOW</span>
+          </div>
+          <div style="padding:12px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px">
+            <i class="ti ti-clock" style="font-size:18px;color:var(--muted);flex-shrink:0"></i>
+            <div><div style="font-size:13px;font-weight:600;color:var(--text)">개막식 시작</div><div style="font-size:12px;color:var(--muted)">15:00 · 28분 후</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑳ 프로젝트 관리자 -->
+  <div class="page-block">
+    <div class="page-block-label"><span class="page-block-name">프로젝트 관리자</span><span class="page-block-url">/p/:id/admin</span><span class="page-block-access access-private">로그인</span></div>
+    <div>
+      <div class="topbar"><div class="topbar-left"><span class="topbar-brand">ThanQ</span><span class="topbar-project"><i class="ti ti-chevron-right"></i>2026 봄 축제</span></div></div>
+      <div style="max-width:900px;margin:0 auto;padding:28px 40px">
+        <div style="font-size:20px;font-weight:900;color:var(--text);margin-bottom:20px">프로젝트 관리자</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+          <div style="background:#fff;border-radius:14px;border:1px solid var(--border);padding:20px">
+            <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:6px"><i class="ti ti-users" style="color:var(--blue)"></i>팀원 관리</div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;background:var(--bg)">
+                <div style="width:34px;height:34px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff">김</div>
+                <div><div style="font-size:13px;font-weight:600;color:var(--text)">김운영</div><div style="font-size:11px;color:var(--muted)">총괄 (Owner)</div></div>
+                <span style="margin-left:auto;font-size:11px;padding:2px 8px;border-radius:4px;background:var(--blue-light);color:var(--blue);font-weight:700">총괄</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;background:var(--bg)">
+                <div style="width:34px;height:34px;border-radius:50%;background:#0F6E56;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff">박</div>
+                <div><div style="font-size:13px;font-weight:600;color:var(--text)">박무대</div><div style="font-size:11px;color:var(--muted)">무대팀 담당자</div></div>
+                <button style="margin-left:auto;padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:none;font-size:11px;color:var(--muted);cursor:pointer;font-family:inherit">권한 변경</button>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;background:var(--bg)">
+                <div style="width:34px;height:34px;border-radius:50%;background:#185FA5;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff">이</div>
+                <div><div style="font-size:13px;font-weight:600;color:var(--text)">이음향</div><div style="font-size:11px;color:var(--muted)">음향팀 담당자</div></div>
+                <button style="margin-left:auto;padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:none;font-size:11px;color:var(--muted);cursor:pointer;font-family:inherit">권한 변경</button>
+              </div>
+            </div>
+            <button style="width:100%;margin-top:12px;padding:10px;border:1px dashed var(--border);border-radius:10px;background:none;font-size:13px;color:var(--muted);cursor:pointer;font-family:inherit"><i class="ti ti-user-plus" style="margin-right:6px"></i>팀원 초대</button>
+          </div>
+          <div>
+            <div style="background:#fff;border-radius:14px;border:1px solid var(--border);padding:20px;margin-bottom:16px">
+              <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px;display:flex;align-items:center;gap:6px"><i class="ti ti-settings" style="color:var(--muted)"></i>프로젝트 설정</div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
+                  <span style="font-size:13px;color:var(--text)">프로젝트 이름</span>
+                  <span style="font-size:13px;font-weight:600;color:var(--text)">2026 봄 축제</span>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
+                  <span style="font-size:13px;color:var(--text)">행사 날짜</span>
+                  <span style="font-size:13px;font-weight:600;color:var(--text)">2026.06.15</span>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0">
+                  <span style="font-size:13px;color:var(--text)">참여 코드</span>
+                  <span style="font-size:13px;font-weight:700;color:var(--blue);letter-spacing:2px">AB3X7F</span>
+                </div>
+              </div>
+            </div>
+            <div style="background:#fff;border-radius:14px;border:1px solid var(--border);padding:20px">
+              <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:6px"><i class="ti ti-file-export" style="color:var(--green)"></i>데이터 관리</div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <button style="padding:10px 16px;border-radius:10px;border:1px solid var(--border);background:none;font-size:13px;color:var(--text);cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:8px"><i class="ti ti-file-export" style="color:var(--muted)"></i>템플릿으로 내보내기</button>
+                <button style="padding:10px 16px;border-radius:10px;border:1px solid var(--border);background:none;font-size:13px;color:var(--text);cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:8px"><i class="ti ti-table-export" style="color:var(--muted)"></i>CSV 내보내기</button>
+                <button style="padding:10px 16px;border-radius:10px;border:1px solid #FCEBEB;background:#FCEBEB;font-size:13px;color:#E24B4A;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:8px;font-weight:600"><i class="ti ti-trash"></i>프로젝트 삭제</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+</div>
+</body>
+</html>
