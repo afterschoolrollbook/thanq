@@ -550,8 +550,8 @@ export default function TimelinePage() {
               <div className="flex">
                 <div style={{width:TIME_W,minWidth:TIME_W}} className="flex-shrink-0">
                   {timeSlots.map(slot=>(
-                    <div key={slot} style={{height:getSlotH(slot)}} className="flex items-start justify-end pr-2 pt-2 border-b border-[#F1F5F9]">
-                      <span className="text-[11px] font-bold text-[#A0AEC0]">{slot}</span>
+                    <div key={slot} style={{height:getSlotH(slot)}} className={`flex items-start justify-end pr-2 pt-2 ${slot.endsWith(':00') ? 'border-b-2 border-[#CBD5E1]' : 'border-b border-[#F1F5F9]'}`}>
+                      <span className={`text-[11px] font-bold ${slot.endsWith(':00') ? 'text-[#64748B]' : 'text-[#A0AEC0]'}`}>{slot}</span>
                     </div>
                   ))}
                 </div>
@@ -559,7 +559,7 @@ export default function TimelinePage() {
                 {visibleParts.map(part=>(
                   <div key={part.id} style={{width:COL_W,minWidth:COL_W,height:totalH}} className="flex-shrink-0 relative border-l border-[#E2E8F0]">
                     {timeSlots.map(slot=>(
-                      <div key={slot} style={{top:slotTops.get(slot)??0,height:getSlotH(slot)}} className="absolute left-0 right-0 border-b border-[#F1F5F9]"/>
+                      <div key={slot} style={{top:slotTops.get(slot)??0,height:getSlotH(slot)}} className={`absolute left-0 right-0 ${slot.endsWith(':00') ? 'border-b-2 border-[#CBD5E1]' : 'border-b border-[#F1F5F9]'}`}/>
                     ))}
                     {timeSlots.map(slot=>{
                       const cues = (partSlotCues.get(`${part.id}__${slot}`)??[]).sort((a,b)=>timeToMinutes(a.startTime)-timeToMinutes(b.startTime))
