@@ -145,6 +145,7 @@ export default function CreateProjectPage() {
     setNameError(false)
 
     setLoading(true)
+    console.log("setLoading true, starting try block")
     try {
       const project: Project & { dateEnd?: string } = {
         id: projectId,
@@ -166,7 +167,9 @@ export default function CreateProjectPage() {
       }
       if (dateType === 'range' && dateEnd) project.dateEnd = dateEnd
 
+      console.log("saving project...", projectId)
       await set(ref(db, `projects/${projectId}`), project)
+      console.log("project saved")
       await set(ref(db, `projectMembers/${projectId}/${user.uid}`), {
         uid: user.uid, projectId, role: 'owner',
         displayName: user.displayName, joinedAt: new Date().toISOString(),
@@ -183,7 +186,7 @@ export default function CreateProjectPage() {
         navigate(`/onboarding/parts/${projectId}`)
       }
     } catch (e) {
-      console.error(e)
+      console.error("CATCH ERROR:", e)
       setApplyingTemplate(false)
       setSubmitError("프로젝트 저장 중 오류가 발생했어요. 다시 시도해주세요.")
     } finally {
