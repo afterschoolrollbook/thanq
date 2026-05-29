@@ -93,6 +93,7 @@ export interface CheckItem {
   id: string
   partId: string
   projectId: string
+  cueId?: string        // 연결된 큐시트 항목 ID (선택)
   category: CheckCategory
   title: string
   isDone: boolean
