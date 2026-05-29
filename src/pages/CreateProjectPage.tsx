@@ -77,16 +77,17 @@ export default function CreateProjectPage() {
     if (!user) return
     const draftsRef = ref(db, `drafts/${user.uid}`)
     const unsub = onValue(draftsRef, (snap) => {
+      // 1) 드래프트가 있으면 projectId 등 기본값 세팅
       if (snap.exists()) {
         const draft = snap.val()
         draftRef.current = draft.id
         setProjectId(draft.id)
-        setName(draft.name ?? '')
         setDateType(draft.dateType ?? 'single')
         setDate(draft.date ?? '')
         setDateEnd(draft.dateEnd ?? '')
         setStartTime(draft.startTime ?? '')
         setEndTime(draft.endTime ?? '')
+        setName(draft.name ?? '')
         setVenue(draft.venue ?? '')
         setPeople(draft.estimatedPeople ? String(draft.estimatedPeople) : '')
         setBudget(draft.budget ? String(draft.budget) : '')
@@ -95,16 +96,17 @@ export default function CreateProjectPage() {
         const newRef = push(ref(db, 'projects'))
         draftRef.current = newRef.key
         setProjectId(newRef.key)
-        // 드래프트가 없고 템플릿이 있으면 → sessionStorage에서 직접 읽어서 폼 채우기
-        // (클로저 문제로 templateData state를 못 쓰므로 raw 파싱)
-        try {
-          const raw = sessionStorage.getItem('oncue_template')
-          if (raw) {
-            const tmpl = JSON.parse(raw) as TemplateFile
-            applyTemplateToForm(tmpl)
-          }
-        } catch { /* ignore */ }
       }
+
+      // 2) 템플릿이 있으면 드래프트 값을 무조건 덮어써서 폼 채우기
+      try {
+        const raw = sessionStorage.getItem('oncue_template')
+        if (raw) {
+          const tmpl = JSON.parse(raw) as TemplateFile
+          applyTemplateToForm(tmpl)
+        }
+      } catch { /* ignore */ }
+
       setInitializing(false)
     }, { onlyOnce: true })
     return () => unsub()
