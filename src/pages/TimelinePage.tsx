@@ -8,10 +8,12 @@ import type { Part, CueItem, Project } from '@/types'
 
 interface CueWithPart extends CueItem { partName: string; partColor: string; partId: string }
 
-// ── 달력 컴포넌트 ─────────────────────────────────────────
-function MiniCalendar({
-  selectedDate, onChange, eventDates
-}: { selectedDate: string; onChange: (d: string) => void; eventDates: string[] }) {
+// ── 달력 ──────────────────────────────────────────────────
+function MiniCalendar({ selectedDate, onChange, eventDates }: {
+  selectedDate: string
+  onChange: (d: string) => void
+  eventDates: string[]
+}) {
   const [viewYear, setViewYear] = useState(() => new Date(selectedDate || Date.now()).getFullYear())
   const [viewMonth, setViewMonth] = useState(() => new Date(selectedDate || Date.now()).getMonth())
 
@@ -29,8 +31,6 @@ function MiniCalendar({
     return `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
   }
 
-  const monthLabel = `${viewYear}년 ${viewMonth + 1}월`
-
   return (
     <div className="bg-white rounded-[14px] border border-[#E2E8F0] p-4 mb-3">
       <div className="flex items-center justify-between mb-3">
@@ -38,7 +38,7 @@ function MiniCalendar({
           className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-[#F4F6F9] text-[#64748B]">
           <i className="ti ti-chevron-left text-[15px]" />
         </button>
-        <span className="text-[13px] font-bold text-[#1A1A2E]">{monthLabel}</span>
+        <span className="text-[13px] font-bold text-[#1A1A2E]">{viewYear}년 {viewMonth + 1}월</span>
         <button onClick={() => { if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1) } else setViewMonth(m => m + 1) }}
           className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-[#F4F6F9] text-[#64748B]">
           <i className="ti ti-chevron-right text-[15px]" />
@@ -74,6 +74,34 @@ function MiniCalendar({
   )
 }
 
+// ── 겹침 방지: 서브컬럼 계산 ─────────────────────────────
+function calcSubColumns(cues: CueWithPart[]): Map<string, { col: number; totalCols: number }> {
+  const sorted = [...cues].sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime))
+  const result = new Map<string, { col: number; totalCols: number }>()
+  const colEnds: number[] = []
+
+  for (const cue of sorted) {
+    const start = timeToMinutes(cue.startTime)
+    const end = start + (cue.durationMin || 30)
+    let placed = false
+    for (let i = 0; i < colEnds.length; i++) {
+      if (colEnds[i] <= start) {
+        colEnds[i] = end
+        result.set(cue.id, { col: i, totalCols: 0 })
+        placed = true
+        break
+      }
+    }
+    if (!placed) {
+      colEnds.push(end)
+      result.set(cue.id, { col: colEnds.length - 1, totalCols: 0 })
+    }
+  }
+  const total = colEnds.length || 1
+  for (const [id, v] of result) result.set(id, { ...v, totalCols: total })
+  return result
+}
+
 // ── 메인 ─────────────────────────────────────────────────
 export default function TimelinePage() {
   const { projectId } = useParams()
@@ -83,7 +111,7 @@ export default function TimelinePage() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
   const [showCalendar, setShowCalendar] = useState(false)
   const [selectedPartId, setSelectedPartId] = useState<string | null>(null)
-  const [zoom, setZoom] = useState(1) // 0.7 ~ 1.5
+  const [zoom, setZoom] = useState(1)
   const [now, setNow] = useState(new Date())
   const gridRef = useRef<HTMLDivElement>(null)
 
@@ -111,7 +139,6 @@ export default function TimelinePage() {
       const list: Part[] = Object.values(s.val())
       list.sort((a, b) => a.order - b.order)
       setParts(list)
-
       const allMap: CueWithPart[] = []
       let loaded = 0
       list.forEach((part) => {
@@ -130,7 +157,6 @@ export default function TimelinePage() {
     })
   }, [projectId])
 
-  // 핀치줌 핸들러
   function handleTouchStart(e: React.TouchEvent) {
     if (e.touches.length === 2) {
       const dx = e.touches[0].clientX - e.touches[1].clientX
@@ -150,58 +176,53 @@ export default function TimelinePage() {
   }
   function handleTouchEnd() { lastPinchDist.current = null }
 
-  // 표시할 파트
-  const visibleParts = selectedPartId ? parts.filter(p => p.id === selectedPartId) : parts
-
-  // 필터된 큐
-  const filteredCues = allCues.filter(c =>
-    (!selectedPartId || c.partId === selectedPartId)
-  )
-
-  // 시간 범위 계산
-  const timeSlots: string[] = []
-  if (filteredCues.length > 0) {
-    const mins = filteredCues.map(c => timeToMinutes(c.startTime)).filter(m => !isNaN(m))
-    const endMins = filteredCues.map(c => timeToMinutes(c.startTime) + (c.durationMin || 30)).filter(m => !isNaN(m))
-    const minTime = Math.floor(Math.min(...mins) / 30) * 30
-    const maxTime = Math.ceil(Math.max(...endMins) / 30) * 30
-    for (let m = minTime; m <= maxTime; m += 30) {
-      timeSlots.push(minutesToTime(m))
-    }
-  }
-
-  const ROW_H = Math.round(60 * zoom)  // 30분당 높이(px)
-  const COL_W = Math.round(140 * zoom) // 파트 컬럼 너비
+  const ROW_H = Math.round(100 * zoom)   // 30분당 높이
+  const COL_W = Math.round(160 * zoom)   // 파트 기본 컬럼 너비
   const TIME_W = 52
 
-  const nowMin = now.getHours() * 60 + now.getMinutes()
+  const visibleParts = selectedPartId ? parts.filter(p => p.id === selectedPartId) : parts
+  const filteredCues = allCues.filter(c => !selectedPartId || c.partId === selectedPartId)
 
-  // 큐 위치 계산
-  function getCueStyle(cue: CueWithPart) {
-    if (!timeSlots.length) return {}
-    const baseMin = timeToMinutes(timeSlots[0])
-    const startMin = timeToMinutes(cue.startTime)
-    const top = ((startMin - baseMin) / 30) * ROW_H
-    const height = Math.max(((cue.durationMin || 30) / 30) * ROW_H - 4, ROW_H * 0.6)
-    return { top, height }
+  // 시간 슬롯 계산
+  const timeSlots: string[] = []
+  if (filteredCues.length > 0) {
+    const starts = filteredCues.map(c => timeToMinutes(c.startTime)).filter(m => !isNaN(m))
+    const ends = filteredCues.map(c => timeToMinutes(c.startTime) + (c.durationMin || 30)).filter(m => !isNaN(m))
+    const minT = Math.floor(Math.min(...starts) / 30) * 30
+    const maxT = Math.ceil(Math.max(...ends) / 30) * 30
+    for (let m = minT; m <= maxT; m += 30) timeSlots.push(minutesToTime(m))
   }
 
-  // 현재 시간 선 위치
-  const nowLineTop = timeSlots.length
-    ? ((nowMin - timeToMinutes(timeSlots[0])) / 30) * ROW_H
-    : -1
+  const nowMin = now.getHours() * 60 + now.getMinutes()
+  const baseMin = timeSlots.length ? timeToMinutes(timeSlots[0]) : 0
+  const nowLineTop = timeSlots.length ? ((nowMin - baseMin) / 30) * ROW_H : -1
+  const totalH = ROW_H * timeSlots.length
 
-  const eventDates = project ? [project.date, ...(project as any).dateEnd ? [(project as any).dateEnd] : []] : []
+  // 파트별 서브컬럼 맵
+  const partSubColMaps = new Map<string, Map<string, { col: number; totalCols: number }>>()
+  visibleParts.forEach(p => {
+    partSubColMaps.set(p.id, calcSubColumns(filteredCues.filter(c => c.partId === p.id)))
+  })
+
+  // 파트별 실제 컬럼 너비 (겹침 있으면 COL_W * totalCols)
+  function getPartColW(partId: string) {
+    const map = partSubColMaps.get(partId)
+    if (!map || map.size === 0) return COL_W
+    const first = map.values().next().value
+    return COL_W * Math.max(1, first?.totalCols ?? 1)
+  }
+
+  const eventDates = project ? [project.date] : []
 
   return (
     <div className="min-h-screen bg-[#F4F6F9] flex flex-col">
       <Topbar projectName={project?.name} />
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* 상단 컨트롤 */}
+        {/* 상단 컨트롤 (달력 영역 - 줌 미적용) */}
         <div className="bg-white border-b border-[#E2E8F0] px-4 pt-3 pb-0">
 
-          {/* 날짜 + 줌 컨트롤 */}
+          {/* 날짜 + 줌 버튼 */}
           <div className="flex items-center justify-between mb-3">
             <button onClick={() => setShowCalendar(v => !v)}
               className="flex items-center gap-2 px-3 py-1.5 rounded-[10px] border border-[#E2E8F0] bg-white hover:bg-[#F4F6F9] transition-colors">
@@ -209,7 +230,6 @@ export default function TimelinePage() {
               <span className="text-[13px] font-semibold text-[#1A1A2E]">{selectedDate}</span>
               <i className={`ti ti-chevron-${showCalendar ? 'up' : 'down'} text-[#A0AEC0] text-[12px]`} />
             </button>
-
             <div className="flex items-center gap-1.5">
               <button onClick={() => setZoom(z => Math.max(0.5, +(z - 0.15).toFixed(2)))}
                 className="w-8 h-8 rounded-full border border-[#E2E8F0] bg-white flex items-center justify-center text-[#64748B] hover:bg-[#F4F6F9]">
@@ -227,7 +247,7 @@ export default function TimelinePage() {
             </div>
           </div>
 
-          {/* 달력 (접기/펼치기) */}
+          {/* 달력 (접기/펼치기) - 줌 미적용 */}
           {showCalendar && (
             <MiniCalendar
               selectedDate={selectedDate}
@@ -239,7 +259,7 @@ export default function TimelinePage() {
           {/* 파트 필터 탭 */}
           <div className="flex gap-2 overflow-x-auto pb-3 -mx-4 px-4" style={{ scrollbarWidth: 'none' }}>
             <button onClick={() => setSelectedPartId(null)}
-              className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-semibold transition-colors
+              className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-[12px] font-semibold transition-colors
                 ${!selectedPartId ? 'bg-[#185FA5] text-white' : 'border border-[#E2E8F0] text-[#64748B] bg-white'}`}>
               전체
             </button>
@@ -268,22 +288,26 @@ export default function TimelinePage() {
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}>
 
-            <div style={{ minWidth: TIME_W + COL_W * visibleParts.length + 16 }}>
+            <div style={{ minWidth: TIME_W + visibleParts.reduce((s, p) => s + getPartColW(p.id), 0) }}>
 
-              {/* 파트 헤더 (고정처럼 보이게) */}
+              {/* 파트 헤더 — sticky */}
               <div className="sticky top-0 z-20 flex bg-white border-b-2 border-[#E2E8F0] shadow-sm">
                 <div style={{ width: TIME_W, minWidth: TIME_W }} className="flex-shrink-0" />
-                {visibleParts.map(p => (
-                  <div key={p.id} style={{ width: COL_W, minWidth: COL_W }}
-                    className="flex-shrink-0 flex items-center gap-1.5 px-2 py-2.5 border-l border-[#E2E8F0]">
-                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: p.color }} />
-                    <span className="text-[11px] font-bold text-[#1A1A2E] truncate">{p.name}</span>
-                  </div>
-                ))}
+                {visibleParts.map(p => {
+                  const colW = getPartColW(p.id)
+                  return (
+                    <div key={p.id} style={{ width: colW, minWidth: colW }}
+                      className="flex-shrink-0 flex items-center gap-1.5 px-2 py-2.5 border-l border-[#E2E8F0]">
+                      <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: p.color }} />
+                      <span className="text-[11px] font-bold text-[#1A1A2E] truncate">{p.name}</span>
+                    </div>
+                  )
+                })}
               </div>
 
               {/* 타임 그리드 */}
               <div className="relative flex">
+
                 {/* 시간축 */}
                 <div style={{ width: TIME_W, minWidth: TIME_W }} className="flex-shrink-0 relative">
                   {timeSlots.map((t) => (
@@ -297,49 +321,60 @@ export default function TimelinePage() {
                 {/* 파트별 컬럼 */}
                 {visibleParts.map(part => {
                   const partCues = filteredCues.filter(c => c.partId === part.id)
+                  const subColMap = partSubColMaps.get(part.id) ?? new Map()
+                  const colW = getPartColW(part.id)
+
                   return (
                     <div key={part.id}
-                      style={{ width: COL_W, minWidth: COL_W, height: ROW_H * timeSlots.length }}
+                      style={{ width: colW, minWidth: colW, height: totalH }}
                       className="flex-shrink-0 relative border-l border-[#E2E8F0]">
 
-                      {/* 시간대 구분선 */}
+                      {/* 수평 구분선 */}
                       {timeSlots.map((_, i) => (
-                        <div key={i} style={{ top: i * ROW_H, height: ROW_H }}
+                        <div key={i} style={{ top: i * ROW_H }}
                           className="absolute left-0 right-0 border-b border-[#F1F5F9]" />
                       ))}
 
                       {/* 큐 카드 */}
                       {partCues.map(cue => {
-                        const { top = 0, height = ROW_H } = getCueStyle(cue)
                         const startMin = timeToMinutes(cue.startTime)
+                        const top = ((startMin - baseMin) / 30) * ROW_H
+                        const height = Math.max(((cue.durationMin || 30) / 30) * ROW_H - 6, ROW_H * 0.75)
                         const isPast = nowMin > startMin + (cue.durationMin || 30)
                         const isCurrent = nowMin >= startMin && nowMin < startMin + (cue.durationMin || 30)
+                        const sc = subColMap.get(cue.id) ?? { col: 0, totalCols: 1 }
+                        const subW = colW / sc.totalCols
+                        const left = sc.col * subW
+
                         return (
                           <div key={cue.id}
                             style={{
+                              position: 'absolute',
                               top: top + 2,
-                              height: height,
-                              left: 3,
-                              right: 3,
+                              height,
+                              left: left + 2,
+                              width: subW - 4,
                               background: isCurrent ? part.color : 'white',
                               borderColor: isCurrent ? part.color : '#E2E8F0',
-                              opacity: isPast ? 0.45 : 1,
+                              opacity: isPast ? 0.4 : 1,
+                              borderWidth: 1,
+                              borderStyle: 'solid',
                             }}
-                            className="absolute rounded-[8px] border px-2 py-1.5 overflow-hidden shadow-sm flex flex-col justify-between">
+                            className="rounded-[8px] overflow-hidden shadow-sm flex flex-col justify-between px-2 py-1.5">
                             <div>
-                              <div className={`text-[11px] font-bold leading-tight ${isCurrent ? 'text-white' : 'text-[#1A1A2E]'}`}
-                                style={{ fontSize: Math.round(11 * zoom) + 'px' }}>
+                              <div className={`font-bold leading-tight ${isCurrent ? 'text-white' : 'text-[#1A1A2E]'}`}
+                                style={{ fontSize: Math.max(9, Math.round(11 * zoom)) + 'px' }}>
                                 {cue.title}
                               </div>
                               {cue.durationMin > 0 && (
-                                <div className={`text-[10px] mt-0.5 ${isCurrent ? 'text-white/80' : 'text-[#A0AEC0]'}`}
-                                  style={{ fontSize: Math.round(9 * zoom) + 'px' }}>
+                                <div className={`mt-0.5 ${isCurrent ? 'text-white/80' : 'text-[#A0AEC0]'}`}
+                                  style={{ fontSize: Math.max(8, Math.round(9 * zoom)) + 'px' }}>
                                   {cue.durationMin}분
                                 </div>
                               )}
                             </div>
-                            {height > ROW_H * 0.8 && (
-                              <div style={{ transform: 'scale(' + Math.min(zoom, 1) + ')', transformOrigin: 'left bottom' }}>
+                            {height > ROW_H * 0.9 && (
+                              <div>
                                 <StatusBadge status={cue.status} />
                               </div>
                             )}
@@ -354,7 +389,7 @@ export default function TimelinePage() {
                 })}
 
                 {/* 현재 시간 선 */}
-                {nowLineTop >= 0 && nowLineTop <= ROW_H * timeSlots.length && (
+                {nowLineTop >= 0 && nowLineTop <= totalH && (
                   <div className="absolute left-0 right-0 z-10 pointer-events-none flex items-center"
                     style={{ top: nowLineTop }}>
                     <div style={{ width: TIME_W }} className="flex justify-end pr-1">
