@@ -21,7 +21,6 @@ export default function CreateProjectPage() {
   const user = useAuthStore((s) => s.user)
   const fieldType = (sessionStorage.getItem('oncue_field') ?? 'event') as FieldType
 
-  // 템플릿 데이터 — state로 관리해야 배너 X 버튼 즉시 반영됨
   const [templateData, setTemplateData] = useState<TemplateFile | null>(loadTemplate)
 
   const [projectId, setProjectId] = useState<string | null>(null)
@@ -38,6 +37,10 @@ export default function CreateProjectPage() {
   const [loading, setLoading] = useState(false)
   const [applyingTemplate, setApplyingTemplate] = useState(false)
   const [initializing, setInitializing] = useState(true)
+
+  // 행사명 미입력 시 안내 메시지
+  const [nameError, setNameError] = useState(false)
+
   const draftRef = useRef<string | null>(null)
 
   useEffect(() => {
@@ -85,11 +88,22 @@ export default function CreateProjectPage() {
 
   async function handleNext() {
     if (!user || !projectId) return
+
+    // 행사명 필수 검증
+    if (!name.trim()) {
+      setNameError(true)
+      const el = document.getElementById('field-name')
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      el?.focus()
+      return
+    }
+    setNameError(false)
+
     setLoading(true)
     try {
       const project: Project & { dateEnd?: string } = {
         id: projectId,
-        name: name || '새 프로젝트',
+        name: name.trim(),
         fieldType,
         fieldTerms: FIELD_TERMS[fieldType],
         date: date || new Date().toISOString().split('T')[0],
@@ -116,13 +130,11 @@ export default function CreateProjectPage() {
       sessionStorage.removeItem('oncue_field')
 
       if (templateData) {
-        // 템플릿 → 파트 자동 세팅 후 프로젝트 홈으로
         setApplyingTemplate(true)
         await applyTemplateToProject(projectId, templateData)
         sessionStorage.removeItem('oncue_template')
         navigate(`/p/${projectId}/home`)
       } else {
-        // 직접 입력 → 파트 구성 단계로
         navigate(`/onboarding/parts/${projectId}`)
       }
     } catch (e) {
@@ -133,7 +145,6 @@ export default function CreateProjectPage() {
     }
   }
 
-  // 템플릿 파트 적용 중 전체화면 로딩
   if (applyingTemplate) return (
     <div className="min-h-screen bg-[#F4F6F9] flex flex-col items-center justify-center gap-4">
       <div className="w-16 h-16 rounded-full bg-[#E6F1FB] flex items-center justify-center">
@@ -174,14 +185,36 @@ export default function CreateProjectPage() {
           </div>
         )}
 
-        <div className="mb-4">
-          <label className={lbl}>행사명</label>
-          <input className={inp} placeholder="2026 군포시 철쭉축제" value={name}
-            onChange={(e) => ch('name', e.target.value, setName)} />
+        {/* 행사명 — 필수 */}
+        <div className="mb-4" id="field-name">
+          <label className={lbl}>
+            행사명
+            <span className={reqBadge}>필수</span>
+          </label>
+          <input
+            id="field-name-input"
+            className={`${inp} ${nameError ? 'border-[#E24B4A] focus:border-[#E24B4A]' : ''}`}
+            placeholder="예) 2026 군포시 철쭉축제"
+            value={name}
+            onChange={(e) => {
+              ch('name', e.target.value, setName)
+              if (e.target.value.trim()) setNameError(false)
+            }}
+          />
+          {nameError && (
+            <div className="flex items-center gap-1 mt-1.5">
+              <i className="ti ti-alert-circle text-[#E24B4A] text-[13px]" />
+              <span className="text-[12px] text-[#E24B4A]">행사명은 꼭 입력해주세요. 나머지는 나중에 채워도 돼요!</span>
+            </div>
+          )}
         </div>
 
+        {/* 행사 일자 — 선택 */}
         <div className="mb-4">
-          <label className={lbl}>행사 일자</label>
+          <label className={lbl}>
+            행사 일자
+            <span className={optBadge}>선택</span>
+          </label>
           <div className="flex gap-2 mb-3">
             <button onClick={() => { setDateType('single'); saveField('dateType', 'single') }}
               className={`px-4 py-1.5 rounded-full text-[12px] font-semibold border-2 transition-colors ${dateType === 'single' ? 'bg-[#185FA5] text-white border-[#185FA5]' : 'border-[#E2E8F0] text-[#64748B] bg-white'}`}>
@@ -212,8 +245,12 @@ export default function CreateProjectPage() {
           )}
         </div>
 
+        {/* 행사 시간 — 선택 */}
         <div className="mb-4">
-          <label className={lbl}>행사 시간</label>
+          <label className={lbl}>
+            행사 시간
+            <span className={optBadge}>선택</span>
+          </label>
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
               <i className="ti ti-clock absolute left-3 top-1/2 -translate-y-1/2 text-[#A0AEC0] text-[15px]" />
@@ -227,16 +264,23 @@ export default function CreateProjectPage() {
           </div>
         </div>
 
+        {/* 장소 / 예상 인원 — 선택 */}
         <div className="grid grid-cols-2 gap-3 mb-4">
           <div>
-            <label className={lbl}>장소</label>
+            <label className={lbl}>
+              장소
+              <span className={optBadge}>선택</span>
+            </label>
             <div className="relative">
               <i className="ti ti-map-pin absolute left-3 top-1/2 -translate-y-1/2 text-[#A0AEC0] text-[15px]" />
               <input className={`${inp} pl-9`} placeholder="학교 중앙 광장" value={venue} onChange={(e) => ch('venue', e.target.value, setVenue)} />
             </div>
           </div>
           <div>
-            <label className={lbl}>예상 인원</label>
+            <label className={lbl}>
+              예상 인원
+              <span className={optBadge}>선택</span>
+            </label>
             <div className="relative">
               <i className="ti ti-users absolute left-3 top-1/2 -translate-y-1/2 text-[#A0AEC0] text-[15px]" />
               <input className={`${inp} pl-9`} placeholder="500명" value={people} onChange={(e) => ch('estimatedPeople', e.target.value, setPeople)} />
@@ -244,16 +288,24 @@ export default function CreateProjectPage() {
           </div>
         </div>
 
+        {/* 예산 — 선택 */}
         <div className="mb-4">
-          <label className={lbl}>예산</label>
+          <label className={lbl}>
+            예산
+            <span className={optBadge}>선택</span>
+          </label>
           <div className="relative">
             <i className="ti ti-currency-won absolute left-3 top-1/2 -translate-y-1/2 text-[#A0AEC0] text-[15px]" />
             <input className={`${inp} pl-9`} placeholder="5,000,000원" value={budget} onChange={(e) => ch('budget', e.target.value, setBudget)} />
           </div>
         </div>
 
+        {/* 행사 개요 — 선택 */}
         <div className="mb-6">
-          <label className={lbl}>행사 개요 / 특이사항</label>
+          <label className={lbl}>
+            행사 개요 / 특이사항
+            <span className={optBadge}>선택</span>
+          </label>
           <textarea className={`${inp} h-[80px] resize-none`} placeholder="행사 목적, 주의사항 등 자유롭게..." value={overview} onChange={(e) => ch('overview', e.target.value, setOverview)} />
         </div>
 
@@ -275,4 +327,6 @@ export default function CreateProjectPage() {
 }
 
 const inp = 'w-full h-[40px] border border-[#E2E8F0] rounded-[10px] px-3 text-[13px] text-[#1A1A2E] bg-white focus:outline-none focus:border-[#185FA5]'
-const lbl = 'text-[12px] font-medium text-[#64748B] mb-1.5 block'
+const lbl = 'text-[12px] font-medium text-[#64748B] mb-1.5 flex items-center gap-1.5'
+const reqBadge = 'inline-flex items-center px-1.5 py-0.5 rounded-[4px] text-[10px] font-bold bg-[#FEE2E2] text-[#DC2626]'
+const optBadge = 'inline-flex items-center px-1.5 py-0.5 rounded-[4px] text-[10px] font-bold bg-[#F1F5F9] text-[#94A3B8]'
