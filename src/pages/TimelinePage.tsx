@@ -286,7 +286,7 @@ export default function TimelinePage() {
               <div className="relative flex">
                 {/* 시간축 */}
                 <div style={{ width: TIME_W, minWidth: TIME_W }} className="flex-shrink-0 relative">
-                  {timeSlots.map((t, i) => (
+                  {timeSlots.map((t) => (
                     <div key={t} style={{ height: ROW_H }}
                       className="flex items-start justify-end pr-2 pt-1">
                       <span className="text-[11px] font-bold text-[#A0AEC0]">{t}</span>
@@ -310,7 +310,7 @@ export default function TimelinePage() {
 
                       {/* 큐 카드 */}
                       {partCues.map(cue => {
-                        const { top, height } = getCueStyle(cue)
+                        const { top = 0, height = ROW_H } = getCueStyle(cue)
                         const startMin = timeToMinutes(cue.startTime)
                         const isPast = nowMin > startMin + (cue.durationMin || 30)
                         const isCurrent = nowMin >= startMin && nowMin < startMin + (cue.durationMin || 30)
