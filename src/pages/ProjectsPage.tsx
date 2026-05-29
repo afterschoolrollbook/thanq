@@ -1,19 +1,31 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { ref, onValue } from 'firebase/database'
 import { db } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
 import { getDday } from '@/utils/joinCode'
-import { Topbar } from '@/components/ui/Common'
+import { Topbar, BottomTabBar } from '@/components/ui/Common'
 import type { Project } from '@/types'
 
 export default function ProjectsPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const user = useAuthStore((s) => s.user)
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [showJoinInput, setShowJoinInput] = useState(false)
   const [joinCode, setJoinCode] = useState('')
+
+  // ?next=timeline 같은 파라미터 처리
+  const nextTab = new URLSearchParams(location.search).get('next')
+
+  function goToProject(projectId: string) {
+    if (nextTab) {
+      navigate(`/p/${projectId}/${nextTab}`)
+    } else {
+      navigate(`/p/${projectId}/home`)
+    }
+  }
 
   useEffect(() => {
     if (!user) return
@@ -44,11 +56,11 @@ export default function ProjectsPage() {
   return (
     <div className="min-h-screen bg-[#F4F6F9]">
       <Topbar />
-      <div className="max-w-2xl mx-auto px-5 pt-6 pb-10">
+      <div className="max-w-2xl mx-auto px-5 pt-6 pb-24">
         <div className="flex items-center justify-between mb-5">
           <div>
             <h2 className="text-[20px] font-semibold text-[#1A1A2E]">내 프로젝트</h2>
-            <p className="text-[13px] text-[#64748B] mt-0.5">진행 중이거나 예정된 행사를 관리하세요</p>
+            <p className="text-[13px] text-[#64748B] mt-0.5">{nextTab ? `프로젝트를 선택하면 ${nextTab}으로 이동해요` : '진행 중이거나 예정된 행사를 관리하세요'}</p>
           </div>
           <button onClick={() => navigate('/onboarding/field')}
             className="h-[38px] px-4 bg-[#185FA5] text-white rounded-[10px] flex items-center gap-1.5 text-[13px] font-semibold">
@@ -97,7 +109,7 @@ export default function ProjectsPage() {
               const dday = getDday(project.date)
               const isLive = project.status === 'live'
               return (
-                <button key={project.id} onClick={() => navigate(`/p/${project.id}/home`)}
+                <button key={project.id} onClick={() => goToProject(project.id)}
                   className={`w-full text-left bg-white border rounded-[14px] p-4 hover:shadow-md transition-all ${isLive ? 'border-[#185FA5] bg-[#E6F1FB]' : 'border-[#E2E8F0]'}`}>
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="flex-1 min-w-0">
@@ -124,6 +136,7 @@ export default function ProjectsPage() {
           </div>
         )}
       </div>
+      <BottomTabBar />
     </div>
   )
 }
