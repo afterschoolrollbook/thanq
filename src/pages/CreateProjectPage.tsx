@@ -129,7 +129,8 @@ export default function CreateProjectPage() {
   }
 
   async function handleNext() {
-    if (!user || !projectId) return
+    console.log("handleNext called", { user: !!user, projectId, name })
+    if (!user || !projectId) { console.warn("BLOCKED: user=", user, "projectId=", projectId); return }
 
     // 행사명 필수 검증
     if (!name.trim()) {
