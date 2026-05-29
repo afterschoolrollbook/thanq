@@ -35,6 +35,7 @@ export default function CreateProjectPage() {
   const [budget, setBudget] = useState('')
   const [overview, setOverview] = useState('')
   const [loading, setLoading] = useState(false)
+  const [submitError, setSubmitError] = useState("")
   const [applyingTemplate, setApplyingTemplate] = useState(false)
   const [initializing, setInitializing] = useState(true)
 
@@ -181,6 +182,7 @@ export default function CreateProjectPage() {
     } catch (e) {
       console.error(e)
       setApplyingTemplate(false)
+      setSubmitError("프로젝트 저장 중 오류가 발생했어요. 다시 시도해주세요.")
     } finally {
       setLoading(false)
     }
@@ -350,6 +352,12 @@ export default function CreateProjectPage() {
           <textarea className={`${inp} h-[80px] resize-none`} placeholder="행사 목적, 주의사항 등 자유롭게..." value={overview} onChange={(e) => ch('overview', e.target.value, setOverview)} />
         </div>
 
+        {submitError && (
+          <div className="flex items-center gap-2 px-4 py-3 mb-4 bg-[#FEE2E2] border border-[#E24B4A] rounded-[10px]">
+            <i className="ti ti-alert-circle text-[#E24B4A] text-[15px]" />
+            <span className="text-[12px] text-[#E24B4A]">{submitError}</span>
+          </div>
+        )}
         <div className="flex items-center justify-between pt-5 border-t border-[#E2E8F0]">
           <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-[13px] text-[#64748B]">
             <i className="ti ti-arrow-left text-[14px]" /> 이전
