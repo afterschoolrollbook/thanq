@@ -46,104 +46,104 @@ function MiniCalendar({ selectedDate, onChange, eventDates, onClose }: {
   )
 }
 
-// ── 무전 패널 ─────────────────────────────────────────────
-function RadioPanel({ notices, onSend }: { notices: Notice[]; onSend: (type: Notice['type'], title: string, content: string) => Promise<void> }) {
-  const [type, setType] = useState<Notice['type']>('notice')
-  const [title, setTitle] = useState('')
-  const [content, setContent] = useState('')
-  const [sending, setSending] = useState(false)
-  const [showForm, setShowForm] = useState(false)
+// ── 인라인 PTT ────────────────────────────────────────────
+function InlinePTT({ projectId, cue }: { projectId: string; cue: CueWithPart }) {
+  const user = useAuthStore((s) => s.user)
+  const [pressing, setPressing] = useState(false)
+  const [micPermission, setMicPermission] = useState<'unknown'|'granted'|'denied'>('unknown')
+  const mediaRef = useRef<MediaRecorder | null>(null)
+  const startRef = useRef<number>(0)
 
-  async function handleSend() {
-    if (!title.trim() || !content.trim()) return
-    setSending(true)
-    await onSend(type, title.trim(), content.trim())
-    setTitle(''); setContent(''); setShowForm(false); setSending(false)
+  useEffect(() => {
+    async function check() {
+      try {
+        if (navigator.permissions) {
+          const r = await navigator.permissions.query({ name: 'microphone' as PermissionName })
+          setMicPermission(r.state as 'unknown'|'granted'|'denied')
+          r.onchange = () => setMicPermission(r.state as 'unknown'|'granted'|'denied')
+        } else {
+          const s = await navigator.mediaDevices.getUserMedia({ audio: true })
+          s.getTracks().forEach(t => t.stop()); setMicPermission('granted')
+        }
+      } catch { setMicPermission('denied') }
+    }
+    check()
+  }, [])
+
+  async function requestMic() {
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({ audio: true })
+      s.getTracks().forEach(t => t.stop()); setMicPermission('granted')
+    } catch { setMicPermission('denied') }
   }
 
-  const timeAgo = (d: string) => {
-    const m = Math.floor((Date.now() - new Date(d).getTime()) / 60000)
-    if (m < 1) return '방금'; if (m < 60) return m+'분 전'; if (m < 1440) return Math.floor(m/60)+'시간 전'; return Math.floor(m/1440)+'일 전'
+  async function startPTT() {
+    if (micPermission !== 'granted' || !user) return
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } })
+      const mr = new MediaRecorder(stream)
+      mr.start(); mediaRef.current = mr; startRef.current = Date.now(); setPressing(true)
+    } catch { setMicPermission('denied') }
   }
-  const typeMap: Record<string, {icon:string;bg:string;color:string}> = {
-    notice: {icon:'ti-bell',bg:'#E6F1FB',color:'#185FA5'},
-    urgent: {icon:'ti-alert-triangle',bg:'#FCEBEB',color:'#A32D2D'},
-    meeting: {icon:'ti-users',bg:'#EAF3DE',color:'#3B6D11'},
+
+  async function stopPTT() {
+    if (!mediaRef.current || !user) return
+    setPressing(false)
+    const duration = Math.round((Date.now() - startRef.current) / 1000)
+    mediaRef.current.stop(); mediaRef.current.stream.getTracks().forEach(t => t.stop())
+    const r = push(dbRef(db, `pttHistory/${projectId}`))
+    await set(r, {
+      id: r.key, senderName: user.displayName ?? '익명', senderColor: '#185FA5',
+      target: cue.partId, targetLabel: cue.partName, duration,
+      createdAt: new Date().toISOString()
+    })
   }
+
+  const targetName = cue.assigneeName || cue.assignee || cue.partName
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <span className="text-[12px] text-[#64748B]">공지 · 긴급 연락</span>
-        <button onClick={() => setShowForm(v => !v)}
-          className="h-[30px] px-3 bg-[#185FA5] text-white rounded-[8px] text-[11px] font-semibold flex items-center gap-1">
-          <i className="ti ti-plus text-[11px]"/>공지 작성
-        </button>
+    <div className="flex flex-col items-center gap-4 py-4">
+      {/* 수신 대상 */}
+      <div className="flex items-center gap-2 px-4 py-2 bg-[#F4F6F9] rounded-full">
+        <span className="w-3 h-3 rounded-full" style={{background: cue.partColor}}/>
+        <span className="text-[12px] font-semibold text-[#1A1A2E]">{targetName}</span>
+        <span className="text-[11px] text-[#A0AEC0]">수신</span>
       </div>
 
-      {showForm && (
-        <div className="bg-[#F4F6F9] rounded-[12px] p-3 flex flex-col gap-2">
-          <div className="flex gap-1.5">
-            {(['notice','urgent','meeting'] as Notice['type'][]).map((k) => {
-              const labels: Record<string,string> = {notice:'일반',urgent:'긴급',meeting:'미팅'}
-              const icons: Record<string,string> = {notice:'ti-bell',urgent:'ti-alert-triangle',meeting:'ti-users'}
-              const isActive = type === k
-              const isUrgent = k === 'urgent'
-              return (
-                <button key={k} onClick={() => setType(k)}
-                  className={`flex-1 py-1.5 rounded-[8px] text-[11px] font-semibold flex items-center justify-center gap-1 border transition-colors ${isActive ? (isUrgent ? 'bg-[#A32D2D] text-white border-[#A32D2D]' : 'bg-[#185FA5] text-white border-[#185FA5]') : 'border-[#E2E8F0] text-[#64748B] bg-white'}`}>
-                  <i className={`ti ${icons[k]}`}/>{labels[k]}
-                </button>
-              )
-            })}
+      {/* 마이크 권한 없을 때 */}
+      {micPermission !== 'granted' && (
+        <div className={`w-full flex items-center gap-3 p-3 rounded-[12px] ${micPermission==='denied'?'bg-[#FCEBEB]':'bg-[#F4F6F9]'}`}>
+          <i className={`ti ${micPermission==='denied'?'ti-microphone-off text-[#A32D2D]':'ti-microphone text-[#64748B]'} text-[20px]`}/>
+          <div className="flex-1">
+            <div className="text-[12px] font-semibold">{micPermission==='denied'?'마이크가 차단됐어요':'마이크 권한이 필요해요'}</div>
           </div>
-          <input className="w-full h-9 border border-[#E2E8F0] rounded-[8px] px-3 text-[12px] bg-white focus:outline-none focus:border-[#185FA5]"
-            placeholder="제목" value={title} onChange={e => setTitle(e.target.value)}/>
-          <textarea className="w-full h-16 border border-[#E2E8F0] rounded-[8px] px-3 py-2 text-[12px] resize-none bg-white focus:outline-none focus:border-[#185FA5]"
-            placeholder="내용" value={content} onChange={e => setContent(e.target.value)}/>
-          <div className="flex gap-2">
-            <button onClick={() => setShowForm(false)} className="flex-1 h-9 border border-[#E2E8F0] rounded-[8px] text-[12px] text-[#64748B] bg-white">취소</button>
-            <button onClick={handleSend} disabled={sending || !title.trim() || !content.trim()}
-              className="flex-1 h-9 bg-[#185FA5] text-white rounded-[8px] text-[12px] font-semibold disabled:opacity-40 flex items-center justify-center gap-1">
-              <i className="ti ti-send text-[12px]"/>{sending ? '전송 중...' : '발송'}
-            </button>
-          </div>
+          {micPermission !== 'denied' && (
+            <button onClick={requestMic} className="px-3 py-1.5 bg-[#185FA5] text-white rounded-[8px] text-[11px] font-semibold">허용</button>
+          )}
         </div>
       )}
 
-      {notices.length === 0 ? (
-        <div className="text-center py-6 text-[#A0AEC0]">
-          <i className="ti ti-bell-off text-[32px] block mb-2 opacity-30"/>
-          <p className="text-[12px]">공지가 없어요</p>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-2">
-          {notices.slice(0, 10).map(n => {
-            const t = typeMap[n.type] ?? typeMap['notice']
-            return (
-              <div key={n.id} className="bg-white border border-[#E2E8F0] rounded-[12px] p-3 flex items-start gap-2.5">
-                <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{background:t.bg}}>
-                  <i className={`ti ${t.icon} text-[13px]`} style={{color:t.color}}/>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2 mb-0.5">
-                    <p className="text-[12px] font-semibold truncate">{n.title}</p>
-                    <span className="text-[10px] text-[#A0AEC0] flex-shrink-0">{timeAgo(n.createdAt)}</span>
-                  </div>
-                  <p className="text-[11px] text-[#64748B] line-clamp-2">{n.content}</p>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
+      {/* PTT 버튼 */}
+      <button
+        onPointerDown={startPTT} onPointerUp={stopPTT} onPointerLeave={stopPTT}
+        disabled={micPermission !== 'granted'}
+        className={`w-28 h-28 rounded-full flex flex-col items-center justify-center gap-2 transition-all select-none touch-none
+          ${micPermission!=='granted' ? 'opacity-40 cursor-not-allowed bg-[#A0AEC0]' :
+            pressing ? 'bg-[#E24B4A] shadow-[0_0_0_20px_rgba(226,75,74,0.2)]' :
+            'shadow-[0_0_0_16px_#E6F1FB]'}`}
+        style={micPermission==='granted' && !pressing ? {background: cue.partColor} : undefined}>
+        <i className={`ti ti-microphone text-[32px] text-white ${pressing?'animate-pulse':''}`}/>
+        <span className="text-white text-[11px] font-semibold">{pressing?'전송 중':'누르고 말하기'}</span>
+      </button>
+
+      <p className="text-[11px] text-[#A0AEC0]">손 떼면 자동 전송돼요</p>
     </div>
   )
 }
 
 // ── 큐 상세 모달 ──────────────────────────────────────────
-function CueModal({ cue, projectId, notices, onSendNotice, onClose }: {
-  cue: CueWithPart; projectId: string; notices: Notice[]; onSendNotice: (type: Notice["type"], title: string, content: string) => Promise<void>; onClose: () => void
+function CueModal({ cue, projectId, onClose }: {
+  cue: CueWithPart; projectId: string; onClose: () => void
 }) {
   const [checks, setChecks] = useState<CheckItem[]>([])
   const [tab, setTab] = useState<'radio'|'check'|'memo'|'photo'>('check')
@@ -327,7 +327,7 @@ function CueModal({ cue, projectId, notices, onSendNotice, onClose }: {
 
           {/* 무전 탭 */}
           {tab === 'radio' && (
-            <RadioPanel notices={notices} onSend={onSendNotice}/>
+            <InlinePTT projectId={projectId} cue={cue}/>
           )}
 
           {/* 사진 탭 */}
@@ -391,13 +391,6 @@ export default function TimelinePage() {
   const [zoom, setZoom] = useState(1)
   const [activeCue, setActiveCue] = useState<CueWithPart | null>(null)
   const [notices, setNotices] = useState<Notice[]>([])
-  const user = useAuthStore((s) => s.user)
-
-  async function onSendNotice(type: Notice['type'], title: string, content: string) {
-    if (!user || !projectId) return
-    const r = push(dbRef(db, `notices/${projectId}`))
-    await set(r, { id: r.key, projectId, type, title, content, targetPartIds: [], authorId: user.uid, authorName: user.displayName ?? '익명', readByUids: [], createdAt: new Date().toISOString() })
-  }
   const calendarRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -519,7 +512,7 @@ export default function TimelinePage() {
                 <button onClick={()=>setZoom(1)} className="h-7 px-2 rounded-full border border-[#E2E8F0] bg-white text-[11px] font-semibold text-[#64748B] hover:bg-[#F4F6F9] ml-1">초기화</button>
               </div>
             </div>
-            <div className="flex gap-2 overflow-x-auto pb-3 -mx-5 px-5" style={{scrollbarWidth:'none'}}>
+            <div className="flex gap-2 overflow-x-auto pb-3 -mx-5 px-5" >
               <button onClick={()=>setSelectedPartId(null)} className={`flex-shrink-0 px-3 py-1 rounded-full text-[12px] font-semibold ${!selectedPartId?'bg-[#185FA5] text-white':'border border-[#E2E8F0] text-[#64748B] bg-white'}`}>전체</button>
               {parts.map(p=>(
                 <button key={p.id} onClick={()=>setSelectedPartId(selectedPartId===p.id?null:p.id)}
@@ -585,16 +578,20 @@ export default function TimelinePage() {
                             </div>
                             <div className="flex items-center justify-between mt-1 gap-1 flex-wrap">
                               <StatusBadge status={cue.status}/>
-                              {/* 체크리스트 배지 */}
-                              {total > 0 ? (
-                                <span className={`flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${allDone?'bg-[#E1F5EE] text-[#3B6D11]':'bg-[#FEF3C7] text-[#92400E]'}`}>
-                                  <i className={`ti ${allDone?'ti-check':'ti-checklist'} text-[10px]`}/>{done}/{total}
-                                </span>
-                              ) : (
-                                <span className="flex items-center gap-0.5 text-[10px] text-[#E2E8F0] flex-shrink-0">
-                                  <i className="ti ti-checklist text-[10px]"/>
-                                </span>
-                              )}
+                              <div className="flex items-center gap-1.5 flex-shrink-0">
+                                {/* 메모 */}
+                                <i className={`ti ti-notes text-[12px] ${cue.memo ? 'text-[#185FA5]' : 'text-[#E2E8F0]'}`}/>
+                                {/* 체크리스트 */}
+                                {total > 0 ? (
+                                  <span className={`flex items-center gap-0.5 text-[10px] font-semibold px-1 py-0.5 rounded-full ${allDone?'bg-[#E1F5EE] text-[#3B6D11]':'bg-[#FEF3C7] text-[#92400E]'}`}>
+                                    <i className={`ti ${allDone?'ti-check':'ti-checklist'} text-[10px]`}/>{done}/{total}
+                                  </span>
+                                ) : (
+                                  <i className="ti ti-checklist text-[12px] text-[#E2E8F0]"/>
+                                )}
+                                {/* 공지 */}
+                                <i className={`ti ti-bell text-[12px] ${notices.length > 0 ? 'text-[#F59E0B]' : 'text-[#E2E8F0]'}`}/>
+                              </div>
                             </div>
                             {/* 미완료 체크 있으면 왼쪽 테두리 강조 */}
                             {hasPending && <div className="absolute left-0 top-0 bottom-0 w-0.5 rounded-l-[8px]" style={{background:part.color}}/>}
@@ -612,7 +609,7 @@ export default function TimelinePage() {
 
       <BottomTabBar/>
       {activeCue && projectId && (
-        <CueModal cue={activeCue} projectId={projectId} notices={notices} onSendNotice={onSendNotice} onClose={() => setActiveCue(null)}/>
+        <CueModal cue={activeCue} projectId={projectId} onClose={() => setActiveCue(null)}/>
       )}
     </div>
   )
