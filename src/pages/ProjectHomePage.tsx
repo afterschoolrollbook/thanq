@@ -3,35 +3,80 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { ref, onValue } from 'firebase/database'
 import { db } from '@/lib/firebase'
 import { getDday } from '@/utils/joinCode'
+import { useAuthStore } from '@/store/authStore'
 import { Topbar, BottomTabBar, StatusBadge } from '@/components/ui/Common'
 import TemplateExportModal from '@/components/template/TemplateExportModal'
-import TemplateImportModal from '@/components/template/TemplateImportModal'
-import type { Project, Part } from '@/types'
+import type { Project, Part, CheckItem } from '@/types'
+
+const ROLE_LABEL: Record<string, string> = {
+  owner: '운영자', admin: '관리자', member: '팀원', viewer: '참관', guest: '게스트'
+}
 
 export default function ProjectHomePage() {
   const { projectId } = useParams()
   const navigate = useNavigate()
+  const user = useAuthStore((s) => s.user)
   const [project, setProject] = useState<Project | null>(null)
   const [parts, setParts] = useState<Part[]>([])
+  const [myRole, setMyRole] = useState<string>('')
+  const [myPartName, setMyPartName] = useState<string>('')
+  const [myChecks, setMyChecks] = useState<CheckItem[]>([])
   const [loading, setLoading] = useState(true)
   const [showExport, setShowExport] = useState(false)
-  const [showImport, setShowImport] = useState(false)
 
   useEffect(() => {
-    if (!projectId) return
-    const u1 = onValue(ref(db, `projects/${projectId}`), (s) => { if (s.exists()) setProject(s.val()); setLoading(false) })
-    const u2 = onValue(ref(db, `parts/${projectId}`), (s) => {
-      if (s.exists()) { const l: Part[] = Object.values(s.val()); l.sort((a, b) => a.order - b.order); setParts(l) }
-      else setParts([])
+    if (!projectId || !user) return
+
+    const u1 = onValue(ref(db, `projects/${projectId}`), (s) => {
+      if (s.exists()) setProject(s.val())
+      setLoading(false)
     })
+
+    const u2 = onValue(ref(db, `parts/${projectId}`), (s) => {
+      if (s.exists()) {
+        const l: Part[] = Object.values(s.val())
+        l.sort((a, b) => a.order - b.order)
+        setParts(l)
+      } else setParts([])
+    })
+
+    // 내 역할 + 내 파트
+    onValue(ref(db, `projectMembers/${projectId}/${user.uid}`), (s) => {
+      if (s.exists()) {
+        const m = s.val()
+        setMyRole(m.role ?? '')
+        setMyPartName(m.partName ?? '')
+      }
+    }, { onlyOnce: true })
+
     return () => { u1(); u2() }
-  }, [projectId])
+  }, [projectId, user])
+
+  // 내 체크리스트 로딩 (파트가 로딩된 후)
+  useEffect(() => {
+    if (!projectId || parts.length === 0) return
+    const checks: CheckItem[] = []
+    let loaded = 0
+    parts.forEach((part) => {
+      onValue(ref(db, `checkItems/${projectId}/${part.id}`), (s) => {
+        loaded++
+        if (s.exists()) {
+          const items: CheckItem[] = Object.values(s.val())
+          items.forEach(i => checks.push(i))
+        }
+        if (loaded === parts.length) setMyChecks([...checks])
+      }, { onlyOnce: true })
+    })
+  }, [projectId, parts])
 
   if (loading) return <div className="flex items-center justify-center h-64 text-[#64748B] text-[13px]">불러오는 중...</div>
   if (!project) return <div className="flex items-center justify-center h-64 text-[#64748B] text-[13px]">프로젝트를 찾을 수 없어요</div>
 
   const dday = getDday(project.date)
   const progress = parts.length ? Math.round(parts.reduce((s, p) => s + p.progress, 0) / parts.length) : 0
+  const isOwner = myRole === 'owner' || project.ownerId === user?.uid
+  const roleLabel = isOwner ? '운영자' : (ROLE_LABEL[myRole] ?? '팀원')
+  const todoChecks = myChecks.filter(c => !c.isDone).slice(0, 5)
 
   return (
     <div className="min-h-screen bg-[#F4F6F9]">
@@ -52,45 +97,60 @@ export default function ProjectHomePage() {
               </div>
             </div>
           </div>
-          <div className="text-[12px] text-[#378ADD] flex items-center gap-1">
-            <i className="ti ti-calendar text-[13px]" />
-            {dday === 'D-DAY' ? '오늘!' : `${dday} 남음`}
-          </div>
+          <button onClick={() => navigate(`/p/${projectId}/timeline`)}
+            className="text-[12px] text-[#185FA5] font-semibold flex items-center gap-1">
+            오늘 <i className="ti ti-calendar text-[13px]" />
+          </button>
         </div>
 
-        {/* KPI */}
-        <div className="grid grid-cols-4 gap-2.5 mb-4">
-          <div className="bg-white border border-[#E2E8F0] rounded-[10px] p-3">
+        {/* 내 정보 배지 */}
+        <div className="flex items-center gap-2 mb-4">
+          <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#E2E8F0] rounded-full text-[12px] font-semibold text-[#1A1A2E]">
+            <i className={`ti ${isOwner ? 'ti-shield-check text-[#185FA5]' : 'ti-user text-[#64748B]'} text-[13px]`} />
+            {roleLabel}
+          </span>
+          {myPartName && (
+            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#E2E8F0] rounded-full text-[12px] font-semibold text-[#1A1A2E]">
+              <i className="ti ti-puzzle text-[#64748B] text-[13px]" />
+              {myPartName}
+            </span>
+          )}
+        </div>
+
+        {/* 요약 카드 */}
+        <div className="grid grid-cols-4 gap-2 mb-4">
+          <div className="bg-white border border-[#E2E8F0] rounded-[12px] p-3 text-center">
             <div className="text-[11px] text-[#64748B] mb-1">전체 진행률</div>
-            <div className="text-[22px] font-bold text-[#1A1A2E]">{progress}%</div>
-            <div className="h-1 bg-[#F4F6F9] rounded-full mt-2 overflow-hidden">
-              <div className="h-1 bg-[#185FA5] rounded-full" style={{ width: `${progress}%` }} />
-            </div>
+            <div className="text-[18px] font-bold text-[#185FA5]">{progress}%</div>
           </div>
-          <div className="bg-white border border-[#E2E8F0] rounded-[10px] p-3">
+          <div className="bg-white border border-[#E2E8F0] rounded-[12px] p-3 text-center">
             <div className="text-[11px] text-[#64748B] mb-1">파트</div>
-            <div className="text-[22px] font-bold text-[#1A1A2E]">{parts.length}개</div>
+            <div className="text-[18px] font-bold text-[#1A1A2E]">{parts.length}개</div>
           </div>
-          <div className="bg-white border border-[#E2E8F0] rounded-[10px] p-3">
+          <div className="bg-white border border-[#E2E8F0] rounded-[12px] p-3 text-center">
             <div className="text-[11px] text-[#64748B] mb-1">체크리스트</div>
-            <div className="text-[22px] font-bold text-[#1A1A2E]">—</div>
+            <div className="text-[18px] font-bold text-[#1A1A2E]">{myChecks.length > 0 ? `${myChecks.filter(c => c.isDone).length}/${myChecks.length}` : '—'}</div>
           </div>
-          <div className="bg-white border border-[#E2E8F0] rounded-[10px] p-3">
+          <div className="bg-white border border-[#E2E8F0] rounded-[12px] p-3 text-center">
             <div className="text-[11px] text-[#64748B] mb-1">미확인 공지</div>
-            <div className="text-[22px] font-bold text-[#1A1A2E]">0건</div>
+            <div className="text-[18px] font-bold text-[#1A1A2E]">0건</div>
           </div>
         </div>
 
-        {/* 지금/다음 진행 + 파트별 현황 */}
+        {/* 일정표 보기 + 파트별 현황 */}
         <div className="grid grid-cols-2 gap-3 mb-4">
           <div className="bg-white border border-[#E2E8F0] rounded-[14px] p-3.5">
             <div className="flex items-center justify-between mb-3">
               <div className="text-[13px] font-semibold flex items-center gap-1.5">
-                <i className="ti ti-player-play text-[#185FA5]" /> 지금 / 다음 진행
+                <i className="ti ti-calendar-event text-[#185FA5]" /> 일정표
               </div>
               <button onClick={() => navigate(`/p/${projectId}/timeline`)} className="text-[12px] text-[#185FA5]">전체 보기</button>
             </div>
-            <div className="text-[12px] text-[#64748B] text-center py-4">큐시트 항목이 없어요</div>
+            <button onClick={() => navigate(`/p/${projectId}/timeline`)}
+              className="w-full h-[72px] bg-[#F4F6F9] rounded-[10px] flex flex-col items-center justify-center gap-1 hover:bg-[#E6F1FB] transition-colors">
+              <i className="ti ti-layout-columns text-[#185FA5] text-[22px]" />
+              <span className="text-[11px] text-[#185FA5] font-semibold">타임라인 열기</span>
+            </button>
           </div>
 
           <div className="bg-white border border-[#E2E8F0] rounded-[14px] p-3.5">
@@ -113,7 +173,7 @@ export default function ProjectHomePage() {
                 {parts.map((part) => (
                   <div key={part.id} className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: part.color }} />
-                    <span className="text-[13px] flex-1">{part.name}</span>
+                    <span className="text-[12px] flex-1 truncate">{part.name}</span>
                     <StatusBadge status={part.status} />
                     <span className="text-[11px] text-[#A0AEC0]">{part.progress}%</span>
                   </div>
@@ -128,11 +188,27 @@ export default function ProjectHomePage() {
           <div className="bg-white border border-[#E2E8F0] rounded-[14px] p-3.5">
             <div className="flex items-center justify-between mb-3">
               <div className="text-[13px] font-semibold flex items-center gap-1.5">
-                <i className="ti ti-checklist text-[#185FA5]" /> 내 할 일 (오늘)
+                <i className="ti ti-checklist text-[#185FA5]" /> 내 할 일
               </div>
-              <button onClick={() => navigate(`/p/${projectId}/my-part`)} className="text-[12px] text-[#185FA5]">내 파트 전체</button>
+              <button onClick={() => navigate(`/p/${projectId}/my-part`)} className="text-[12px] text-[#185FA5]">전체 보기</button>
             </div>
-            <div className="text-[12px] text-[#64748B] text-center py-4">체크리스트가 없어요</div>
+            {todoChecks.length === 0 ? (
+              <div className="text-[12px] text-[#64748B] text-center py-4">
+                {myChecks.length > 0 ? '✓ 모두 완료!' : '체크리스트가 없어요'}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {todoChecks.map(c => (
+                  <div key={c.id} className="flex items-start gap-2">
+                    <div className="w-4 h-4 rounded border border-[#E2E8F0] flex-shrink-0 mt-0.5" />
+                    <span className="text-[12px] text-[#1A1A2E] leading-tight">{c.title}</span>
+                  </div>
+                ))}
+                {myChecks.filter(c => !c.isDone).length > 5 && (
+                  <div className="text-[11px] text-[#A0AEC0] text-center">+{myChecks.filter(c => !c.isDone).length - 5}개 더</div>
+                )}
+              </div>
+            )}
           </div>
           <div className="bg-white border border-[#E2E8F0] rounded-[14px] p-3.5">
             <div className="flex items-center justify-between mb-3">
@@ -144,28 +220,21 @@ export default function ProjectHomePage() {
             <div className="text-[12px] text-[#64748B] text-center py-4">공지가 없어요</div>
           </div>
         </div>
-        {/* 템플릿 내보내기 / 가져오기 */}
-        <div className="flex gap-2 mt-4">
-          <button onClick={() => setShowImport(true)}
-            className="flex-1 h-[40px] bg-white border border-[#E2E8F0] rounded-[10px] flex items-center justify-center gap-1.5 text-[12px] font-semibold text-[#64748B] hover:border-[#185FA5] hover:text-[#185FA5] transition-colors">
-            <i className="ti ti-file-import text-[14px]" /> 템플릿 가져오기
-          </button>
-          <button onClick={() => setShowExport(true)}
-            className="flex-1 h-[40px] bg-white border border-[#E2E8F0] rounded-[10px] flex items-center justify-center gap-1.5 text-[12px] font-semibold text-[#64748B] hover:border-[#185FA5] hover:text-[#185FA5] transition-colors">
-            <i className="ti ti-file-export text-[14px]" /> 템플릿으로 저장
-          </button>
-        </div>
+
+        {/* 템플릿으로 저장 */}
+        {(isOwner || user?.isPro) && (
+          <div className="mt-4">
+            <button onClick={() => setShowExport(true)}
+              className="w-full h-[40px] bg-white border border-[#E2E8F0] rounded-[10px] flex items-center justify-center gap-1.5 text-[12px] font-semibold text-[#64748B] hover:border-[#185FA5] hover:text-[#185FA5] transition-colors">
+              <i className="ti ti-file-export text-[14px]" /> 템플릿으로 저장
+            </button>
+          </div>
+        )}
       </div>
+
       <BottomTabBar />
       {showExport && project && (
         <TemplateExportModal project={project} onClose={() => setShowExport(false)} />
-      )}
-      {showImport && projectId && (
-        <TemplateImportModal
-          projectId={projectId}
-          onClose={() => setShowImport(false)}
-          onSuccess={() => { setShowImport(false); window.location.reload() }}
-        />
       )}
     </div>
   )
