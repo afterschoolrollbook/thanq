@@ -181,12 +181,18 @@ export interface TemplateFile {
   version: '1.0'
   name: string
   fieldType: FieldType
+  fieldLabel?: string      // 분야 표시 레이블 (예: '모임 / 클럽')
   description: string
   authorName: string
   createdAt: string
   parts: TemplatePartDraft[]
   passwordHash?: string    // SHA-256 해시 (비밀번호 설정 시)
   allowedEmail?: string    // 허용된 이메일 (설정 시 해당 이메일 로그인한 사람만 열람 가능)
+  // 프로젝트 기본 정보 (템플릿에서 자동 채우기용)
+  projectName?: string     // 행사명 예시
+  eventDate?: string       // 행사 일자 예시
+  location?: string        // 장소 예시
+  contact?: string         // 연락처 예시
 }
 
 // ─── 쿠폰 ────────────────────────────────────────────────
