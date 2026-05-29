@@ -1,0 +1,164 @@
+{
+  "version": "1.0",
+  "name": "러닝크루 일요일 아침 정기런",
+  "fieldType": "club",
+  "description": "일요일 오전 정기런 — 페이스별 A/B/C 3그룹 운영, 체조·워밍업 후 5km·8km·10km 코스별 출발, 완주 후 브런치까지 전 과정 포함.",
+  "authorName": "ThanQ 러닝팀",
+  "createdAt": "2025-05-29T09:00:00.000Z",
+  "parts": [
+    {
+      "name": "운영팀",
+      "color": "#1E3A5F",
+      "order": 0,
+      "cueItems": [
+        { "title": "집결지 오픈 · 운영 물품 세팅", "startTime": "07:00", "durationMin": 30, "memo": "배너, 번호표, 응급키트, 음료 테이블 세팅 완료" },
+        { "title": "참가자 접수 · 출석 체크", "startTime": "07:30", "durationMin": 20, "memo": "출석부 확인, A/B/C 그룹 배정표 배부" },
+        { "title": "코스 안내 · 그룹 배정 공지", "startTime": "07:50", "durationMin": 10, "memo": "A:10km / B:8km / C:5km, 체크포인트·지원소 위치 설명" },
+        { "title": "단체 워밍업 체조 리드", "startTime": "08:00", "durationMin": 15, "memo": "목→어깨→고관절→햄스트링→종아리 순서, 리더 진행" },
+        { "title": "그룹별 순차 출발 신호", "startTime": "08:15", "durationMin": 6, "memo": "A그룹 → B그룹(+2분) → C그룹(+4분) 간격 출발" },
+        { "title": "4km 지원소 운영", "startTime": "08:30", "durationMin": 60, "memo": "물·스포츠음료·바나나·사탕 준비, 의무요원 상주" },
+        { "title": "완주자 맞이 · 기록 수기 작성", "startTime": "09:15", "durationMin": 30, "memo": "타이머 체크, 완주 스티커 수령, 결과 기록지 작성" },
+        { "title": "전체 쿨다운 스트레칭 리드", "startTime": "09:45", "durationMin": 15, "memo": "햄스트링·IT밴드·종아리·고관절 집중, 5분 이상 유지" },
+        { "title": "브런치 장소 이동 안내 · 출발", "startTime": "10:05", "durationMin": 10, "memo": "예약 식당까지 도보/자유 이동, 집결 시각 10:30 재공지" },
+        { "title": "브런치 식사 진행", "startTime": "10:30", "durationMin": 60, "memo": "사전 주문 완료 여부 확인, 좌석 배치 확인" },
+        { "title": "다음 정기런 공지 · 해산", "startTime": "11:35", "durationMin": 10, "memo": "다음 날짜, 특별 이벤트런, 회비 정산 공지 후 해산" }
+      ],
+      "checkItems": [
+        { "title": "집결지 사용 허가 확인 (공원 관리사무소)", "category": "prep" },
+        { "title": "코스 사전 답사 완료 (전날 토요일 오전)", "category": "prep" },
+        { "title": "브런치 식당 예약 — 인원 재확인 전화", "category": "contact" },
+        { "title": "페이서 3명 섭외 및 역할 분담 완료", "category": "contact" },
+        { "title": "안전·의무 담당자 1명 확정", "category": "contact" },
+        { "title": "음료·간식 구매 (물 2박스, 스포츠음료, 바나나, 사탕)", "category": "prep" },
+        { "title": "응급키트 준비 (밴드·소독약·근육이완스프레이·아이스팩)", "category": "setup" },
+        { "title": "번호표·그룹 배정표 인쇄 출력", "category": "setup" },
+        { "title": "집결지 배너 현수막 설치", "category": "setup" },
+        { "title": "당일 날씨 확인 및 우천 대비 플랜B 수립", "category": "prep" },
+        { "title": "단체 채널(카톡/디스코드)에 D-1 공지 발송", "category": "custom" },
+        { "title": "당일 아침 최종 참가 인원 취합", "category": "custom" }
+      ]
+    },
+    {
+      "name": "A그룹 — 10km · 5분대",
+      "color": "#DC2626",
+      "order": 1,
+      "cueItems": [
+        { "title": "A그룹 집결 · 페이서 확인", "startTime": "08:10", "durationMin": 5, "memo": "페이서: (이름 기재), 목표 페이스 5:00~5:30/km 공유" },
+        { "title": "A그룹 출발", "startTime": "08:15", "durationMin": 3, "memo": "10km 코스 — 한강공원 동쪽 코스 (지도 공유됨)" },
+        { "title": "1번 체크포인트 통과 (4km)", "startTime": "08:36", "durationMin": 5, "memo": "지원소에서 물 보충, 페이서 페이스 확인" },
+        { "title": "반환점 통과 (5km)", "startTime": "08:41", "durationMin": 3, "memo": "후반 페이스 조절, 페이서 격려 멘트" },
+        { "title": "2번 체크포인트 통과 (8km)", "startTime": "09:01", "durationMin": 3, "memo": "마지막 스퍼트 구간 시작, 남은 2km 안내" },
+        { "title": "완주 · 기록 체크", "startTime": "09:20", "durationMin": 5, "memo": "목표 기록: 50분 이내 / 개인 기록 갱신 확인" }
+      ],
+      "checkItems": [
+        { "title": "GPS 워치 또는 러닝 앱 준비 (Garmin/Strava/Nike)", "category": "prep" },
+        { "title": "에너지젤 1~2개 개인 지참 (5km 이후 섭취)", "category": "prep" },
+        { "title": "압박 양말 착용 확인", "category": "prep" },
+        { "title": "페이서에게 페이스 범위 사전 공유 (5:00~5:30)", "category": "contact" },
+        { "title": "10km 코스 GPX 파일 워치에 업로드", "category": "prep" }
+      ]
+    },
+    {
+      "name": "B그룹 — 8km · 6분대",
+      "color": "#D97706",
+      "order": 2,
+      "cueItems": [
+        { "title": "B그룹 집결 · 페이서 확인", "startTime": "08:12", "durationMin": 5, "memo": "페이서: (이름 기재), 목표 페이스 6:00~6:30/km" },
+        { "title": "B그룹 출발", "startTime": "08:17", "durationMin": 3, "memo": "8km 코스 — 한강공원 서쪽 코스 (지도 공유됨)" },
+        { "title": "1번 체크포인트 통과 (4km)", "startTime": "08:41", "durationMin": 5, "memo": "지원소 물 보충, 반환점 안내" },
+        { "title": "반환점 (4km) 통과", "startTime": "08:41", "durationMin": 3, "memo": "복귀 코스 안내, 페이서 격려" },
+        { "title": "완주 · 기록 체크", "startTime": "09:31", "durationMin": 5, "memo": "목표: 50분 이내 / 완주 스티커 수령" }
+      ],
+      "checkItems": [
+        { "title": "러닝 앱 준비 (Nike Run Club / Strava)", "category": "prep" },
+        { "title": "스마트폰·워치 배터리 충전 확인", "category": "prep" },
+        { "title": "무릎 보호대 필요 시 착용", "category": "prep" },
+        { "title": "8km 코스 지도 사전 확인", "category": "prep" },
+        { "title": "페이서 페이스 범위 공유 (6:00~6:30)", "category": "contact" }
+      ]
+    },
+    {
+      "name": "C그룹 — 5km · 여유 완주",
+      "color": "#16A34A",
+      "order": 3,
+      "cueItems": [
+        { "title": "C그룹 집결 · 페이서 확인", "startTime": "08:14", "durationMin": 5, "memo": "페이서: (이름 기재), '아무도 두고 가지 않는다' 원칙, 7분대 이상 OK" },
+        { "title": "C그룹 출발", "startTime": "08:21", "durationMin": 3, "memo": "5km 공원 내 코스 — 강변 경치 구간 포함" },
+        { "title": "중간 포토 스팟 (2.5km)", "startTime": "08:39", "durationMin": 7, "memo": "포토팀 대기 포인트 — 단체·개인 사진 촬영, 잠깐 쉬어가도 OK" },
+        { "title": "완주 · 환영 박수", "startTime": "09:10", "durationMin": 5, "memo": "전원 박수 환영, 완주 스티커 지급, 셀피 타임" }
+      ],
+      "checkItems": [
+        { "title": "러닝화 상태 확인 (밑창 마모 점검)", "category": "prep" },
+        { "title": "편안한 러닝복 착용 (청바지·슬리퍼 금지)", "category": "prep" },
+        { "title": "초보 참가자에게 코스 지도 사전 공유 (카카오맵 링크)", "category": "contact" },
+        { "title": "페이서 '완주 우선, 기록 관심없음' 원칙 전달", "category": "custom" },
+        { "title": "보행 보조 밴드·무릎보호대 여분 지참", "category": "prep" }
+      ]
+    },
+    {
+      "name": "포토팀",
+      "color": "#7C3AED",
+      "order": 4,
+      "cueItems": [
+        { "title": "집결지 조기 도착 · 장비 세팅", "startTime": "07:15", "durationMin": 15, "memo": "카메라·삼각대·여분 배터리 점검, 조명 테스트" },
+        { "title": "참가자 도착 스냅 촬영", "startTime": "07:30", "durationMin": 30, "memo": "자연스러운 준비 모습, 스트레칭 장면 포착" },
+        { "title": "워밍업 단체 사진 (전원)", "startTime": "08:00", "durationMin": 10, "memo": "출발 전 단체컷 필수 — 배너 앞 정렬" },
+        { "title": "각 그룹 출발 순간 연사 촬영", "startTime": "08:15", "durationMin": 10, "memo": "A·B·C 그룹 출발 각각 연사, 역동적 각도 연출" },
+        { "title": "C그룹 포토 스팟 이동 (2.5km 지점)", "startTime": "08:30", "durationMin": 10, "memo": "미리 포지션 잡고 대기, 점프샷·달리는 동작 연출" },
+        { "title": "완주자 결승선 촬영 (전 그룹)", "startTime": "09:10", "durationMin": 40, "memo": "완주 순간 표정 포착 — 모든 그룹 빠짐없이" },
+        { "title": "쿨다운 · 브런치 스냅 촬영", "startTime": "09:45", "durationMin": 90, "memo": "자연스러운 단체 사진, 음식 플랫레이, 웃음 포착" },
+        { "title": "사진 정리 · 공유 폴더 업로드", "startTime": "12:00", "durationMin": 60, "memo": "선별 후 구글포토 공유 링크 → 단체방 발송" }
+      ],
+      "checkItems": [
+        { "title": "카메라·스마트폰 배터리 100% 충전", "category": "prep" },
+        { "title": "여분 SD카드 또는 저장공간 64GB 이상 확보", "category": "prep" },
+        { "title": "사진 공유 폴더 사전 생성 (구글포토 앨범)", "category": "setup" },
+        { "title": "포토 스팟 위치 사전 답사 및 지도 저장", "category": "prep" },
+        { "title": "초상권 동의 미동의자 명단 확인 (촬영 제외 처리)", "category": "custom" },
+        { "title": "SNS 업로드 해시태그 목록 사전 준비", "category": "custom" }
+      ]
+    },
+    {
+      "name": "안전·의무팀",
+      "color": "#0891B2",
+      "order": 5,
+      "cueItems": [
+        { "title": "의무 물품 세팅 · 포지션 확인", "startTime": "07:00", "durationMin": 20, "memo": "응급키트·아이스팩·근육이완스프레이·탄력붕대 확인" },
+        { "title": "코스 전체 순찰 (자전거)", "startTime": "08:20", "durationMin": 70, "memo": "각 코스 위험 구간 순찰, 낙오자·부상자 확인" },
+        { "title": "4km 지원소 의무 상주", "startTime": "08:30", "durationMin": 55, "memo": "지원소에서 상주, 부상자 즉시 대응" },
+        { "title": "완주 후 부상자 처치", "startTime": "09:15", "durationMin": 30, "memo": "물집, 근육경련, 찰과상 처치 — 필요 시 병원 동행" },
+        { "title": "전원 귀환 확인 · 마감", "startTime": "09:50", "durationMin": 10, "memo": "미완주자 없는지 최종 확인, 의무 물품 철수" }
+      ],
+      "checkItems": [
+        { "title": "응급처치 키트 (밴드·소독약·거즈·의료용 테이프)", "category": "prep" },
+        { "title": "아이스팩 10개 이상 (아이스박스 지참)", "category": "prep" },
+        { "title": "근육이완 스프레이 2개 준비", "category": "prep" },
+        { "title": "탄력붕대 3개 준비", "category": "prep" },
+        { "title": "119 및 인근 병원·응급실 위치 사전 숙지", "category": "prep" },
+        { "title": "의무 담당자 연락처 전원 공유", "category": "contact" },
+        { "title": "순찰용 자전거 또는 킥보드 확보", "category": "setup" }
+      ]
+    },
+    {
+      "name": "브런치팀",
+      "color": "#BE185D",
+      "order": 6,
+      "cueItems": [
+        { "title": "식당 최종 예약 확인 전화", "startTime": "07:00", "durationMin": 10, "memo": "인원 재확인, 도착 예정 10:30 전달, 알레르기 메뉴 요청" },
+        { "title": "식당 선발 이동 · 자리 세팅", "startTime": "10:00", "durationMin": 20, "memo": "런너 도착 전 자리 배치 완료, 물·메뉴판 세팅" },
+        { "title": "음료 우선 주문 완료", "startTime": "10:10", "durationMin": 5, "memo": "아메리카노·에이드 등 음료 선주문 (도착 즉시 제공 위해)" },
+        { "title": "브런치 식사 · 정산", "startTime": "10:30", "durationMin": 65, "memo": "N빵 정산 or 회비 차감, 토스/카카오페이 QR 준비" },
+        { "title": "다음 런 일정 투표 진행", "startTime": "11:10", "durationMin": 15, "memo": "날짜 2~3개 후보 → 카톡 투표 링크 단체방 공유" },
+        { "title": "자리 정리 · 퇴장", "startTime": "11:45", "durationMin": 10, "memo": "소지품 확인, 영수증 보관, 식당 측 인사" }
+      ],
+      "checkItems": [
+        { "title": "브런치 식당 예약 완료 (10:30, 최대 수용 인원 확인)", "category": "contact" },
+        { "title": "1인 예상 금액 단체방 D-1 공지", "category": "custom" },
+        { "title": "채식주의·알레르기 식이제한자 사전 파악", "category": "contact" },
+        { "title": "더치페이 앱 준비 (토스·카카오페이 QR 코드 저장)", "category": "prep" },
+        { "title": "런 후기 작성 및 SNS 공유 독려 멘트 준비", "category": "custom" },
+        { "title": "다음 런 후보 날짜 2~3개 사전 준비", "category": "custom" }
+      ]
+    }
+  ]
+}
