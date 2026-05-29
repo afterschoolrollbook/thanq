@@ -95,10 +95,15 @@ export default function CreateProjectPage() {
         const newRef = push(ref(db, 'projects'))
         draftRef.current = newRef.key
         setProjectId(newRef.key)
-        // 드래프트가 없고 템플릿이 있으면 → 템플릿 메타 정보로 폼 자동 채우기
-        if (templateData) {
-          applyTemplateToForm(templateData)
-        }
+        // 드래프트가 없고 템플릿이 있으면 → sessionStorage에서 직접 읽어서 폼 채우기
+        // (클로저 문제로 templateData state를 못 쓰므로 raw 파싱)
+        try {
+          const raw = sessionStorage.getItem('oncue_template')
+          if (raw) {
+            const tmpl = JSON.parse(raw) as TemplateFile
+            applyTemplateToForm(tmpl)
+          }
+        } catch { /* ignore */ }
       }
       setInitializing(false)
     }, { onlyOnce: true })
