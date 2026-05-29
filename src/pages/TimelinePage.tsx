@@ -178,7 +178,7 @@ export default function TimelinePage() {
       <div className="flex-1 flex flex-col overflow-hidden">
 
         {/* 상단 컨트롤 */}
-        <div className="bg-white border-b border-[#E2E8F0] px-4 pt-3 pb-0">
+        <div className="bg-white border-b border-[#E2E8F0] pt-3 pb-0"><div className="max-w-2xl mx-auto px-5">
           <div className="flex items-center justify-between mb-3">
             {/* 날짜 드롭다운 */}
             <div className="relative" ref={calendarRef}>
@@ -200,7 +200,7 @@ export default function TimelinePage() {
           </div>
 
           {/* 파트 필터 */}
-          <div className="flex gap-2 overflow-x-auto pb-3 -mx-4 px-4" style={{ scrollbarWidth: 'none' }}>
+          <div className="flex gap-2 overflow-x-auto pb-3 -mx-5 px-5" style={{ scrollbarWidth: 'none' }}>
             <button onClick={() => setSelectedPartId(null)}
               className={`flex-shrink-0 px-3 py-1 rounded-full text-[12px] font-semibold ${!selectedPartId ? 'bg-[#185FA5] text-white' : 'border border-[#E2E8F0] text-[#64748B] bg-white'}`}>전체</button>
             {parts.map(p => (
@@ -211,6 +211,7 @@ export default function TimelinePage() {
               </button>
             ))}
           </div>
+        </div>
         </div>
 
         {/* 그리드 */}

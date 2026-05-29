@@ -40,7 +40,7 @@ export default function ProjectHomePage() {
       } else setParts([])
     })
 
-    // 내 역할 + 내 파트
+    // 내 역할
     onValue(ref(db, `projectMembers/${projectId}/${user.uid}`), (s) => {
       if (s.exists()) {
         const m = s.val()
@@ -51,6 +51,13 @@ export default function ProjectHomePage() {
 
     return () => { u1(); u2() }
   }, [projectId, user])
+
+  // 내 파트 찾기 (managerId 기준)
+  useEffect(() => {
+    if (!user || parts.length === 0 || myPartName) return
+    const myPart = parts.find(p => p.managerId === user.uid)
+    if (myPart) setMyPartName(myPart.name)
+  }, [parts, user, myPartName])
 
   // 내 체크리스트 로딩 (파트가 로딩된 후)
   useEffect(() => {
@@ -109,12 +116,10 @@ export default function ProjectHomePage() {
             <i className={`ti ${isOwner ? 'ti-shield-check text-[#185FA5]' : 'ti-user text-[#64748B]'} text-[13px]`} />
             {roleLabel}
           </span>
-          {myPartName && (
-            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#E2E8F0] rounded-full text-[12px] font-semibold text-[#1A1A2E]">
+<span className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#E2E8F0] rounded-full text-[12px] font-semibold text-[#1A1A2E]">
               <i className="ti ti-puzzle text-[#64748B] text-[13px]" />
-              {myPartName}
+              {myPartName || (isOwner ? '전체 파트 관리' : '파트 미배정')}
             </span>
-          )}
         </div>
 
         {/* 요약 카드 */}
