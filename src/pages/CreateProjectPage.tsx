@@ -81,8 +81,10 @@ export default function CreateProjectPage() {
       // 1) 드래프트가 있으면 projectId 등 기본값 세팅
       if (snap.exists()) {
         const draft = snap.val()
-        draftRef.current = draft.id
-        setProjectId(draft.id)
+        // draft.id가 없으면 새 key 생성
+        const resolvedId = draft.id ?? push(ref(db, 'projects')).key
+        draftRef.current = resolvedId
+        setProjectId(resolvedId)
         setDateType(draft.dateType ?? 'single')
         setDate(draft.date ?? '')
         setDateEnd(draft.dateEnd ?? '')
