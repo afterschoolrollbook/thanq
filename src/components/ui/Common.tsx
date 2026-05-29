@@ -58,6 +58,10 @@ export function Topbar({ projectName }: { projectName?: string }) {
               </button>
               {showMenu && (
                 <div className="absolute right-0 top-10 bg-white rounded-[12px] shadow-lg border border-[#E2E8F0] py-1.5 min-w-[160px] z-50">
+                  <button onClick={() => { navigate('/my'); setShowMenu(false) }}
+                    className="w-full px-4 py-2.5 text-left text-[13px] text-[#1A1A2E] flex items-center gap-2 hover:bg-[#F4F6F9]">
+                    <i className="ti ti-user text-[15px] text-[#185FA5]" /> 마이페이지
+                  </button>
                   <button onClick={() => { navigate('/dashboard'); setShowMenu(false) }}
                     className="w-full px-4 py-2.5 text-left text-[13px] text-[#1A1A2E] flex items-center gap-2 hover:bg-[#F4F6F9]">
                     <i className="ti ti-layout-dashboard text-[15px] text-[#185FA5]" /> 대시보드
