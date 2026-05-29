@@ -80,8 +80,10 @@ export interface CueItem {
   startTime: string      // HH:mm
   durationMin: number
   assignee?: string
+  assigneeName?: string
   memo?: string
   status: CueStatus
+  photos?: Record<string, { url: string; name: string; uploadedAt: string }>
   createdAt: string
   updatedAt: string
 }
