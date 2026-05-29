@@ -29,8 +29,6 @@ export default function TemplateExportModal({ project, onClose }: Props) {
   const [done, setDone] = useState(false)
   const [error, setError] = useState('')
   const [lastExportJson, setLastExportJson] = useState<string | null>(null)
-  const [libSaving, setLibSaving] = useState(false)
-  const [libSaved, setLibSaved] = useState(false)
 
   async function handleExport() {
     if (!name.trim()) { setError('템플릿 이름을 입력해주세요'); return }
@@ -68,27 +66,6 @@ export default function TemplateExportModal({ project, onClose }: Props) {
     } finally {
       setExporting(false)
     }
-  }
-
-  // 내 보관함에 저장
-  async function handleSaveToMyLibrary() {
-    if (!user || !lastExportJson) return
-    setLibSaving(true)
-    try {
-      const parsed = JSON.parse(lastExportJson)
-      const newRef = push(ref(db, `userTemplates/${user.uid}`))
-      await set(newRef, {
-        id: newRef.key,
-        savedAt: new Date().toISOString(),
-        templateFile: lastExportJson,
-        name: parsed.name,
-        fieldType: parsed.fieldType,
-        fieldLabel: parsed.fieldLabel ?? '',
-        authorName: parsed.authorName,
-      })
-      setLibSaved(true)
-    } catch { /* ignore */ }
-    finally { setLibSaving(false) }
   }
 
   // 토글 공통 컴포넌트
