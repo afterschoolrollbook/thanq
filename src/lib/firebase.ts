@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
 import { getDatabase } from 'firebase/database'
+import { getStorage } from 'firebase/storage'
 
 // ⚠️  실제 값은 .env.local 에 넣으세요. 절대 커밋하지 마세요.
 const firebaseConfig = {
@@ -17,5 +18,6 @@ const app = initializeApp(firebaseConfig)
 
 export const auth = getAuth(app)
 export const db = getDatabase(app)
+export const storage = getStorage(app)
 
 export default app
