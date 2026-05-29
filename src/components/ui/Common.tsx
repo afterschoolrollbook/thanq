@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useParams, NavLink } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { signOut } from 'firebase/auth'
 import { ref, onValue } from 'firebase/database'
 import { db } from '@/lib/firebase'
@@ -98,6 +98,7 @@ export function Topbar({ projectName }: { projectName?: string }) {
 export function BottomTabBar() {
   const { projectId } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
 
   const tabs = [
     { key: 'timeline',  icon: 'ti-timeline',         label: '타임라인' },
@@ -107,31 +108,45 @@ export function BottomTabBar() {
     { key: 'ptt',       icon: 'ti-radio',            label: '무전' },
   ] as const
 
+  function handleTab(key: string) {
+    if (projectId) {
+      navigate(`/p/${projectId}/${key}`)
+    } else {
+      navigate(`/projects?next=${key}`)
+    }
+  }
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-[#E2E8F0]">
       <div className="flex">
+        {/* 홈 */}
         <button onClick={() => navigate('/dashboard')}
-          className="flex-1 flex flex-col items-center py-2.5 gap-0.5 text-[11px] font-medium text-[#A0AEC0] hover:text-[#185FA5] transition-colors">
+          className={`flex-1 flex flex-col items-center py-2.5 gap-0.5 text-[11px] font-medium transition-colors ${location.pathname === '/dashboard' ? 'text-[#185FA5]' : 'text-[#A0AEC0] hover:text-[#185FA5]'}`}>
           <i className="ti ti-home text-[20px]" />
           <span>홈</span>
         </button>
-        {tabs.map(({ key, icon, label }) => (
-          <NavLink key={key} to={`/p/${projectId}/${key}`}
-            className={({ isActive }) =>
-              `flex-1 flex flex-col items-center py-2.5 gap-0.5 text-[11px] font-medium transition-colors ${
-                key === 'ptt'
-                  ? isActive
-                    ? 'text-white bg-[#185FA5]'
-                    : 'text-[#185FA5] bg-[#E6F1FB]'
-                  : isActive
-                    ? 'text-[#185FA5]'
-                    : 'text-[#A0AEC0]'
-              }`
-            }>
-            <i className={`ti ${icon} text-[20px]`} />
-            <span>{label}</span>
-          </NavLink>
-        ))}
+        {/* 프로젝트 */}
+        <button onClick={() => navigate('/projects')}
+          className={`flex-1 flex flex-col items-center py-2.5 gap-0.5 text-[11px] font-medium transition-colors ${location.pathname === '/projects' || location.pathname.includes('/home') ? 'text-[#185FA5]' : 'text-[#A0AEC0] hover:text-[#185FA5]'}`}>
+          <i className="ti ti-folder text-[20px]" />
+          <span>프로젝트</span>
+        </button>
+        {/* 나머지 탭 */}
+        {tabs.map(({ key, icon, label }) => {
+          const isActive = !!projectId && location.pathname.includes(`/${key}`)
+          const isPTT = key === 'ptt'
+          return (
+            <button key={key} onClick={() => handleTab(key)}
+              className={`flex-1 flex flex-col items-center py-2.5 gap-0.5 text-[11px] font-medium transition-colors ${
+                isPTT
+                  ? isActive ? 'text-white bg-[#185FA5]' : 'text-[#185FA5] bg-[#E6F1FB]'
+                  : isActive ? 'text-[#185FA5]' : 'text-[#A0AEC0] hover:text-[#185FA5]'
+              }`}>
+              <i className={`ti ${icon} text-[20px]`} />
+              <span>{label}</span>
+            </button>
+          )
+        })}
       </div>
     </nav>
   )
