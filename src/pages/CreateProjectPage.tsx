@@ -43,6 +43,36 @@ export default function CreateProjectPage() {
 
   const draftRef = useRef<string | null>(null)
 
+  // 템플릿 메타 정보 → 폼 자동 채우기 헬퍼
+  function applyTemplateToForm(tmpl: TemplateFile) {
+    const clean = (s: string) =>
+      s.replace(/^\[예시\]\s*/, '')
+       .replace(/\s*\(변경하세요\)/g, '')
+       .replace(/\s*\(내용을 수정해주세요\)/g, '')
+       .trim()
+
+    if (tmpl.projectName) setName(clean(tmpl.projectName))
+    if (tmpl.location)    setVenue(clean(tmpl.location))
+
+    // description + contact 합쳐서 overview에
+    const overviewParts: string[] = []
+    if (tmpl.description) overviewParts.push(clean(tmpl.description))
+    if (tmpl.contact)     overviewParts.push(clean(tmpl.contact))
+    if (overviewParts.length) setOverview(overviewParts.join('\n'))
+
+    // eventDate: "2025년 6월 15일" 형식 → YYYY-MM-DD 변환 시도
+    if (tmpl.eventDate) {
+      const raw = clean(tmpl.eventDate)
+      const m = raw.match(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/)
+      if (m) {
+        const yyyy = m[1]
+        const mm   = m[2].padStart(2, '0')
+        const dd   = m[3].padStart(2, '0')
+        setDate(`${yyyy}-${mm}-${dd}`)
+      }
+    }
+  }
+
   useEffect(() => {
     if (!user) return
     const draftsRef = ref(db, `drafts/${user.uid}`)
@@ -65,6 +95,10 @@ export default function CreateProjectPage() {
         const newRef = push(ref(db, 'projects'))
         draftRef.current = newRef.key
         setProjectId(newRef.key)
+        // 드래프트가 없고 템플릿이 있으면 → 템플릿 메타 정보로 폼 자동 채우기
+        if (templateData) {
+          applyTemplateToForm(templateData)
+        }
       }
       setInitializing(false)
     }, { onlyOnce: true })
@@ -174,9 +208,9 @@ export default function CreateProjectPage() {
           <div className="flex items-center gap-3 px-4 py-3 mb-5 bg-[#E6F1FB] border border-[#185FA5] rounded-[12px]">
             <i className="ti ti-file-check text-[#185FA5] text-[20px] flex-shrink-0" />
             <div className="flex-1 min-w-0">
-              <div className="text-[13px] font-bold text-[#185FA5]">템플릿 적용 예정</div>
+              <div className="text-[13px] font-bold text-[#185FA5]">템플릿 정보로 자동 채워졌어요</div>
               <div className="text-[11px] text-[#64748B] truncate">
-                {templateData.name} · 파트 {templateData.parts.length}개가 자동 세팅돼요
+                {templateData.name} · 파트 {templateData.parts.length}개 · 내용을 확인하고 수정해주세요
               </div>
             </div>
             <button onClick={removeTemplate} className="text-[#A0AEC0] hover:text-[#E24B4A] flex-shrink-0">
