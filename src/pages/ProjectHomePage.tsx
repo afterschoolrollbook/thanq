@@ -196,16 +196,16 @@ export default function ProjectHomePage() {
                         <span>{project.venue}</span>
                       </div>
                     )}
-                    {project.estimatedPeople > 0 && (
+                    {(project.estimatedPeople ?? 0) > 0 && (
                       <div className="flex items-start gap-2">
                         <span className="text-[#A0AEC0] w-20 flex-shrink-0">예상 인원</span>
-                        <span>{project.estimatedPeople.toLocaleString()}명</span>
+                        <span>{(project.estimatedPeople ?? 0).toLocaleString()}명</span>
                       </div>
                     )}
-                    {project.budget > 0 && (
+                    {(project.budget ?? 0) > 0 && (
                       <div className="flex items-start gap-2">
                         <span className="text-[#A0AEC0] w-20 flex-shrink-0">예산</span>
-                        <span>{project.budget.toLocaleString()}원</span>
+                        <span>{(project.budget ?? 0).toLocaleString()}원</span>
                       </div>
                     )}
                     {project.overview && (
