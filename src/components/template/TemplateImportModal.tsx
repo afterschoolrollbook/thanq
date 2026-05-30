@@ -329,7 +329,3 @@ export default function TemplateImportModal({ projectId, onClose, onSuccess }: P
     </div>
   )
 }
-      </div>
-    </div>
-  )
-}
