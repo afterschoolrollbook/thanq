@@ -1,4 +1,4 @@
-import { ref, get, push, set } from 'firebase/database'
+import { ref, get, push, set, remove } from 'firebase/database'
 import { db } from '@/lib/firebase'
 import { PART_COLORS } from '@/utils/fieldTerms'
 import type { TemplateFile, TemplatePartDraft, Part, CueItem, CheckItem, FieldType } from '@/types'
@@ -180,8 +180,22 @@ export async function exportProjectAsTemplateJson(
 // ─── .thanq 파일 → 프로젝트 파트/큐시트에 적용 ───────────────
 export async function applyTemplateToProject(
   projectId: string,
-  template: TemplateFile
+  template: TemplateFile,
+  replaceMode: boolean = false   // true면 기존 파트 전체 삭제 후 덮어쓰기
 ): Promise<void> {
+
+  // 덮어쓰기 모드: 기존 파트·큐·체크리스트 전체 삭제
+  if (replaceMode) {
+    const existingPartsSnap = await get(ref(db, `parts/${projectId}`))
+    if (existingPartsSnap.exists()) {
+      const existingParts: Part[] = Object.values(existingPartsSnap.val())
+      for (const part of existingParts) {
+        await remove(ref(db, `cueItems/${projectId}/${part.id}`))
+        await remove(ref(db, `checkItems/${projectId}/${part.id}`))
+        await remove(ref(db, `parts/${projectId}/${part.id}`))
+      }
+    }
+  }
   for (const [i, tPart] of template.parts.entries()) {
     const partRef = push(ref(db, `parts/${projectId}`))
     const partId = partRef.key!
