@@ -27,7 +27,7 @@ export default function ProjectHomePage() {
   const [showImport, setShowImport] = useState(false)
 
   // 기본정보 접기/펼치기 + 수정
-  const [showInfo, setShowInfo] = useState(false)
+  const [showInfo, setShowInfo] = useState(true)
   const [editing, setEditing] = useState(false)
   const [editName, setEditName] = useState('')
   const [editPrepDate, setEditPrepDate] = useState('')
@@ -180,10 +180,16 @@ export default function ProjectHomePage() {
                       <span className="text-[#A0AEC0] w-20 flex-shrink-0">{p.dateEnd ? '행사 시작일' : '행사일'}</span>
                       <span className="font-semibold text-[#185FA5]">
                         {project.date.replace(/-/g,'.')}
-                        {project.startTime && ` ${project.startTime}`}
-                        {project.endTime && ` ~ ${project.endTime}`}
                       </span>
                     </div>
+                    {(project.startTime || project.endTime) && (
+                      <div className="flex items-start gap-2">
+                        <span className="text-[#A0AEC0] w-20 flex-shrink-0">행사 시간</span>
+                        <span className="font-semibold text-[#185FA5]">
+                          {project.startTime ?? ''}{project.endTime ? ` ~ ${project.endTime}` : ''}
+                        </span>
+                      </div>
+                    )}
                     {p.dateEnd && (
                       <div className="flex items-start gap-2">
                         <span className="text-[#A0AEC0] w-20 flex-shrink-0">행사 종료일</span>
