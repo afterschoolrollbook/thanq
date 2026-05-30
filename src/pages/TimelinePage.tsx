@@ -350,8 +350,11 @@ export default function TimelinePage() {
           projectId={projectId}
           onClose={() => setActiveCue(null)}
           isReadOnly={(() => {
+            if (!user) return true
+            if (project?.ownerId === user.uid) return false
             const part = parts.find(p => p.id === activeCue.partId)
-            return !user || part?.managerId !== user.uid
+            if (part?.managerId === user.uid) return false
+            return true
           })()}
         />
       )}

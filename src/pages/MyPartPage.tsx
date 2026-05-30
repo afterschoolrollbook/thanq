@@ -85,6 +85,7 @@ function AddCueModal({ onClose, onSave, partId, projectId, order }: {
 export default function MyPartPage() {
   const { projectId } = useParams()
   const user = useAuthStore((s) => s.user)
+  const [project, setProject] = useState<{ownerId?: string} | null>(null)
   const [allParts, setAllParts] = useState<Part[]>([])
   const [myPart, setMyPart] = useState<Part | null>(null)
   const [selectedPartId, setSelectedPartId] = useState<string | null>(null)
@@ -96,10 +97,14 @@ export default function MyPartPage() {
   const [readOnlyToast, setReadOnlyToast] = useState(false)
 
   const selectedPart = allParts.find(p => p.id === selectedPartId) ?? null
-  const isMyPart = selectedPart?.id === myPart?.id
+  const isOwner = project?.ownerId === user?.uid
+  const isMyPart = isOwner || selectedPart?.id === myPart?.id
 
   useEffect(() => {
     if (!projectId || !user) return
+    onValue(ref(db, `projects/${projectId}`), (s) => {
+      if (s.exists()) setProject(s.val())
+    }, { onlyOnce: true })
     const u = onValue(ref(db, `parts/${projectId}`), (s) => {
       if (s.exists()) {
         const list: Part[] = Object.values(s.val())
