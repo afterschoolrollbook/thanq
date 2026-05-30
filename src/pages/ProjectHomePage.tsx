@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ref, onValue, update } from 'firebase/database'
+import { ref, onValue, update, push, set, remove } from 'firebase/database'
 import { db } from '@/lib/firebase'
 import { getDday } from '@/utils/joinCode'
 import { useAuthStore } from '@/store/authStore'
 import { Topbar, BottomTabBar, StatusBadge } from '@/components/ui/Common'
+import { PART_COLORS } from '@/utils/fieldTerms'
 import TemplateExportModal from '@/components/template/TemplateExportModal'
 import TemplateImportModal from '@/components/template/TemplateImportModal'
 import type { Project, Part, CheckItem } from '@/types'
@@ -41,6 +42,13 @@ export default function ProjectHomePage() {
   const [editBudget, setEditBudget] = useState('')
   const [editOverview, setEditOverview] = useState('')
   const [saving, setSaving] = useState(false)
+
+  // 파트 편집 상태
+  const [editingParts, setEditingParts] = useState(false)
+  const [showParts, setShowParts] = useState(true)
+  const [partManagers, setPartManagers] = useState<Record<string, any>>({})
+  const [editPartId, setEditPartId] = useState<string|null>(null)
+  const [editPartName, setEditPartName] = useState('')
 
   useEffect(() => {
     if (!projectId || !user) return
@@ -123,6 +131,39 @@ export default function ProjectHomePage() {
     await update(ref(db, `projects/${projectId}`), updates)
     setSaving(false)
     setEditing(false)
+  }
+
+  useEffect(() => {
+    if (!projectId || parts.length === 0) return
+    parts.forEach((part) => {
+      onValue(ref(db, `partManagers/${projectId}/${part.id}`), (s) => {
+        if (s.exists()) setPartManagers(prev => ({ ...prev, [part.id]: s.val() }))
+      }, { onlyOnce: true })
+    })
+  }, [projectId, parts])
+
+  async function addPart() {
+    if (!projectId) return
+    const newRef = push(ref(db, `parts/${projectId}`))
+    await set(newRef, {
+      id: newRef.key, projectId, name: '새 파트',
+      color: PART_COLORS[parts.length % PART_COLORS.length],
+      status: 'waiting', progress: 0, order: parts.length,
+      createdAt: new Date().toISOString(),
+    })
+  }
+
+  async function savePartName(partId: string) {
+    if (!projectId || !editPartName.trim()) return
+    await update(ref(db, `parts/${projectId}/${partId}`), { name: editPartName.trim() })
+    setEditPartId(null)
+  }
+
+  async function deletePart(partId: string) {
+    if (!projectId) return
+    await remove(ref(db, `parts/${projectId}/${partId}`))
+    await remove(ref(db, `cueItems/${projectId}/${partId}`))
+    await remove(ref(db, `checkItems/${projectId}/${partId}`))
   }
 
   if (loading) return <div className="flex items-center justify-center h-64 text-[#64748B] text-[13px]">불러오는 중...</div>
@@ -385,29 +426,179 @@ export default function ProjectHomePage() {
               <div className="text-[13px] font-semibold flex items-center gap-1.5">
                 <i className="ti ti-layout-grid text-[#185FA5]" /> 파트별 현황
               </div>
-              <button onClick={() => navigate(`/p/${projectId}/dashboard`)} className="text-[12px] text-[#185FA5]">대시보드</button>
+              <div className="flex items-center gap-2">
+                {isOwner && (
+                  <button onClick={() => setEditingParts(v => !v)}
+                    className={`text-[12px] font-semibold px-2 py-0.5 rounded-[6px] transition-colors ${editingParts ? 'bg-[#185FA5] text-white' : 'text-[#185FA5]'}`}>
+                    {editingParts ? '완료' : '편집'}
+                  </button>
+                )}
+                <button onClick={() => navigate(`/p/${projectId}/dashboard`)} className="text-[12px] text-[#185FA5]">대시보드</button>
+              </div>
             </div>
-            {parts.length === 0 ? (
-              <div className="text-center py-3">
-                <p className="text-[12px] text-[#64748B] mb-2.5">파트가 없어요</p>
-                <button onClick={() => navigate(`/onboarding/parts/${projectId}`)}
-                  className="h-[32px] px-3 bg-[#185FA5] text-white rounded-[8px] text-[12px] font-semibold flex items-center gap-1 mx-auto">
+            <div className="flex flex-col gap-2">
+              {parts.map((part) => (
+                <div key={part.id} className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: part.color }} />
+                  {editingParts && editPartId === part.id ? (
+                    <input
+                      className="flex-1 text-[12px] border-b border-[#185FA5] outline-none bg-transparent"
+                      value={editPartName}
+                      autoFocus
+                      onChange={e => setEditPartName(e.target.value)}
+                      onBlur={() => savePartName(part.id)}
+                      onKeyDown={e => { if (e.key === 'Enter') savePartName(part.id); if (e.key === 'Escape') setEditPartId(null) }}
+                    />
+                  ) : (
+                    <span
+                      className="text-[12px] flex-1 truncate"
+                      onDoubleClick={() => { setEditPartId(part.id); setEditPartName(part.name) }}>
+                      {part.name}
+                    </span>
+                  )}
+                  {editingParts ? (
+                    <div className="flex items-center gap-1.5">
+                      <button onClick={() => { setEditPartId(part.id); setEditPartName(part.name) }}
+                        className="text-[#A0AEC0] hover:text-[#185FA5]">
+                        <i className="ti ti-pencil text-[13px]" />
+                      </button>
+                      <button onClick={() => deletePart(part.id)}
+                        className="text-[#A0AEC0] hover:text-[#E24B4A]">
+                        <i className="ti ti-trash text-[13px]" />
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <StatusBadge status={part.status} />
+                      <span className="text-[11px] text-[#A0AEC0]">{part.progress}%</span>
+                    </>
+                  )}
+                </div>
+              ))}
+              {editingParts && (
+                <button onClick={addPart}
+                  className="mt-1 h-[30px] w-full border border-dashed border-[#E2E8F0] rounded-[8px] text-[12px] text-[#A0AEC0] flex items-center justify-center gap-1 hover:border-[#185FA5] hover:text-[#185FA5] transition-colors">
                   <i className="ti ti-plus text-[12px]" /> 파트 추가
                 </button>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {parts.map((part) => (
-                  <div key={part.id} className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: part.color }} />
-                    <span className="text-[12px] flex-1 truncate">{part.name}</span>
-                    <StatusBadge status={part.status} />
-                    <span className="text-[11px] text-[#A0AEC0]">{part.progress}%</span>
-                  </div>
-                ))}
-              </div>
-            )}
+              )}
+              {parts.length === 0 && !editingParts && (
+                <div className="text-center py-3">
+                  <p className="text-[12px] text-[#64748B] mb-2.5">파트가 없어요</p>
+                  <button onClick={() => setEditingParts(true)}
+                    className="h-[32px] px-3 bg-[#185FA5] text-white rounded-[8px] text-[12px] font-semibold flex items-center gap-1 mx-auto">
+                    <i className="ti ti-plus text-[12px]" /> 파트 추가
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
+        </div>
+
+        {/* 파트 구성 */}
+        <div className="bg-white border border-[#E2E8F0] rounded-[14px] mb-4 overflow-hidden">
+          <button
+            className="w-full flex items-center justify-between px-4 py-3"
+            onClick={() => { setShowParts(v => !v); if (showParts) setEditingParts(false) }}>
+            <div className="flex items-center gap-2">
+              <i className="ti ti-puzzle text-[#185FA5] text-[15px]" />
+              <span className="text-[13px] font-semibold text-[#1A1A2E]">파트 구성</span>
+              <span className="text-[11px] text-[#A0AEC0]">{parts.filter(p => !(p as any).isParticipant).length}개 진행팀 · {parts.filter(p => (p as any).isParticipant).length}개 참가자</span>
+            </div>
+            <i className={`ti ti-chevron-${showParts ? 'up' : 'down'} text-[#A0AEC0] text-[14px]`} />
+          </button>
+
+          {showParts && (
+            <div className="border-t border-[#F4F6F9] px-4 py-4">
+              {/* 행사진행 */}
+              {parts.filter(p => !(p as any).isParticipant).length > 0 && (
+                <div className="mb-3">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <i className="ti ti-users text-[#185FA5] text-[11px]" />
+                    <span className="text-[11px] font-bold text-[#185FA5]">행사진행</span>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    {parts.filter(p => !(p as any).isParticipant).map(part => (
+                      <div key={part.id} className="flex items-center gap-2 py-1">
+                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: part.color }} />
+                        {editingParts && editPartId === part.id ? (
+                          <input
+                            className="flex-1 text-[13px] border-b border-[#185FA5] outline-none bg-transparent"
+                            value={editPartName} autoFocus
+                            onChange={e => setEditPartName(e.target.value)}
+                            onBlur={() => savePartName(part.id)}
+                            onKeyDown={e => { if (e.key === 'Enter') savePartName(part.id); if (e.key === 'Escape') setEditPartId(null) }}
+                          />
+                        ) : (
+                          <span className="text-[13px] flex-1">{part.name}</span>
+                        )}
+                        <span className="text-[12px] text-[#A0AEC0]">{partManagers[part.id]?.name ?? part.managerName ?? '담당자 없음'}</span>
+                        {editingParts && (
+                          <div className="flex gap-1.5">
+                            <button onClick={() => { setEditPartId(part.id); setEditPartName(part.name) }} className="text-[#A0AEC0] hover:text-[#185FA5]"><i className="ti ti-pencil text-[13px]"/></button>
+                            <button onClick={() => deletePart(part.id)} className="text-[#A0AEC0] hover:text-[#E24B4A]"><i className="ti ti-trash text-[13px]"/></button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 참가자 */}
+              {parts.filter(p => (p as any).isParticipant).length > 0 && (
+                <div className="mb-3">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <i className="ti ti-run text-[#854F0B] text-[11px]" />
+                    <span className="text-[11px] font-bold text-[#854F0B]">참가자</span>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    {parts.filter(p => (p as any).isParticipant).map(part => (
+                      <div key={part.id} className="flex items-center gap-2 py-1">
+                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: part.color }} />
+                        {editingParts && editPartId === part.id ? (
+                          <input
+                            className="flex-1 text-[13px] border-b border-[#185FA5] outline-none bg-transparent"
+                            value={editPartName} autoFocus
+                            onChange={e => setEditPartName(e.target.value)}
+                            onBlur={() => savePartName(part.id)}
+                            onKeyDown={e => { if (e.key === 'Enter') savePartName(part.id); if (e.key === 'Escape') setEditPartId(null) }}
+                          />
+                        ) : (
+                          <span className="text-[13px] flex-1">{part.name}</span>
+                        )}
+                        <span className="text-[12px] text-[#A0AEC0]">{partManagers[part.id]?.name ?? part.managerName ?? '담당자 없음'}</span>
+                        {editingParts && (
+                          <div className="flex gap-1.5">
+                            <button onClick={() => { setEditPartId(part.id); setEditPartName(part.name) }} className="text-[#A0AEC0] hover:text-[#185FA5]"><i className="ti ti-pencil text-[13px]"/></button>
+                            <button onClick={() => deletePart(part.id)} className="text-[#A0AEC0] hover:text-[#E24B4A]"><i className="ti ti-trash text-[13px]"/></button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {parts.length === 0 && (
+                <p className="text-[12px] text-[#A0AEC0] text-center py-2">파트가 없어요</p>
+              )}
+
+              {isOwner && (
+                <div className="flex items-center gap-2 mt-2 pt-3 border-t border-[#F4F6F9]">
+                  <button onClick={() => setEditingParts(v => !v)}
+                    className={`flex-1 h-[32px] rounded-[8px] text-[12px] font-semibold border transition-colors ${editingParts ? 'bg-[#185FA5] text-white border-[#185FA5]' : 'border-[#E2E8F0] text-[#64748B]'}`}>
+                    {editingParts ? '편집 완료' : '파트 편집'}
+                  </button>
+                  {editingParts && (
+                    <button onClick={addPart}
+                      className="flex-1 h-[32px] rounded-[8px] text-[12px] font-semibold border border-dashed border-[#E2E8F0] text-[#A0AEC0] hover:border-[#185FA5] hover:text-[#185FA5] transition-colors flex items-center justify-center gap-1">
+                      <i className="ti ti-plus text-[12px]" /> 파트 추가
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* 내 할 일 + 최근 공지 */}

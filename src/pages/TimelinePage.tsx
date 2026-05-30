@@ -154,6 +154,8 @@ function CueModal({ cue, projectId, onClose }: {
   const [checks, setChecks] = useState<CheckItem[]>([])
   const [tab, setTab] = useState<'radio'|'check'|'memo'|'photo'>('check')
   const [newCheckTitle, setNewCheckTitle] = useState('')
+  const [editingCheckId, setEditingCheckId] = useState<string|null>(null)
+  const [editingCheckTitle, setEditingCheckTitle] = useState('')
   const [memo, setMemo] = useState(cue.memo ?? '')
   const [editingTitle, setEditingTitle] = useState(false)
   const [title, setTitle] = useState(cue.title)
@@ -195,6 +197,11 @@ function CueModal({ cue, projectId, onClose }: {
   }
   async function deleteCheck(item: CheckItem) {
     await set(dbRef(db, `checkItems/${projectId}/${cue.partId}/${item.id}`), null)
+  }
+  async function updateCheckTitle(item: CheckItem, title: string) {
+    if (!title.trim()) return
+    await update(dbRef(db, `checkItems/${projectId}/${cue.partId}/${item.id}`), { title: title.trim() })
+    setEditingCheckId(null)
   }
   async function saveMemo() {
     setSavingMemo(true)
@@ -306,7 +313,25 @@ function CueModal({ cue, projectId, onClose }: {
                     className={`w-5 h-5 rounded flex items-center justify-center border-2 flex-shrink-0 ${item.isDone?'bg-[#3B6D11] border-[#3B6D11]':'border-[#E2E8F0] hover:border-[#185FA5]'}`}>
                     {item.isDone&&<i className="ti ti-check text-white text-[11px]"/>}
                   </button>
-                  <span className={`text-[13px] flex-1 ${item.isDone?'line-through text-[#A0AEC0]':'text-[#1A1A2E]'}`}>{item.title}</span>
+                  {editingCheckId === item.id ? (
+                    <input
+                      className="flex-1 text-[13px] border-b border-[#185FA5] outline-none bg-transparent"
+                      value={editingCheckTitle}
+                      autoFocus
+                      onChange={e=>setEditingCheckTitle(e.target.value)}
+                      onBlur={()=>updateCheckTitle(item, editingCheckTitle)}
+                      onKeyDown={e=>{if(e.key==='Enter')updateCheckTitle(item,editingCheckTitle);if(e.key==='Escape')setEditingCheckId(null)}}
+                    />
+                  ) : (
+                    <span
+                      className={`text-[13px] flex-1 ${item.isDone?'line-through text-[#A0AEC0]':'text-[#1A1A2E]'}`}
+                      onDoubleClick={()=>{setEditingCheckId(item.id);setEditingCheckTitle(item.title)}}>
+                      {item.title}
+                    </span>
+                  )}
+                  <button onClick={()=>{setEditingCheckId(item.id);setEditingCheckTitle(item.title)}} className="text-[#E2E8F0] hover:text-[#185FA5]">
+                    <i className="ti ti-pencil text-[13px]"/>
+                  </button>
                   <button onClick={()=>deleteCheck(item)} className="text-[#E2E8F0] hover:text-[#E24B4A]">
                     <i className="ti ti-trash text-[14px]"/>
                   </button>
