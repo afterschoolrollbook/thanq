@@ -25,7 +25,6 @@ export default function TemplateImportModal({ projectId, onClose, onSuccess }: P
   const [preview, setPreview] = useState<TemplateFile | null>(null)
   const [error, setError] = useState('')
   const [applying, setApplying] = useState(false)
-  const [replaceMode, setReplaceMode] = useState(false)
   const [dragOver, setDragOver] = useState(false)
 
   // 잠금 해제 단계
