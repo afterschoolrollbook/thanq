@@ -121,13 +121,23 @@ export function BottomTabBar() {
       <div className="flex">
         {/* 홈 */}
         <button onClick={() => navigate('/dashboard')}
-          className={`flex-1 flex flex-col items-center py-2.5 gap-0.5 text-[11px] font-medium transition-colors ${location.pathname === '/dashboard' ? 'text-[#185FA5]' : 'text-[#A0AEC0] hover:text-[#185FA5]'}`}>
+          className={`flex-1 flex flex-col items-center py-2.5 gap-0.5 text-[11px] font-medium transition-all relative ${
+            location.pathname === '/dashboard'
+              ? 'text-[#185FA5] bg-[#E6F1FB]'
+              : 'text-[#A0AEC0] hover:text-[#185FA5]'
+          }`}>
+          {location.pathname === '/dashboard' && <div className="absolute top-0 left-0 right-0 h-0.5 bg-[#185FA5] rounded-b"/>}
           <i className="ti ti-home text-[20px]" />
           <span>홈</span>
         </button>
         {/* 프로젝트 */}
         <button onClick={() => navigate('/projects')}
-          className={`flex-1 flex flex-col items-center py-2.5 gap-0.5 text-[11px] font-medium transition-colors ${location.pathname === '/projects' || location.pathname.includes('/home') ? 'text-[#185FA5]' : 'text-[#A0AEC0] hover:text-[#185FA5]'}`}>
+          className={`flex-1 flex flex-col items-center py-2.5 gap-0.5 text-[11px] font-medium transition-all relative ${
+            location.pathname === '/projects' || location.pathname.includes('/home')
+              ? 'text-[#185FA5] bg-[#E6F1FB]'
+              : 'text-[#A0AEC0] hover:text-[#185FA5]'
+          }`}>
+          {(location.pathname === '/projects' || location.pathname.includes('/home')) && <div className="absolute top-0 left-0 right-0 h-0.5 bg-[#185FA5] rounded-b"/>}
           <i className="ti ti-folder text-[20px]" />
           <span>프로젝트</span>
         </button>
@@ -136,9 +146,10 @@ export function BottomTabBar() {
           const isActive = !!projectId && location.pathname.includes(`/${key}`)
           return (
             <button key={key} onClick={() => handleTab(key)}
-              className={`flex-1 flex flex-col items-center py-2.5 gap-0.5 text-[11px] font-medium transition-colors ${
-                isActive ? 'text-[#185FA5]' : 'text-[#A0AEC0] hover:text-[#185FA5]'
+              className={`flex-1 flex flex-col items-center py-2.5 gap-0.5 text-[11px] font-medium transition-all relative ${
+                isActive ? 'text-[#185FA5] bg-[#E6F1FB]' : 'text-[#A0AEC0] hover:text-[#185FA5]'
               }`}>
+              {isActive && <div className="absolute top-0 left-0 right-0 h-0.5 bg-[#185FA5] rounded-b"/>}
               <i className={`ti ${icon} text-[20px]`} />
               <span>{label}</span>
             </button>
