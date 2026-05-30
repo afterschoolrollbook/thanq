@@ -38,7 +38,15 @@ function MiniCalendar({ selectedDate, onChange, eventDates, onClose }: {
           {wk.map((d,di)=>{
             if(!d) return <div key={di}/>
             const str=toStr(d), isSel=str===selectedDate, hasEv=eventDates.includes(str), isToday=str===new Date().toISOString().split('T')[0]
-            return <button key={di} onClick={()=>{onChange(str);onClose()}} className={`relative h-7 w-full flex flex-col items-center justify-center rounded-full text-[11px] font-medium ${isSel?'bg-[#185FA5] text-white':isToday?'border border-[#185FA5] text-[#185FA5]':di===0?'text-[#E24B4A]':di===6?'text-[#185FA5]':'text-[#1A1A2E] hover:bg-[#F4F6F9]'}`}>{d}{hasEv&&!isSel&&<span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#185FA5]"/>}</button>
+            const dayColor = di===0?'text-[#E24B4A]':di===6?'text-[#185FA5]':'text-[#1A1A2E]'
+            const btnClass = isSel
+              ? 'bg-[#185FA5] text-white'
+              : hasEv
+                ? 'bg-[#FEE2E2] text-[#DC2626] font-bold ring-2 ring-[#DC2626]'
+                : isToday
+                  ? `border-2 border-[#185FA5] ${dayColor}`
+                  : `${dayColor} hover:bg-[#F4F6F9]`
+            return <button key={di} onClick={()=>{onChange(str);onClose()}} className={`relative h-7 w-full flex flex-col items-center justify-center rounded-full text-[11px] font-medium ${btnClass}`}>{d}</button>
           })}
         </div>
       ))}
