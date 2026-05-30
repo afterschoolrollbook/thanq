@@ -11,8 +11,8 @@ import type { Part, CueItem, CheckItem, Project, Notice } from '@/types'
 interface CueWithPart extends CueItem { partName: string; partColor: string; partId: string }
 
 // ── 달력 ──────────────────────────────────────────────────
-function MiniCalendar({ selectedDate, onChange, eventDates, onClose }: {
-  selectedDate: string; onChange: (d: string) => void; eventDates: string[]; onClose: () => void
+function MiniCalendar({ selectedDate, onChange, eventDates, prepDates, onClose }: {
+  selectedDate: string; onChange: (d: string) => void; eventDates: string[]; prepDates: string[]; onClose: () => void
 }) {
   const [vY, setVY] = useState(() => new Date(selectedDate || Date.now()).getFullYear())
   const [vM, setVM] = useState(() => new Date(selectedDate || Date.now()).getMonth())
@@ -37,18 +37,18 @@ function MiniCalendar({ selectedDate, onChange, eventDates, onClose }: {
         <div key={wi} className="grid grid-cols-7">
           {wk.map((d,di)=>{
             if(!d) return <div key={di}/>
-            const str=toStr(d), isSel=str===selectedDate, hasEv=eventDates.includes(str), isToday=str===new Date().toISOString().split('T')[0]
+            const str=toStr(d), isSel=str===selectedDate, isEventDay=eventDates.includes(str), isPrepDay=prepDates.includes(str), isToday=str===new Date().toISOString().split('T')[0]
             const dayColor = di===0?'text-[#E24B4A]':di===6?'text-[#185FA5]':'text-[#1A1A2E]'
             const btnClass = isSel
               ? 'bg-[#185FA5] text-white'
-              : hasEv
-                ? 'bg-[#FEE2E2] text-[#DC2626] font-bold ring-2 ring-[#DC2626]'
-                : isToday
-                  ? `border-2 border-[#185FA5] ${dayColor}`
-                  : `${dayColor} hover:bg-[#F4F6F9]`
-            return <button key={di} onClick={()=>{onChange(str);onClose()}} className={`relative h-7 w-full flex flex-col items-center justify-center rounded-full text-[11px] font-medium ${btnClass}`}>{d}</button>
-          })}
-        </div>
+              : isEventDay
+                ? `border-2 border-[#DC2626] text-[#DC2626] font-bold ${dayColor}`
+                : `${dayColor} hover:bg-[#F4F6F9]`
+            return <button key={di} onClick={()=>{onChange(str);onClose()}} className={`relative h-7 w-full flex flex-col items-center justify-center rounded-full text-[11px] font-medium ${btnClass}`}>
+              {d}
+              {isPrepDay && !isSel && !isEventDay && <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#DC2626]"/>}
+              {isToday && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3 h-0.5 rounded-full bg-[#185FA5]"/>}
+            </button>
       ))}
     </div>
   )
@@ -502,11 +502,25 @@ export default function TimelinePage() {
   const totalH = acc
   const totalGridW = TIME_W + COL_W * visibleParts.length
   // 준비시작일~행사종료일 사이 날짜 전체를 캘린더에 표시
+  // 행사일: date ~ dateEnd
   const eventDates = (() => {
     if (!project) return []
     const dates: string[] = []
-    const start = new Date((project as any).prepDate || project.date)
+    const start = new Date(project.date)
     const end = new Date((project as any).dateEnd || project.date)
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      dates.push(d.toISOString().split('T')[0])
+    }
+    return dates
+  })()
+
+  // 준비일: prepDate ~ date 전날
+  const prepDates = (() => {
+    if (!project || !(project as any).prepDate) return []
+    const dates: string[] = []
+    const start = new Date((project as any).prepDate)
+    const end = new Date(project.date)
+    end.setDate(end.getDate() - 1)
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
       dates.push(d.toISOString().split('T')[0])
     }
@@ -529,7 +543,7 @@ export default function TimelinePage() {
                   <span className="text-[13px] font-semibold">{selectedDate}</span>
                   <i className={`ti ti-chevron-${showCalendar?'up':'down'} text-[#A0AEC0] text-[11px]`}/>
                 </button>
-                {showCalendar && <MiniCalendar selectedDate={selectedDate} onChange={setSelectedDate} eventDates={eventDates} onClose={()=>setShowCalendar(false)}/>}
+                {showCalendar && <MiniCalendar selectedDate={selectedDate} onChange={setSelectedDate} eventDates={eventDates} prepDates={prepDates} onClose={()=>setShowCalendar(false)}/>}
               </div>
               <div className="flex items-center gap-1.5">
                 <button onClick={()=>setZoom(z=>Math.max(0.5,+(z-0.15).toFixed(2)))} className="w-7 h-7 rounded-full border border-[#E2E8F0] bg-white flex items-center justify-center text-[#64748B] hover:bg-[#F4F6F9]"><i className="ti ti-minus text-[13px]"/></button>
