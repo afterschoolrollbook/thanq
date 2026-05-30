@@ -423,7 +423,11 @@ export default function TimelinePage() {
     onValue(dbRef(db, `parts/${projectId}`), s => {
       if (!s.exists()) return
       const list: Part[] = Object.values(s.val())
-      list.sort((a,b) => a.order - b.order)
+      list.sort((a,b) => {
+        // 행사진행 먼저, 참가자 나중
+        if (!!a.isParticipant !== !!b.isParticipant) return a.isParticipant ? 1 : -1
+        return a.order - b.order
+      })
       setParts(list)
       const cueMap: CueWithPart[] = [], checkMap: CheckItem[] = []
       let lc = 0, lck = 0
@@ -549,15 +553,44 @@ export default function TimelinePage() {
             <div style={{minWidth: totalGridW, width: totalGridW}}>
 
               {/* 파트 헤더 sticky */}
-              <div className="sticky top-0 z-20 flex bg-white border-b-2 border-[#E2E8F0] shadow-sm">
-                <div style={{width:TIME_W,minWidth:TIME_W}} className="flex-shrink-0"/>
-                {visibleParts.map(p=>(
-                  <div key={p.id} style={{width:COL_W,minWidth:COL_W}}
-                    className="flex-shrink-0 flex items-center gap-1.5 px-2 py-2 border-l border-[#E2E8F0]">
-                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{background:p.color}}/>
-                    <span className="text-[11px] font-bold text-[#1A1A2E] truncate">{p.name}</span>
+              <div className="sticky top-0 z-20 bg-white border-b-2 border-[#E2E8F0] shadow-sm">
+                {/* 구분 레이블 행 */}
+                {visibleParts.some(p => p.isParticipant) && (
+                  <div className="flex border-b border-[#F1F5F9]">
+                    <div style={{width:TIME_W,minWidth:TIME_W}} className="flex-shrink-0"/>
+                    {(() => {
+                      const staffCount = visibleParts.filter(p => !p.isParticipant).length
+                      const partCount = visibleParts.filter(p => p.isParticipant).length
+                      return <>
+                        {staffCount > 0 && (
+                          <div style={{width: COL_W * staffCount, minWidth: COL_W * staffCount}}
+                            className="flex items-center justify-center gap-1 py-1 border-l border-[#E2E8F0] bg-[#F0F7FF]">
+                            <i className="ti ti-users text-[#185FA5] text-[10px]"/>
+                            <span className="text-[10px] font-bold text-[#185FA5]">행사진행</span>
+                          </div>
+                        )}
+                        {partCount > 0 && (
+                          <div style={{width: COL_W * partCount, minWidth: COL_W * partCount}}
+                            className="flex items-center justify-center gap-1 py-1 border-l border-[#E2E8F0] bg-[#FFF8F0]">
+                            <i className="ti ti-run text-[#854F0B] text-[10px]"/>
+                            <span className="text-[10px] font-bold text-[#854F0B]">참가자</span>
+                          </div>
+                        )}
+                      </>
+                    })()}
                   </div>
-                ))}
+                )}
+                {/* 파트 이름 행 */}
+                <div className="flex">
+                  <div style={{width:TIME_W,minWidth:TIME_W}} className="flex-shrink-0"/>
+                  {visibleParts.map(p=>(
+                    <div key={p.id} style={{width:COL_W,minWidth:COL_W}}
+                      className="flex-shrink-0 flex items-center gap-1.5 px-2 py-2 border-l border-[#E2E8F0]">
+                      <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{background:p.color}}/>
+                      <span className="text-[11px] font-bold text-[#1A1A2E] truncate">{p.name}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* 슬롯 */}

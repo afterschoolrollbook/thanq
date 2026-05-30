@@ -5,12 +5,10 @@ import { db } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
 import { PART_COLORS } from '@/utils/fieldTerms'
 import { Topbar, StepBar, BottomTabBar } from '@/components/ui/Common'
-import TemplateImportModal from '@/components/template/TemplateImportModal'
 import type { Part } from '@/types'
 
-// alias: 내가 부르는 표시 이름 (담당자 초대 모달에서 관리)
 interface Manager { name: string; alias: string; phone: string; email: string }
-interface PartDraft { name: string; manager: Manager | null }
+interface PartDraft { name: string; manager: Manager | null; isParticipant: boolean }
 
 const emptyManager = (): Manager => ({ name: '', alias: '', phone: '', email: '' })
 
@@ -18,75 +16,101 @@ export default function SetupPartsPage() {
   const navigate = useNavigate()
   const { projectId } = useParams()
   const user = useAuthStore((s) => s.user)
-  const [parts, setParts] = useState<PartDraft[]>([
-    { name: '', manager: null },
-    { name: '', manager: null },
+
+  // 행사진행 파트 / 참가자 파트 분리
+  const [staffParts, setStaffParts] = useState<PartDraft[]>([
+    { name: '', manager: null, isParticipant: false },
+    { name: '', manager: null, isParticipant: false },
   ])
+  const [participantParts, setParticipantParts] = useState<PartDraft[]>([])
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [inviteIdx, setInviteIdx] = useState<number | null>(null)
+  const [inviteTarget, setInviteTarget] = useState<{ group: 'staff' | 'participant'; idx: number } | null>(null)
   const [manager, setManager] = useState<Manager>(emptyManager())
   const [initialized, setInitialized] = useState(false)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
 
   const joinCode = projectId?.slice(-6).toUpperCase() ?? 'AB3X7F'
   const joinLink = `${window.location.origin}/join?code=${joinCode}`
-  const [showImport, setShowImport] = useState(false)
-  const [showProGate, setShowProGate] = useState(false)
 
   useEffect(() => {
     if (!projectId) return
     onValue(ref(db, `draftParts/${projectId}`), (snap) => {
       if (snap.exists()) {
         const saved = snap.val() as Record<string, PartDraft>
-        setParts(Object.values(saved).map((p) => ({
+        const all = Object.values(saved).map((p) => ({
           name: p.name,
           manager: p.manager ?? null,
-        })))
+          isParticipant: p.isParticipant ?? false,
+        }))
+        setStaffParts(all.filter((p) => !p.isParticipant))
+        setParticipantParts(all.filter((p) => p.isParticipant))
       }
       setInitialized(true)
     }, { onlyOnce: true })
   }, [projectId])
 
-  async function saveDraft(newParts: PartDraft[]) {
+  async function saveDraft(staff: PartDraft[], participants: PartDraft[]) {
     if (!projectId) return
     setSaveStatus('saving')
     try {
       const data: Record<string, PartDraft> = {}
-      newParts.forEach((p, i) => { data[String(i)] = p })
+      ;[...staff, ...participants].forEach((p, i) => { data[String(i)] = p })
       await set(ref(db, `draftParts/${projectId}`), data)
       setSaveStatus('saved')
       setTimeout(() => setSaveStatus('idle'), 1500)
     } catch { setSaveStatus('idle') }
   }
 
-  function updatePartName(idx: number, name: string) {
-    const next = parts.map((p, i) => i === idx ? { ...p, name } : p)
-    setParts(next); saveDraft(next)
+  function updateName(group: 'staff' | 'participant', idx: number, name: string) {
+    if (group === 'staff') {
+      const next = staffParts.map((p, i) => i === idx ? { ...p, name } : p)
+      setStaffParts(next); saveDraft(next, participantParts)
+    } else {
+      const next = participantParts.map((p, i) => i === idx ? { ...p, name } : p)
+      setParticipantParts(next); saveDraft(staffParts, next)
+    }
   }
 
-  function addPart() {
-    const next = [...parts, { name: '', manager: null }]
-    setParts(next); saveDraft(next)
+  function addPart(group: 'staff' | 'participant') {
+    if (group === 'staff') {
+      const next = [...staffParts, { name: '', manager: null, isParticipant: false }]
+      setStaffParts(next); saveDraft(next, participantParts)
+    } else {
+      const next = [...participantParts, { name: '', manager: null, isParticipant: true }]
+      setParticipantParts(next); saveDraft(staffParts, next)
+    }
   }
 
-  function removePart(idx: number) {
-    const next = parts.filter((_, i) => i !== idx)
-    setParts(next); saveDraft(next)
+  function removePart(group: 'staff' | 'participant', idx: number) {
+    if (group === 'staff') {
+      const next = staffParts.filter((_, i) => i !== idx)
+      setStaffParts(next); saveDraft(next, participantParts)
+    } else {
+      const next = participantParts.filter((_, i) => i !== idx)
+      setParticipantParts(next); saveDraft(staffParts, next)
+    }
   }
 
-  function openInvite(idx: number) {
-    setInviteIdx(idx)
-    setManager(parts[idx].manager ?? emptyManager())
+  function openInvite(group: 'staff' | 'participant', idx: number) {
+    setInviteTarget({ group, idx })
+    const part = group === 'staff' ? staffParts[idx] : participantParts[idx]
+    setManager(part.manager ?? emptyManager())
   }
 
   function saveManager() {
-    if (inviteIdx === null) return
-    const next = parts.map((p, i) => i === inviteIdx
-      ? { ...p, manager: manager.name ? { ...manager } : null }
-      : p
-    )
-    setParts(next); saveDraft(next); setInviteIdx(null)
+    if (!inviteTarget) return
+    const { group, idx } = inviteTarget
+    const updatedManager = manager.name ? { ...manager } : null
+    if (group === 'staff') {
+      const next = staffParts.map((p, i) => i === idx ? { ...p, manager: updatedManager } : p)
+      setStaffParts(next); saveDraft(next, participantParts)
+    } else {
+      const next = participantParts.map((p, i) => i === idx ? { ...p, manager: updatedManager } : p)
+      setParticipantParts(next); saveDraft(staffParts, next)
+    }
+    setInviteTarget(null)
   }
 
   function shareKakao() {
@@ -104,11 +128,11 @@ export default function SetupPartsPage() {
   async function copyLink() { await navigator.clipboard.writeText(joinLink); alert('링크가 복사됐어요!') }
 
   async function handleSave() {
-    const valid = parts.map((p, i) => ({ ...p, idx: i })).filter((p) => p.name.trim())
+    const allParts = [...staffParts, ...participantParts]
+    const valid = allParts.filter((p) => p.name.trim())
     if (valid.length === 0) { setError('파트를 최소 1개 이상 입력해주세요'); return }
     setLoading(true); setError('')
     try {
-      // 현재 저장된 alias 맵 불러오기
       const aliasMap: Record<string, string> = user
         ? ((await get(ref(db, `pttAliases/${projectId}/${user.uid}`))).val() ?? {})
         : {}
@@ -122,11 +146,11 @@ export default function SetupPartsPage() {
           color: PART_COLORS[i % PART_COLORS.length],
           managerName: p.manager?.name ?? undefined,
           status: 'waiting', progress: 0, order: i,
+          isParticipant: p.isParticipant,
           createdAt: new Date().toISOString(),
         }
         await set(ref(db, `parts/${projectId}/${partId}`), part)
         if (p.manager?.name) await set(ref(db, `partManagers/${projectId}/${partId}`), p.manager)
-        // alias가 있으면 pttAliases에 저장
         if (p.manager?.alias?.trim() && user) {
           aliasMap[partId] = p.manager.alias.trim()
         }
@@ -147,6 +171,39 @@ export default function SetupPartsPage() {
     </div>
   )
 
+  const allColorIdx = (group: 'staff' | 'participant', idx: number) =>
+    group === 'staff' ? idx : staffParts.length + idx
+
+  function PartRow({ group, part, idx }: { group: 'staff' | 'participant'; part: PartDraft; idx: number }) {
+    const colorIdx = allColorIdx(group, idx)
+    const list = group === 'staff' ? staffParts : participantParts
+    return (
+      <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-white border border-[#E2E8F0] rounded-[10px]">
+        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: PART_COLORS[colorIdx % PART_COLORS.length] }} />
+        <input
+          className="flex-1 text-[13px] font-medium text-[#1A1A2E] outline-none bg-transparent placeholder-[#A0AEC0]"
+          placeholder={group === 'staff' ? `운영팀 ${idx + 1}` : `그룹 ${idx + 1}`}
+          value={part.name}
+          onChange={(e) => updateName(group, idx, e.target.value)}
+        />
+        <button
+          onClick={() => openInvite(group, idx)}
+          className={`flex items-center gap-1.5 text-[12px] px-2.5 py-1 rounded-full border transition-colors ${
+            part.manager?.name
+              ? 'border-[#185FA5] text-[#185FA5] bg-[#E6F1FB]'
+              : 'border-[#E2E8F0] text-[#A0AEC0] hover:border-[#185FA5] hover:text-[#185FA5]'
+          }`}>
+          <i className="ti ti-user-plus text-[13px]" />
+          {part.manager?.alias || part.manager?.name || '담당자 초대'}
+        </button>
+        {list.length > 1 && (
+          <i className="ti ti-x text-[14px] text-[#A0AEC0] cursor-pointer hover:text-[#A32D2D]"
+            onClick={() => removePart(group, idx)} />
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-[#F4F6F9]">
       <Topbar />
@@ -159,49 +216,50 @@ export default function SetupPartsPage() {
         </div>
         <p className="text-[13px] text-[#64748B] mb-6">입력하는 즉시 저장돼요 — 언제든 이어서 작업 가능해요</p>
 
-        <div className="flex flex-col gap-2 mb-3">
-          {parts.map((part, idx) => (
-            <div key={idx} className="flex items-center gap-2.5 px-3.5 py-2.5 bg-white border border-[#E2E8F0] rounded-[10px]">
-              <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: PART_COLORS[idx % PART_COLORS.length] }} />
-              <input className="flex-1 text-[13px] font-medium text-[#1A1A2E] outline-none bg-transparent placeholder-[#A0AEC0]"
-                placeholder={`파트 ${idx + 1} 이름`} value={part.name}
-                onChange={(e) => updatePartName(idx, e.target.value)} />
-              <button onClick={() => openInvite(idx)}
-                className={`flex items-center gap-1.5 text-[12px] px-2.5 py-1 rounded-full border transition-colors ${
-                  part.manager?.name
-                    ? 'border-[#185FA5] text-[#185FA5] bg-[#E6F1FB]'
-                    : 'border-[#E2E8F0] text-[#A0AEC0] hover:border-[#185FA5] hover:text-[#185FA5]'
-                }`}>
-                <i className="ti ti-user-plus text-[13px]" />
-                {/* alias 있으면 alias 표시, 아니면 name, 없으면 "담당자 초대" */}
-                {part.manager?.alias || part.manager?.name || '담당자 초대'}
-              </button>
-              {parts.length > 1 && (
-                <i className="ti ti-x text-[14px] text-[#A0AEC0] cursor-pointer hover:text-[#A32D2D]"
-                  onClick={() => removePart(idx)} />
-              )}
-            </div>
-          ))}
+        {/* ── 행사진행 파트 ── */}
+        <div className="mb-1">
+          <div className="flex items-center gap-2 mb-2">
+            <i className="ti ti-users text-[#185FA5] text-[14px]" />
+            <span className="text-[12px] font-bold text-[#185FA5]">행사진행</span>
+            <span className="text-[11px] text-[#A0AEC0]">운영팀, 포토팀 등 행사를 진행하는 파트</span>
+          </div>
+          <div className="flex flex-col gap-2 mb-2">
+            {staffParts.map((part, idx) => (
+              <PartRow key={idx} group="staff" part={part} idx={idx} />
+            ))}
+          </div>
+          <button onClick={() => addPart('staff')}
+            className="flex items-center gap-2 px-3.5 py-2.5 border border-dashed border-[#E2E8F0] rounded-[10px] text-[13px] text-[#A0AEC0] w-full hover:border-[#185FA5] hover:text-[#185FA5] transition-colors mb-4">
+            <i className="ti ti-plus text-[15px]" /> 행사진행 파트 추가
+          </button>
         </div>
 
-        {/* 템플릿 불러오기 버튼 */}
-        <button
-          onClick={() => {
-            if (user?.isPro) setShowImport(true)
-            else setShowProGate(true)
-          }}
-          className="flex items-center justify-center gap-2 w-full h-[44px] border-2 border-[#185FA5] rounded-[12px] text-[13px] font-semibold text-[#185FA5] hover:bg-[#E6F1FB] transition-colors mb-3">
-          <i className="ti ti-file-import text-[16px]" />
-          .thanq 템플릿 불러오기
-          {!user?.isPro && (
-            <span className="ml-1 px-2 py-0.5 bg-[#185FA5] text-white text-[10px] font-bold rounded-full">PRO</span>
-          )}
-        </button>
+        {/* 구분선 */}
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex-1 h-px bg-[#E2E8F0]" />
+          <span className="text-[11px] text-[#A0AEC0] font-medium">참가자</span>
+          <div className="flex-1 h-px bg-[#E2E8F0]" />
+        </div>
 
-        <button onClick={addPart} className="flex items-center gap-2 px-3.5 py-2.5 border border-dashed border-[#E2E8F0] rounded-[10px] text-[13px] text-[#A0AEC0] w-full mb-5 hover:border-[#185FA5] hover:text-[#185FA5] transition-colors">
-          <i className="ti ti-plus text-[15px]" /> 파트 추가
-        </button>
+        {/* ── 참가자 파트 ── */}
+        <div className="mb-1">
+          <div className="flex items-center gap-2 mb-2">
+            <i className="ti ti-run text-[#854F0B] text-[14px]" />
+            <span className="text-[12px] font-bold text-[#854F0B]">참가자</span>
+            <span className="text-[11px] text-[#A0AEC0]">A그룹, B그룹 등 참가자 그룹</span>
+          </div>
+          <div className="flex flex-col gap-2 mb-2">
+            {participantParts.map((part, idx) => (
+              <PartRow key={idx} group="participant" part={part} idx={idx} />
+            ))}
+          </div>
+          <button onClick={() => addPart('participant')}
+            className="flex items-center gap-2 px-3.5 py-2.5 border border-dashed border-[#E2E8F0] rounded-[10px] text-[13px] text-[#A0AEC0] w-full hover:border-[#854F0B] hover:text-[#854F0B] transition-colors mb-5">
+            <i className="ti ti-plus text-[15px]" /> 참가자 그룹 추가
+          </button>
+        </div>
 
+        {/* 참여 코드 */}
         <div className="bg-[#FAFBFC] border border-[#E2E8F0] rounded-[14px] p-4 mb-5">
           <div className="text-[12px] text-[#A0AEC0] text-center mb-1">참여 코드</div>
           <div className="text-[32px] font-bold tracking-[8px] text-[#185FA5] text-center my-2">{joinCode}</div>
@@ -236,81 +294,13 @@ export default function SetupPartsPage() {
 
       <BottomTabBar />
 
-      {/* 템플릿 불러오기 모달 (Pro 전용) */}
-      {showImport && projectId && (
-        <TemplateImportModal
-          projectId={projectId}
-          onClose={() => setShowImport(false)}
-          onSuccess={() => {
-            setShowImport(false)
-            // 파트 목록 새로고침 — Firebase onValue로 자동 반영되므로 페이지만 리로드
-            window.location.reload()
-          }}
-        />
-      )}
-
-      {/* Pro 업그레이드 안내 모달 */}
-      {showProGate && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center sm:items-center"
-          onClick={() => setShowProGate(false)}>
-          <div className="bg-white w-full max-w-md rounded-t-[20px] sm:rounded-[20px] p-6 pb-8"
-            onClick={(e) => e.stopPropagation()}>
-            {/* 아이콘 */}
-            <div className="flex flex-col items-center text-center mb-5">
-              <div className="w-16 h-16 rounded-full bg-[#E6F1FB] flex items-center justify-center mb-3">
-                <i className="ti ti-crown text-[#185FA5] text-[32px]" />
-              </div>
-              <div className="text-[18px] font-bold text-[#1A1A2E] mb-1">Pro 버전 전용 기능이에요</div>
-              <div className="text-[13px] text-[#64748B] leading-relaxed">
-                템플릿 불러오기는 <span className="font-semibold text-[#185FA5]">ThanQ Pro</span> 플랜에서만<br />
-                사용할 수 있어요. 무료 플랜에서는<br />파트를 직접 입력해야 해요.
-              </div>
-            </div>
-
-            {/* 비교 */}
-            <div className="flex gap-2 mb-5">
-              <div className="flex-1 bg-[#F4F6F9] rounded-[12px] p-3">
-                <div className="text-[11px] font-bold text-[#A0AEC0] mb-2">무료</div>
-                <div className="flex flex-col gap-1.5 text-[12px] text-[#64748B]">
-                  <span className="flex items-center gap-1.5"><i className="ti ti-check text-[#0F6E56] text-[12px]" /> 파트 직접 입력</span>
-                  <span className="flex items-center gap-1.5"><i className="ti ti-check text-[#0F6E56] text-[12px]" /> 큐시트 · 체크리스트</span>
-                  <span className="flex items-center gap-1.5"><i className="ti ti-check text-[#0F6E56] text-[12px]" /> 템플릿 저장</span>
-                  <span className="flex items-center gap-1.5 text-[#A0AEC0]"><i className="ti ti-x text-[#E24B4A] text-[12px]" /> 템플릿 불러오기</span>
-                </div>
-              </div>
-              <div className="flex-1 bg-[#EBF4FF] border-2 border-[#185FA5] rounded-[12px] p-3">
-                <div className="text-[11px] font-bold text-[#185FA5] mb-2">PRO ✦</div>
-                <div className="flex flex-col gap-1.5 text-[12px] text-[#1A1A2E]">
-                  <span className="flex items-center gap-1.5"><i className="ti ti-check text-[#0F6E56] text-[12px]" /> 파트 직접 입력</span>
-                  <span className="flex items-center gap-1.5"><i className="ti ti-check text-[#0F6E56] text-[12px]" /> 큐시트 · 체크리스트</span>
-                  <span className="flex items-center gap-1.5"><i className="ti ti-check text-[#0F6E56] text-[12px]" /> 템플릿 저장</span>
-                  <span className="flex items-center gap-1.5 font-semibold"><i className="ti ti-check text-[#0F6E56] text-[12px]" /> 템플릿 불러오기</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <button
-                onClick={() => { setShowProGate(false); navigate('/upgrade') }}
-                className="w-full h-[48px] bg-[#185FA5] text-white rounded-[12px] text-[14px] font-bold flex items-center justify-center gap-2">
-                <i className="ti ti-crown text-[16px]" /> Pro로 업그레이드
-              </button>
-              <button onClick={() => setShowProGate(false)}
-                className="w-full h-[42px] text-[#64748B] text-[13px]">
-                직접 입력할게요
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 담당자 초대 모달 — alias 관리 통합 */}
-      {inviteIdx !== null && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center" onClick={() => setInviteIdx(null)}>
+      {/* 담당자 초대 모달 */}
+      {inviteTarget !== null && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center" onClick={() => setInviteTarget(null)}>
           <div className="bg-white w-full max-w-2xl rounded-t-[20px] p-5 pb-8" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <div className="text-[16px] font-semibold">담당자 초대</div>
-              <button onClick={() => setInviteIdx(null)}><i className="ti ti-x text-[18px] text-[#A0AEC0]" /></button>
+              <button onClick={() => setInviteTarget(null)}><i className="ti ti-x text-[18px] text-[#A0AEC0]" /></button>
             </div>
 
             <div className="flex flex-col gap-3 mb-4">
@@ -319,7 +309,6 @@ export default function SetupPartsPage() {
                 <input className={inp} placeholder="홍길동" value={manager.name}
                   onChange={(e) => setManager({ ...manager, name: e.target.value })} />
               </div>
-              {/* 별칭 — 담당자 초대 모달에서 통합 관리 */}
               <div>
                 <label className={lbl}>
                   표시 이름 <span className="text-[#A0AEC0] font-normal">(나에게만 보이는 별칭, 비워두면 이름으로 표시)</span>
@@ -342,10 +331,10 @@ export default function SetupPartsPage() {
             <div className="text-[12px] font-semibold text-[#64748B] mb-2">초대 방법</div>
             <div className="grid grid-cols-4 gap-2 mb-5">
               {[
-                { fn: shareSMS,   icon: 'ti-message',  color: '#3B6D11', label: '문자' },
-                { fn: shareKakao, icon: 'ti-message-2', color: '#3A1D1D', label: '카카오톡' },
-                { fn: shareEmail, icon: 'ti-mail',      color: '#185FA5', label: '이메일' },
-                { fn: copyLink,   icon: 'ti-link',      color: '#64748B', label: '링크 복사' },
+                { fn: shareSMS,   icon: 'ti-message',   color: '#3B6D11', label: '문자' },
+                { fn: shareKakao, icon: 'ti-message-2',  color: '#3A1D1D', label: '카카오톡' },
+                { fn: shareEmail, icon: 'ti-mail',       color: '#185FA5', label: '이메일' },
+                { fn: copyLink,   icon: 'ti-link',       color: '#64748B', label: '링크 복사' },
               ].map((s) => (
                 <button key={s.label} onClick={s.fn}
                   className="flex flex-col items-center gap-1.5 py-3 border border-[#E2E8F0] rounded-[10px] hover:border-[#185FA5]">
@@ -356,7 +345,7 @@ export default function SetupPartsPage() {
             </div>
 
             <div className="flex gap-2">
-              <button onClick={() => setInviteIdx(null)}
+              <button onClick={() => setInviteTarget(null)}
                 className="flex-1 h-[42px] border border-[#E2E8F0] rounded-[10px] text-[13px] text-[#64748B]">취소</button>
               <button onClick={saveManager}
                 className="flex-1 h-[42px] bg-[#185FA5] text-white rounded-[10px] text-[13px] font-semibold">저장</button>
