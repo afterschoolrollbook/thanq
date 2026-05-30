@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ref, push, set, onValue, get } from 'firebase/database'
+import { ref, push, set, update, onValue, get } from 'firebase/database'
 import { db } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
 import { PART_COLORS } from '@/utils/fieldTerms'
@@ -154,6 +154,15 @@ export default function SetupPartsPage() {
         if (p.manager?.alias?.trim() && user) {
           aliasMap[partId] = p.manager.alias.trim()
         }
+        // 파트 role을 parts에 저장 (isParticipant 기반)
+        const memberRole = p.isParticipant ? 'participant' : 'staff'
+        await set(ref(db, `parts/${projectId}/${partId}/memberRole`), memberRole)
+      }
+      // 오너를 기획자로 등록
+      if (user) {
+        await update(ref(db, `projectMembers/${projectId}/${user.uid}`), {
+          role: 'planner', partId: '', partName: '기획자'
+        })
       }
       if (user && Object.keys(aliasMap).length > 0) {
         await set(ref(db, `pttAliases/${projectId}/${user.uid}`), aliasMap)

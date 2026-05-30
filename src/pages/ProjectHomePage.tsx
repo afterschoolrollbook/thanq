@@ -11,7 +11,13 @@ import TemplateImportModal from '@/components/template/TemplateImportModal'
 import type { Project, Part, CheckItem } from '@/types'
 
 const ROLE_LABEL: Record<string, string> = {
-  owner: '운영자', admin: '관리자', member: '팀원', viewer: '참관', guest: '게스트'
+  owner: '기획자', planner: '기획자', admin: '관리자', staff: '스태프', member: '팀원', participant: '참가자', viewer: '참관', guest: '게스트'
+}
+const ROLE_COLOR: Record<string, string> = {
+  owner: '#185FA5', planner: '#185FA5', admin: '#3B6D11', staff: '#E8820C', member: '#64748B', participant: '#854F0B', viewer: '#A0AEC0', guest: '#A0AEC0'
+}
+const ROLE_BG: Record<string, string> = {
+  owner: '#E6F1FB', planner: '#E6F1FB', admin: '#EAF3DE', staff: '#FFF8F0', member: '#F4F6F9', participant: '#FFF8F0', viewer: '#F4F6F9', guest: '#F4F6F9'
 }
 
 export default function ProjectHomePage() {
@@ -21,7 +27,10 @@ export default function ProjectHomePage() {
   const [project, setProject] = useState<Project | null>(null)
   const [parts, setParts] = useState<Part[]>([])
   const [myRole, setMyRole] = useState<string>('')
+  const [myPartId, setMyPartId] = useState<string>('')
   const [myPartName, setMyPartName] = useState<string>('')
+  const [roleChangeTarget, setRoleChangeTarget] = useState<Part | null>(null)
+  const [roleChangeRole, setRoleChangeRole] = useState<string>('staff')
   const [myChecks, setMyChecks] = useState<CheckItem[]>([])
   const [loading, setLoading] = useState(true)
   const [showExport, setShowExport] = useState(false)
@@ -67,6 +76,7 @@ export default function ProjectHomePage() {
       if (s.exists()) {
         const m = s.val()
         setMyRole(m.role ?? '')
+        setMyPartId(m.partId ?? '')
         setMyPartName(m.partName ?? '')
       }
     }, { onlyOnce: true })
@@ -142,6 +152,25 @@ export default function ProjectHomePage() {
     })
   }, [projectId, parts])
 
+  async function saveMemberRole(part: Part, role: string) {
+    if (!projectId || !user) return
+    // 해당 파트의 담당자 uid 찾기 - partManagers에서
+    const memberSnap = await new Promise<any>((res) => {
+      const r = ref(db, `projectMembers/${projectId}`)
+      onValue(r, res, { onlyOnce: true })
+    })
+    if (memberSnap.exists()) {
+      const members = Object.values(memberSnap.val()) as any[]
+      const partMember = members.find((m: any) => m.partId === part.id)
+      if (partMember) {
+        await update(ref(db, `projectMembers/${projectId}/${partMember.uid}`), { role, partId: part.id, partName: part.name })
+      }
+    }
+    // parts에도 role 메타 저장
+    await update(ref(db, `parts/${projectId}/${part.id}`), { memberRole: role })
+    setRoleChangeTarget(null)
+  }
+
   async function addPart() {
     if (!projectId) return
     const newRef = push(ref(db, `parts/${projectId}`))
@@ -172,8 +201,8 @@ export default function ProjectHomePage() {
   const p = project as any
   const dday = getDday(project.date)
   const progress = parts.length ? Math.round(parts.reduce((s, p) => s + p.progress, 0) / parts.length) : 0
-  const isOwner = myRole === 'owner' || project.ownerId === user?.uid
-  const roleLabel = isOwner ? '운영자' : (ROLE_LABEL[myRole] ?? '팀원')
+  const isOwner = myRole === 'owner' || myRole === 'planner' || project.ownerId === user?.uid
+  const roleLabel = ROLE_LABEL[myRole] || (isOwner ? '기획자' : '팀원')
   const todoChecks = myChecks.filter(c => !c.isDone).slice(0, 5)
 
   return (
@@ -532,8 +561,20 @@ export default function ProjectHomePage() {
                           <span className="text-[13px] flex-1">{part.name}</span>
                         )}
                         <span className="text-[12px] text-[#A0AEC0]">{partManagers[part.id]?.name ?? part.managerName ?? '담당자 없음'}</span>
+                        {/* 내 파트 뱃지 */}
+                        {part.id === myPartId && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#E6F1FB] text-[#185FA5]">나</span>
+                        )}
+                        {/* 역할 뱃지 */}
+                        {(part as any).memberRole && (
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                            style={{ background: ROLE_BG[(part as any).memberRole] ?? '#F4F6F9', color: ROLE_COLOR[(part as any).memberRole] ?? '#64748B' }}>
+                            {ROLE_LABEL[(part as any).memberRole] ?? (part as any).memberRole}
+                          </span>
+                        )}
                         {editingParts && (
                           <div className="flex gap-1.5">
+                            {isOwner && <button onClick={() => { setRoleChangeTarget(part); setRoleChangeRole((part as any).memberRole ?? 'staff') }} className="text-[#A0AEC0] hover:text-[#E8820C]"><i className="ti ti-shield text-[13px]"/></button>}
                             <button onClick={() => { setEditPartId(part.id); setEditPartName(part.name) }} className="text-[#A0AEC0] hover:text-[#185FA5]"><i className="ti ti-pencil text-[13px]"/></button>
                             <button onClick={() => deletePart(part.id)} className="text-[#A0AEC0] hover:text-[#E24B4A]"><i className="ti ti-trash text-[13px]"/></button>
                           </div>
@@ -567,8 +608,12 @@ export default function ProjectHomePage() {
                           <span className="text-[13px] flex-1">{part.name}</span>
                         )}
                         <span className="text-[12px] text-[#A0AEC0]">{partManagers[part.id]?.name ?? part.managerName ?? '담당자 없음'}</span>
+                        {part.id === myPartId && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FFF8F0] text-[#854F0B]">나</span>
+                        )}
                         {editingParts && (
                           <div className="flex gap-1.5">
+                            {isOwner && <button onClick={() => { setRoleChangeTarget(part); setRoleChangeRole((part as any).memberRole ?? 'participant') }} className="text-[#A0AEC0] hover:text-[#E8820C]"><i className="ti ti-shield text-[13px]"/></button>}
                             <button onClick={() => { setEditPartId(part.id); setEditPartName(part.name) }} className="text-[#A0AEC0] hover:text-[#185FA5]"><i className="ti ti-pencil text-[13px]"/></button>
                             <button onClick={() => deletePart(part.id)} className="text-[#A0AEC0] hover:text-[#E24B4A]"><i className="ti ti-trash text-[13px]"/></button>
                           </div>
@@ -654,6 +699,44 @@ export default function ProjectHomePage() {
         )}
       </div>
 
+      {/* 역할 변경 모달 */}
+      {roleChangeTarget && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-5" onClick={() => setRoleChangeTarget(null)}>
+          <div className="bg-white rounded-[20px] p-5 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-[16px] font-semibold">역할 변경</div>
+              <button onClick={() => setRoleChangeTarget(null)}><i className="ti ti-x text-[18px] text-[#A0AEC0]"/></button>
+            </div>
+            <div className="flex items-center gap-2 mb-4 p-3 bg-[#F4F6F9] rounded-[10px]">
+              <span className="w-2.5 h-2.5 rounded-full" style={{ background: roleChangeTarget.color }}/>
+              <span className="text-[13px] font-semibold">{roleChangeTarget.name}</span>
+            </div>
+            <div className="flex flex-col gap-2 mb-5">
+              {[
+                { value: 'planner', label: '기획자', desc: '모든 팀 수정 가능', icon: 'ti-shield-check', color: '#185FA5' },
+                { value: 'staff',   label: '스태프',  desc: '내 팀만 수정 가능', icon: 'ti-user-check', color: '#E8820C' },
+                { value: 'participant', label: '참가자', desc: '보기만 가능', icon: 'ti-eye', color: '#854F0B' },
+              ].map(r => (
+                <button key={r.value} onClick={() => setRoleChangeRole(r.value)}
+                  className={`flex items-center gap-3 p-3 rounded-[12px] border-2 transition-colors text-left ${roleChangeRole === r.value ? 'border-[#185FA5] bg-[#E6F1FB]' : 'border-[#E2E8F0]'}`}>
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: r.color + '20' }}>
+                    <i className={`ti ${r.icon} text-[16px]`} style={{ color: r.color }}/>
+                  </div>
+                  <div>
+                    <div className="text-[13px] font-semibold text-[#1A1A2E]">{r.label}</div>
+                    <div className="text-[11px] text-[#64748B]">{r.desc}</div>
+                  </div>
+                  {roleChangeRole === r.value && <i className="ti ti-check text-[#185FA5] ml-auto text-[16px]"/>}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setRoleChangeTarget(null)} className="flex-1 h-[42px] border border-[#E2E8F0] rounded-[12px] text-[13px] text-[#64748B]">취소</button>
+              <button onClick={() => saveMemberRole(roleChangeTarget, roleChangeRole)} className="flex-1 h-[42px] bg-[#185FA5] text-white rounded-[12px] text-[13px] font-semibold">저장</button>
+            </div>
+          </div>
+        </div>
+      )}
       <BottomTabBar />
       {showExport && project && (
         <TemplateExportModal project={project} onClose={() => setShowExport(false)} />

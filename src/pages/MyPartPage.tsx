@@ -86,6 +86,7 @@ export default function MyPartPage() {
   const { projectId } = useParams()
   const user = useAuthStore((s) => s.user)
   const [project, setProject] = useState<{ownerId?: string} | null>(null)
+  const [myMember, setMyMember] = useState<{role: string; partId?: string} | null>(null)
   const [allParts, setAllParts] = useState<Part[]>([])
   const [myPart, setMyPart] = useState<Part | null>(null)
   const [selectedPartId, setSelectedPartId] = useState<string | null>(null)
@@ -97,19 +98,24 @@ export default function MyPartPage() {
   const [readOnlyToast, setReadOnlyToast] = useState(false)
 
   const selectedPart = allParts.find(p => p.id === selectedPartId) ?? null
-  const isOwner = project?.ownerId === user?.uid
-  const isMyPart = isOwner || selectedPart?.id === myPart?.id
+  const isPlanner = myMember?.role === 'planner' || myMember?.role === 'owner' || project?.ownerId === user?.uid
+  const isParticipant = myMember?.role === 'participant'
+  // 기획자: 모든 팀 수정 가능 / 스태프: 내 파트만 / 참가자: 읽기만
+  const isMyPart = isPlanner || (!isParticipant && selectedPart?.id === myPart?.id)
 
   useEffect(() => {
     if (!projectId || !user) return
     onValue(ref(db, `projects/${projectId}`), (s) => {
       if (s.exists()) setProject(s.val())
     }, { onlyOnce: true })
+    onValue(ref(db, `projectMembers/${projectId}/${user.uid}`), (s) => {
+      if (s.exists()) setMyMember(s.val())
+    }, { onlyOnce: true })
     const u = onValue(ref(db, `parts/${projectId}`), (s) => {
       if (s.exists()) {
         const list: Part[] = Object.values(s.val())
         list.sort((a, b) => a.order - b.order)
-        const mine = list.find((p) => p.managerId === user.uid) ?? null
+        const mine = list.find((p) => p.id === myMember?.partId) ?? null
         setAllParts(list)
         setMyPart(mine ?? null)
         if (!selectedPartId) setSelectedPartId(mine?.id ?? list[0]?.id ?? null)  // 탭 초기 선택은 내 파트, 없으면 첫번째
@@ -192,6 +198,7 @@ export default function MyPartPage() {
                   <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: selectedPartId === part.id ? 'rgba(255,255,255,0.6)' : part.color }} />
                   {part.name}
                   {part.id === myPart?.id && <span className="text-[9px] opacity-70">내팀</span>}
+                  {isPlanner && part.id !== myPart?.id && <span className="text-[9px] opacity-50">기획자</span>}
                 </button>
               ))}
             </div>
@@ -214,7 +221,9 @@ export default function MyPartPage() {
                     <span className="text-[10px] bg-[#F4F6F9] text-[#A0AEC0] px-2 py-0.5 rounded-full">열람 전용</span>
                   )}
                 </div>
-                <div className="text-[12px] text-[#64748B] mt-0.5">{isMyPart ? '내 파트' : '다른 팀 현황'}</div>
+                <div className="text-[12px] text-[#64748B] mt-0.5">
+                  {isPlanner ? '기획자 · 전체 수정 가능' : isMyPart ? '내 파트' : isParticipant ? '참가자 · 열람만 가능' : '다른 팀 현황'}
+                </div>
               </div>
               {isMyPart && (
                 <div className="flex gap-2">

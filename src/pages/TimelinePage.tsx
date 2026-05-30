@@ -57,6 +57,7 @@ export default function TimelinePage() {
   const { projectId } = useParams()
   const [project, setProject] = useState<Project | null>(null)
   const user = useAuthStore((s) => s.user)
+  const [myMember, setMyMember] = useState<{role: string; partId?: string} | null>(null)
   const [parts, setParts] = useState<Part[]>([])
   const [allCues, setAllCues] = useState<CueWithPart[]>([])
   const [allChecks, setAllChecks] = useState<CheckItem[]>([])
@@ -77,7 +78,16 @@ export default function TimelinePage() {
   useEffect(() => {
     if (!projectId) return
     onValue(dbRef(db, `projects/${projectId}`), s => {
-      if (s.exists()) { const p = s.val() as Project; setProject(p); setSelectedDate(p.date ?? new Date().toISOString().split('T')[0]) }
+      if (s.exists()) {
+        const p = s.val() as Project
+        setProject(p)
+        setSelectedDate(p.date ?? new Date().toISOString().split('T')[0])
+        if (user) {
+          onValue(dbRef(db, `projectMembers/${projectId}/${user.uid}`), (ms) => {
+            if (ms.exists()) setMyMember(ms.val())
+          }, { onlyOnce: true })
+        }
+      }
     }, { onlyOnce: true })
   }, [projectId])
 
@@ -351,10 +361,13 @@ export default function TimelinePage() {
           onClose={() => setActiveCue(null)}
           isReadOnly={(() => {
             if (!user) return true
+            // 기획자/오너 → 모두 수정 가능
             if (project?.ownerId === user.uid) return false
-            const part = parts.find(p => p.id === activeCue.partId)
-            if (part?.managerId === user.uid) return false
-            return true
+            if (myMember?.role === 'planner' || myMember?.role === 'owner') return false
+            // 참가자 → 읽기 전용
+            if (myMember?.role === 'participant') return true
+            // 스태프 → 내 파트만 수정 가능
+            return activeCue.partId !== myMember?.partId
           })()}
         />
       )}
