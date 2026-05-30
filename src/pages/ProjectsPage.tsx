@@ -88,31 +88,31 @@ function MyPartHeader() {
 function DashboardHeader() {
   return (
     <div className="mb-6 rounded-[20px] overflow-hidden shadow-md">
-      <div className="bg-[#FEF3E2] px-5 pt-4 pb-3">
+      <div className="bg-[#F1F4F8] px-5 pt-4 pb-3">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-[12px] bg-white/20 flex items-center justify-center">
-            <i className="ti ti-layout-dashboard text-white text-[20px]"/>
+          <div className="w-10 h-10 rounded-[12px] bg-[#E2E8F0] flex items-center justify-center">
+            <i className="ti ti-layout-dashboard text-[#475569] text-[20px]"/>
           </div>
           <div>
             <div className="text-[#1A1A2E] text-[15px] font-bold">본부 현황판</div>
-            <div className="text-[#854F0B] text-[11px]">전체 준비율 · 파트별 진행 상태</div>
+            <div className="text-[#475569] text-[11px]">전체 준비율 · 파트별 진행 상태</div>
           </div>
         </div>
-        <div className="bg-white/10 rounded-[10px] p-3">
+        <div className="bg-white rounded-[10px] p-3 border border-[#E2E8F0]">
           <div className="flex gap-3 mb-2">
-            {[{label:'전체 준비율',value:'68%',color:'#FDE68A'},{label:'진행 중',value:'3팀',color:'#6EE7B7'},{label:'지연',value:'1팀',color:'#FCA5A5'}].map(s => (
+            {[{label:'전체 준비율',value:'68%',color:'#475569'},{label:'진행 중',value:'3팀',color:'#3B6D11'},{label:'지연',value:'1팀',color:'#E24B4A'}].map(s => (
               <div key={s.label} className="flex-1 text-center">
-                <div className="text-[15px] font-black text-[#854F0B]">{s.value}</div>
+                <div className="text-[15px] font-black" style={{color:s.color}}>{s.value}</div>
                 <div className="text-[9px] text-[#A0AEC0] mt-0.5">{s.label}</div>
               </div>
             ))}
           </div>
-          <div className="h-2 bg-[#F1EFE8] rounded-full overflow-hidden">
-            <div className="h-full bg-[#854F0B] rounded-full" style={{width:'68%'}}/>
+          <div className="h-2 bg-[#E2E8F0] rounded-full overflow-hidden">
+            <div className="h-full bg-[#475569] rounded-full" style={{width:'68%'}}/>
           </div>
         </div>
       </div>
-      <div className="bg-[#854F0B] px-5 py-2 flex items-center gap-1.5">
+      <div className="bg-[#475569] px-5 py-2 flex items-center gap-1.5">
         <i className="ti ti-hand-click text-white/70 text-[12px]"/>
         <span className="text-white text-[11px] font-semibold">아래 프로젝트를 선택하면 현황판이 열려요</span>
       </div>
@@ -153,33 +153,33 @@ function CommsHeader() {
 function PTTHeader() {
   return (
     <div className="mb-6 rounded-[20px] overflow-hidden shadow-md">
-      <div className="bg-[#2D2D44] px-5 pt-4 pb-3 flex items-center gap-4">
+      <div className="bg-[#EDF7F1] px-5 pt-4 pb-3 flex items-center gap-4">
         <div className="relative flex-shrink-0">
-          <div className="w-16 h-22 bg-[#2D2D44] rounded-[12px] border-2 border-[#3D3D5C] flex flex-col items-center justify-between py-2 px-2">
-            <div className="w-full h-5 bg-[#0A0A1A] rounded-[4px] flex items-center justify-center">
+          <div className="w-16 h-22 bg-[#D4EFE1] rounded-[12px] border-2 border-[#A8D9BE] flex flex-col items-center justify-between py-2 px-2">
+            <div className="w-full h-5 bg-[#EAEEF2] rounded-[4px] flex items-center justify-center">
               <div className="w-1.5 h-1.5 rounded-full bg-[#E24B4A] animate-pulse"/>
             </div>
-            <div className="w-9 h-9 rounded-full border-[3px] border-[#E24B4A] flex items-center justify-center">
-              <i className="ti ti-microphone text-[16px] text-white"/>
+            <div className="w-9 h-9 rounded-full border-[3px] border-[#E24B4A] flex items-center justify-center bg-white">
+              <i className="ti ti-microphone text-[16px] text-[#3B7A57]"/>
             </div>
             <div className="w-full flex gap-1">
-              <div className="flex-1 h-1.5 bg-[#3D3D5C] rounded-full"/>
-              <div className="flex-1 h-1.5 bg-[#3D3D5C] rounded-full"/>
+              <div className="flex-1 h-1.5 bg-[#A8D9BE] rounded-full"/>
+              <div className="flex-1 h-1.5 bg-[#A8D9BE] rounded-full"/>
             </div>
           </div>
           <div className="absolute -right-1 top-3 w-1.5 h-7 bg-[#E24B4A] rounded-r-full"/>
         </div>
         <div>
-          <div className="text-white text-[17px] font-black mb-1">무전</div>
-          <div className="text-[#A0AEC0] text-[11px] leading-relaxed">버튼을 누르고 말하면<br/>담당자에게 즉시 전달돼요</div>
+          <div className="text-[#1A2E22] text-[17px] font-black mb-1">무전</div>
+          <div className="text-[#3B7A57] text-[11px] leading-relaxed">버튼을 누르고 말하면<br/>담당자에게 즉시 전달돼요</div>
           <div className="flex gap-1.5 mt-2">
             {['운영팀','포토팀','안전팀'].map(t=>(
-              <span key={t} className="text-[9px] px-2 py-0.5 rounded-full bg-[#2D2D44] text-[#A0AEC0]">{t}</span>
+              <span key={t} className="text-[9px] px-2 py-0.5 rounded-full bg-[#D4EFE1] text-[#3B7A57] border border-[#A8D9BE]">{t}</span>
             ))}
           </div>
         </div>
       </div>
-      <div className="bg-[#E24B4A] px-5 py-2 flex items-center gap-1.5">
+      <div className="bg-[#3B7A57] px-5 py-2 flex items-center gap-1.5">
         <i className="ti ti-hand-click text-white/70 text-[12px]"/>
         <span className="text-white text-[11px] font-semibold">아래 프로젝트를 선택하면 무전이 연결돼요</span>
       </div>
@@ -221,7 +221,6 @@ function TimelineShapeCard({ project, onClick }: { project: Project; onClick: ()
   )
 }
 
-// ── 확성기 모양 카드 (소통) ───────────────────────────────
 // ── 아이콘 뷰 소형 카드들 ────────────────────────────────
 function CommsIconCard({ project, onClick }: { project: Project; onClick: () => void }) {
   const dday = getDday(project.date)
@@ -229,22 +228,33 @@ function CommsIconCard({ project, onClick }: { project: Project; onClick: () => 
   return (
     <button onClick={onClick} className="w-full hover:scale-[1.03] transition-transform">
       <div className="bg-white rounded-[10px] overflow-hidden border border-[#DDD6FE] hover:shadow-md transition-shadow">
-        <div className="flex justify-around px-3">
-          <div className="w-2 h-1.5 rounded-b-full border-x border-b border-[#DDD6FE] bg-[#F8FAFC]"/>
-          <div className="w-2 h-1.5 rounded-b-full border-x border-b border-[#DDD6FE] bg-[#F8FAFC]"/>
-        </div>
         <div className="bg-[#EDE9FE] px-2 py-1 flex items-center justify-between">
           <i className="ti ti-speakerphone text-[#7C3AED] text-[10px]"/>
           <span className={`text-[8px] font-black ${dday==='D-DAY'?'text-[#E24B4A]':'text-[#7C3AED]'}`}>{dday}</span>
         </div>
-        <div className="px-2 py-4 text-center">
-          <div className="text-[28px] font-black text-[#7C3AED] leading-none">{d.getDate()}</div>
-          <div className="text-[8px] text-[#A0AEC0] mt-1">{d.getMonth()+1}월</div>
+        {/* 스피커 원형 */}
+        <div className="px-2 pt-2 pb-1 flex flex-col items-center gap-1">
+          <div className="w-[46px] h-[46px] rounded-full bg-[#EDE9FE] border-2 border-[#DDD6FE] flex items-center justify-center relative">
+            <div className="w-[30px] h-[30px] rounded-full bg-[#C4B5FD] border-[1.5px] border-[#A78BFA] flex items-center justify-center">
+              <div className="w-[12px] h-[12px] rounded-full bg-[#7C3AED]"/>
+            </div>
+            <div className="absolute left-[-5px] top-1/2 -translate-y-1/2 flex flex-col gap-[3px]">
+              <div className="w-[4px] h-[2px] rounded bg-[#7C3AED] opacity-40"/>
+              <div className="w-[5px] h-[2px] rounded bg-[#7C3AED] opacity-70"/>
+              <div className="w-[4px] h-[2px] rounded bg-[#7C3AED] opacity-40"/>
+            </div>
+            <div className="absolute right-[-5px] top-1/2 -translate-y-1/2 flex flex-col gap-[3px]">
+              <div className="w-[4px] h-[2px] rounded bg-[#7C3AED] opacity-40"/>
+              <div className="w-[5px] h-[2px] rounded bg-[#7C3AED] opacity-70"/>
+              <div className="w-[4px] h-[2px] rounded bg-[#7C3AED] opacity-40"/>
+            </div>
+          </div>
+          <div className="text-[22px] font-black text-[#7C3AED] leading-none">{d.getDate()}</div>
+          <div className="text-[8px] text-[#A0AEC0] truncate w-full text-center">{project.name}</div>
         </div>
         <div className="mx-2 border-t border-dashed border-[#E2E8F0]"/>
-        <div className="px-2 py-2">
-          <div className="text-[9px] font-bold text-[#1A1A2E] truncate">{project.name}</div>
-          <div className="text-[8px] text-[#7C3AED] mt-0.5">열기 →</div>
+        <div className="px-2 py-1.5">
+          <div className="text-[8px] text-[#7C3AED]">열기 →</div>
         </div>
       </div>
     </button>
@@ -256,23 +266,29 @@ function PTTIconCard({ project, onClick }: { project: Project; onClick: () => vo
   const d = new Date(project.date)
   return (
     <button onClick={onClick} className="w-full hover:scale-[1.03] transition-transform">
-      <div className="bg-[#1A1A2E] rounded-[10px] overflow-hidden border border-[#3D3D5C] hover:shadow-md transition-shadow">
+      <div className="bg-[#F0FAF4] rounded-[10px] overflow-hidden border border-[#A8D9BE] hover:shadow-md transition-shadow">
+        {/* 안테나 */}
         <div className="flex justify-around px-3">
           <div className="w-1.5 h-2 rounded-b-full bg-[#E24B4A]"/>
-          <div className="w-1.5 h-2 rounded-b-full bg-[#3D3D5C]"/>
+          <div className="w-1.5 h-2 rounded-b-full bg-[#A8D9BE]"/>
         </div>
-        <div className="bg-[#0A0A1A] px-2 py-1 flex items-center justify-between">
+        <div className="bg-[#D4EFE1] px-2 py-1 flex items-center justify-between">
           <div className="w-1.5 h-1.5 rounded-full bg-[#E24B4A] animate-pulse"/>
-          <span className={`text-[8px] font-black ${dday==='D-DAY'?'text-[#E24B4A]':'text-[#A0AEC0]'}`}>{dday}</span>
+          <span className={`text-[8px] font-black ${dday==='D-DAY'?'text-[#E24B4A]':'text-[#3B7A57]'}`}>{dday}</span>
         </div>
-        <div className="px-2 py-4 text-center">
-          <div className="text-[28px] font-black text-[#E24B4A] leading-none">{d.getDate()}</div>
-          <div className="text-[8px] text-[#3D3D5C] mt-1">{d.getMonth()+1}월</div>
+        <div className="px-2 py-3 text-center">
+          <div className="text-[28px] font-black text-[#3B7A57] leading-none">{d.getDate()}</div>
+          <div className="text-[8px] text-[#6BBF8E] mt-1">{d.getMonth()+1}월</div>
         </div>
-        <div className="mx-2 border-t border-dashed border-[#3D3D5C]"/>
+        <div className="px-2 pb-1 flex justify-center">
+          <div className="w-6 h-6 rounded-full bg-[#E24B4A] border-2 border-[#FF8080] flex items-center justify-center">
+            <i className="ti ti-microphone text-[10px] text-white"/>
+          </div>
+        </div>
+        <div className="mx-2 border-t border-dashed border-[#A8D9BE]"/>
         <div className="px-2 py-2">
-          <div className="text-[9px] font-bold text-white truncate">{project.name}</div>
-          <div className="text-[8px] text-[#E24B4A] mt-0.5">열기 →</div>
+          <div className="text-[9px] font-bold text-[#1A2E22] truncate">{project.name}</div>
+          <div className="text-[8px] text-[#3B7A57] mt-0.5">열기 →</div>
         </div>
       </div>
     </button>
@@ -285,22 +301,28 @@ function MyPartIconCard({ project, onClick }: { project: Project; onClick: () =>
   return (
     <button onClick={onClick} className="w-full hover:scale-[1.03] transition-transform">
       <div className="bg-white rounded-[10px] overflow-hidden border border-[#C6E8A8] hover:shadow-md transition-shadow">
+        {/* 노트 구멍 3개 */}
         <div className="flex justify-around px-2">
           <div className="w-2 h-1.5 rounded-b-full border-x border-b border-[#C6E8A8] bg-[#F8FAFC]"/>
           <div className="w-2 h-1.5 rounded-b-full border-x border-b border-[#C6E8A8] bg-[#F8FAFC]"/>
           <div className="w-2 h-1.5 rounded-b-full border-x border-b border-[#C6E8A8] bg-[#F8FAFC]"/>
         </div>
         <div className="bg-[#EAF3DE] px-2 py-1 flex items-center justify-between">
-          <i className="ti ti-notebook text-[#3B6D11] text-[10px]"/>
+          <i className="ti ti-notes text-[#3B6D11] text-[10px]"/>
           <span className={`text-[8px] font-black ${dday==='D-DAY'?'text-[#E24B4A]':'text-[#3B6D11]'}`}>{dday}</span>
         </div>
-        <div className="px-2 py-4 text-center">
+        <div className="px-2 pt-2 pb-1 text-center">
           <div className="text-[28px] font-black text-[#3B6D11] leading-none">{d.getDate()}</div>
-          <div className="text-[8px] text-[#A0AEC0] mt-1">{d.getMonth()+1}월</div>
+          <div className="text-[8px] text-[#A0AEC0] mt-0.5 truncate">{project.name}</div>
+        </div>
+        {/* 체크리스트 줄 */}
+        <div className="px-2 pb-1 flex flex-col gap-1">
+          <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-[2px] bg-[#3B6D11] flex-shrink-0"/><div className="h-[3px] flex-1 bg-[#C6E8A8] rounded-full opacity-60"/></div>
+          <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-[2px] border border-[#C6E8A8] flex-shrink-0"/><div className="h-[3px] flex-1 bg-[#E2E8F0] rounded-full"/></div>
+          <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-[2px] border border-[#C6E8A8] flex-shrink-0"/><div className="h-[3px] w-3/4 bg-[#E2E8F0] rounded-full"/></div>
         </div>
         <div className="mx-2 border-t border-dashed border-[#E2E8F0]"/>
         <div className="px-2 py-2">
-          <div className="text-[9px] font-bold text-[#1A1A2E] truncate">{project.name}</div>
           <div className="text-[8px] text-[#3B6D11] mt-0.5">열기 →</div>
         </div>
       </div>
@@ -313,23 +335,30 @@ function DashboardIconCard({ project, onClick }: { project: Project; onClick: ()
   const d = new Date(project.date)
   return (
     <button onClick={onClick} className="w-full hover:scale-[1.03] transition-transform">
-      <div className="bg-white rounded-[10px] overflow-hidden border border-[#F4D7A8] hover:shadow-md transition-shadow">
-        <div className="flex justify-around px-3">
-          <div className="w-2 h-1.5 rounded-b-full border-x border-b border-[#F4D7A8] bg-[#F8FAFC]"/>
-          <div className="w-2 h-1.5 rounded-b-full border-x border-b border-[#F4D7A8] bg-[#F8FAFC]"/>
+      <div className="bg-white rounded-[10px] overflow-hidden border border-[#CBD5E1] hover:shadow-md transition-shadow">
+        {/* 상단 LED 점 */}
+        <div className="bg-[#F1F4F8] px-2 py-1 flex items-center justify-between">
+          <div className="flex gap-1">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#4CAF50]"/>
+            <div className="w-1.5 h-1.5 rounded-full bg-[#FDE68A]"/>
+            <div className="w-1.5 h-1.5 rounded-full bg-[#CBD5E1]"/>
+          </div>
+          <span className={`text-[8px] font-black ${dday==='D-DAY'?'text-[#E24B4A]':'text-[#475569]'}`}>{dday}</span>
         </div>
-        <div className="bg-[#FEF3E2] px-2 py-1 flex items-center justify-between">
-          <i className="ti ti-layout-dashboard text-[#854F0B] text-[10px]"/>
-          <span className={`text-[8px] font-black ${dday==='D-DAY'?'text-[#E24B4A]':'text-[#854F0B]'}`}>{dday}</span>
-        </div>
-        <div className="px-2 py-4 text-center">
-          <div className="text-[28px] font-black text-[#854F0B] leading-none">{d.getDate()}</div>
+        <div className="px-2 py-3 text-center">
+          <div className="text-[28px] font-black text-[#475569] leading-none">{d.getDate()}</div>
           <div className="text-[8px] text-[#A0AEC0] mt-1">{d.getMonth()+1}월</div>
+        </div>
+        {/* 미니 진행 바 */}
+        <div className="px-2 pb-1">
+          <div className="h-1.5 bg-[#E2E8F0] rounded-full overflow-hidden">
+            <div className="h-full bg-[#475569] rounded-full" style={{width:'68%'}}/>
+          </div>
         </div>
         <div className="mx-2 border-t border-dashed border-[#E2E8F0]"/>
         <div className="px-2 py-2">
           <div className="text-[9px] font-bold text-[#1A1A2E] truncate">{project.name}</div>
-          <div className="text-[8px] text-[#854F0B] mt-0.5">열기 →</div>
+          <div className="text-[8px] text-[#475569] mt-0.5">열기 →</div>
         </div>
       </div>
     </button>
@@ -343,25 +372,31 @@ function CommsShapeCard({ project, onClick }: { project: Project; onClick: () =>
   return (
     <button onClick={onClick} className="w-full hover:scale-[1.02] transition-transform">
       <div className="relative bg-white rounded-[14px] overflow-hidden border border-[#DDD6FE] hover:shadow-md transition-shadow">
-        {/* 스피커 고리 모양 장식 */}
-        <div className="flex justify-around px-10">
-          <div className="w-3.5 h-2.5 rounded-b-full border-x border-b border-[#DDD6FE] bg-[#F8FAFC]"/>
-          <div className="w-3.5 h-2.5 rounded-b-full border-x border-b border-[#DDD6FE] bg-[#F8FAFC]"/>
-        </div>
         {/* 헤더 */}
-        <div className="bg-[#EDE9FE] pt-1.5 pb-1.5 px-4 flex items-center justify-between">
+        <div className="bg-[#EDE9FE] px-4 py-1.5 flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <i className="ti ti-speakerphone text-[#7C3AED] text-[12px]"/>
             <span className="text-[#7C3AED] font-bold text-[10px]">공지 · 연락</span>
           </div>
           <span className={`text-[11px] font-black ${dday==='D-DAY'?'text-[#E24B4A]':'text-[#7C3AED]'}`}>{dday}</span>
         </div>
-        {/* 날짜 + 내용 */}
+        {/* 날짜 + 스피커 원형 + 내용 */}
         <div className="px-4 py-2 flex items-center gap-3">
           <div className="text-[32px] font-black text-[#7C3AED] leading-none flex-shrink-0">{d.getDate()}</div>
           <div className="flex-1 min-w-0 text-left">
             <div className="text-[13px] font-bold text-[#1A1A2E] truncate">{project.name}</div>
             {project.venue && <div className="text-[11px] text-[#64748B] flex items-center gap-1"><i className="ti ti-map-pin text-[10px]"/>{project.venue}</div>}
+          </div>
+          {/* 스피커 미니 */}
+          <div className="flex-shrink-0 w-[40px] h-[40px] rounded-full bg-[#EDE9FE] border-2 border-[#DDD6FE] flex items-center justify-center relative">
+            <div className="w-[26px] h-[26px] rounded-full bg-[#C4B5FD] border-[1.5px] border-[#A78BFA] flex items-center justify-center">
+              <div className="w-[10px] h-[10px] rounded-full bg-[#7C3AED]"/>
+            </div>
+            <div className="absolute right-[-5px] top-1/2 -translate-y-1/2 flex flex-col gap-[2px]">
+              <div className="w-[4px] h-[2px] rounded bg-[#7C3AED] opacity-40"/>
+              <div className="w-[5px] h-[2px] rounded bg-[#7C3AED] opacity-70"/>
+              <div className="w-[4px] h-[2px] rounded bg-[#7C3AED] opacity-40"/>
+            </div>
           </div>
         </div>
         <div className="mx-4 border-t border-dashed border-[#E2E8F0]"/>
@@ -380,32 +415,35 @@ function PTTShapeCard({ project, onClick }: { project: Project; onClick: () => v
   const d = new Date(project.date)
   return (
     <button onClick={onClick} className="w-full hover:scale-[1.02] transition-transform">
-      <div className="relative bg-[#1A1A2E] rounded-[14px] overflow-hidden border border-[#3D3D5C] hover:shadow-md transition-shadow">
+      <div className="relative bg-[#F0FAF4] rounded-[14px] overflow-hidden border border-[#A8D9BE] hover:shadow-md transition-shadow">
         {/* 안테나 장식 */}
         <div className="flex justify-around px-10">
           <div className="w-1.5 h-3 rounded-b-full bg-[#E24B4A]"/>
-          <div className="w-1.5 h-3 rounded-b-full bg-[#3D3D5C]"/>
+          <div className="w-1.5 h-3 rounded-b-full bg-[#A8D9BE]"/>
         </div>
         {/* 헤더 */}
-        <div className="bg-[#0A0A1A] px-4 py-1.5 flex items-center justify-between">
+        <div className="bg-[#D4EFE1] px-4 py-1.5 flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <div className="w-1.5 h-1.5 rounded-full bg-[#E24B4A] animate-pulse"/>
-            <span className="text-[#A0AEC0] font-bold text-[10px]">무전</span>
+            <span className="text-[#3B7A57] font-bold text-[10px]">무전</span>
           </div>
-          <span className={`text-[11px] font-black ${dday==='D-DAY'?'text-[#E24B4A]':'text-[#A0AEC0]'}`}>{dday}</span>
+          <span className={`text-[11px] font-black ${dday==='D-DAY'?'text-[#E24B4A]':'text-[#3B7A57]'}`}>{dday}</span>
         </div>
         {/* 날짜 + 내용 */}
         <div className="px-4 py-2 flex items-center gap-3">
-          <div className="text-[32px] font-black text-[#E24B4A] leading-none flex-shrink-0">{d.getDate()}</div>
+          <div className="text-[32px] font-black text-[#3B7A57] leading-none flex-shrink-0">{d.getDate()}</div>
           <div className="flex-1 min-w-0 text-left">
-            <div className="text-[13px] font-bold text-white truncate">{project.name}</div>
-            <div className="text-[10px] text-[#A0AEC0]">{project.date.replace(/-/g,'.')}</div>
+            <div className="text-[13px] font-bold text-[#1A2E22] truncate">{project.name}</div>
+            {project.venue && <div className="text-[11px] text-[#64748B] flex items-center gap-1"><i className="ti ti-map-pin text-[10px]"/>{project.venue}</div>}
+          </div>
+          <div className="flex-shrink-0 w-[34px] h-[34px] rounded-full bg-[#E24B4A] border-2 border-[#FF8080] flex items-center justify-center">
+            <i className="ti ti-microphone text-[14px] text-white"/>
           </div>
         </div>
-        <div className="mx-4 border-t border-dashed border-[#3D3D5C]"/>
+        <div className="mx-4 border-t border-dashed border-[#A8D9BE]"/>
         <div className="px-4 py-1.5 flex items-center justify-between">
-          <span className="text-[10px] font-mono text-[#3D3D5C]">{project.joinCode}</span>
-          <span className="text-[11px] font-bold text-[#E24B4A]">무전 연결 →</span>
+          <span className="text-[10px] font-mono text-[#6BBF8E]">{project.joinCode}</span>
+          <span className="text-[11px] font-bold text-[#3B7A57]">무전 연결 →</span>
         </div>
       </div>
     </button>
@@ -428,7 +466,7 @@ function MyPartShapeCard({ project, onClick }: { project: Project; onClick: () =
         {/* 헤더 */}
         <div className="bg-[#EAF3DE] px-4 py-1.5 flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <i className="ti ti-notebook text-[#3B6D11] text-[12px]"/>
+            <i className="ti ti-notes text-[#3B6D11] text-[12px]"/>
             <span className="text-[#3B6D11] font-bold text-[10px]">내 할 일</span>
           </div>
           <span className={`text-[11px] font-black ${dday==='D-DAY'?'text-[#E24B4A]':'text-[#3B6D11]'}`}>{dday}</span>
@@ -457,32 +495,38 @@ function DashboardShapeCard({ project, onClick }: { project: Project; onClick: (
   const d = new Date(project.date)
   return (
     <button onClick={onClick} className="w-full hover:scale-[1.02] transition-transform">
-      <div className="relative bg-white rounded-[14px] overflow-hidden border border-[#F4D7A8] hover:shadow-md transition-shadow">
-        {/* 현황판 고리 */}
-        <div className="flex justify-around px-10">
-          <div className="w-3.5 h-2.5 rounded-b-full border-x border-b border-[#F4D7A8] bg-[#F8FAFC]"/>
-          <div className="w-3.5 h-2.5 rounded-b-full border-x border-b border-[#F4D7A8] bg-[#F8FAFC]"/>
-        </div>
-        {/* 헤더 */}
-        <div className="bg-[#FEF3E2] px-4 py-1.5 flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <i className="ti ti-layout-dashboard text-[#854F0B] text-[12px]"/>
-            <span className="text-[#854F0B] font-bold text-[10px]">본부 현황판</span>
+      <div className="relative bg-white rounded-[14px] overflow-hidden border border-[#CBD5E1] hover:shadow-md transition-shadow">
+        {/* 패널 상단 LED 바 */}
+        <div className="bg-[#F1F4F8] px-4 py-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="flex gap-1.5">
+              <div className="w-2 h-2 rounded-full bg-[#4CAF50]"/>
+              <div className="w-2 h-2 rounded-full bg-[#FDE68A]"/>
+              <div className="w-2 h-2 rounded-full bg-[#CBD5E1]"/>
+            </div>
+            <span className="text-[#475569] font-bold text-[10px]">현황판</span>
           </div>
-          <span className={`text-[11px] font-black ${dday==='D-DAY'?'text-[#E24B4A]':'text-[#854F0B]'}`}>{dday}</span>
+          <span className={`text-[11px] font-black ${dday==='D-DAY'?'text-[#E24B4A]':'text-[#475569]'}`}>{dday}</span>
         </div>
         {/* 날짜 + 내용 */}
         <div className="px-4 py-2 flex items-center gap-3">
-          <div className="text-[32px] font-black text-[#854F0B] leading-none flex-shrink-0">{d.getDate()}</div>
+          <div className="text-[32px] font-black text-[#475569] leading-none flex-shrink-0">{d.getDate()}</div>
           <div className="flex-1 min-w-0 text-left">
             <div className="text-[13px] font-bold text-[#1A1A2E] truncate">{project.name}</div>
             {project.venue && <div className="text-[11px] text-[#64748B] flex items-center gap-1"><i className="ti ti-map-pin text-[10px]"/>{project.venue}</div>}
+            {/* 진행 바 */}
+            <div className="mt-1.5 flex items-center gap-2">
+              <div className="flex-1 h-1.5 bg-[#E2E8F0] rounded-full overflow-hidden">
+                <div className="h-full bg-[#475569] rounded-full" style={{width:'68%'}}/>
+              </div>
+              <span className="text-[9px] font-bold text-[#475569]">68%</span>
+            </div>
           </div>
         </div>
         <div className="mx-4 border-t border-dashed border-[#E2E8F0]"/>
         <div className="px-4 py-1.5 flex items-center justify-between">
           <span className="text-[10px] font-mono text-[#A0AEC0]">{project.joinCode}</span>
-          <span className="text-[11px] font-bold text-[#854F0B]">현황판 열기 →</span>
+          <span className="text-[11px] font-bold text-[#475569]">현황판 열기 →</span>
         </div>
       </div>
     </button>
