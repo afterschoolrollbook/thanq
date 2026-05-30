@@ -56,28 +56,28 @@ function TimelineHeader() {
 function MyPartHeader() {
   return (
     <div className="mb-6 rounded-[20px] overflow-hidden shadow-md">
-      <div className="bg-[#3B6D11] px-5 pt-5 pb-4">
+      <div className="bg-[#EAF3DE] px-5 pt-4 pb-3">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-[12px] bg-white/20 flex items-center justify-center">
-            <i className="ti ti-checklist text-white text-[20px]"/>
+          <div className="w-9 h-9 rounded-[10px] bg-[#3B6D11] flex items-center justify-center">
+            <i className="ti ti-checklist text-white text-[17px]"/>
           </div>
           <div>
-            <div className="text-white text-[17px] font-black">내 할 일</div>
-            <div className="text-[#BBF7D0] text-[11px]">내가 담당한 파트의 체크리스트</div>
+            <div className="text-[#1A1A2E] text-[15px] font-bold">내 할 일</div>
+            <div className="text-[#3B6D11] text-[11px]">내가 담당한 파트의 체크리스트</div>
           </div>
         </div>
         <div className="flex flex-col gap-1.5 bg-white/10 rounded-[10px] p-3">
           {[{done:true,text:'집결지 사용 허가 확인'},{done:true,text:'코스 사전 답사 완료'},{done:false,text:'브런치 식당 예약 — 인원 재확인'},{done:false,text:'페이서 3명 섭외 및 역할 분담'}].map((item,i) => (
             <div key={i} className="flex items-center gap-2">
-              <div className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 ${item.done?'bg-white':'border border-white/40'}`}>
+              <div className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 ${item.done?'bg-[#3B6D11]':'border border-[#E2E8F0]'}`}>
                 {item.done && <i className="ti ti-check text-[#3B6D11] text-[9px]"/>}
               </div>
-              <span className={`text-[11px] ${item.done?'line-through text-white/50':'text-white'}`}>{item.text}</span>
+              <span className={`text-[11px] ${item.done?'line-through text-[#A0AEC0]':'text-[#1A1A2E]'}`}>{item.text}</span>
             </div>
           ))}
         </div>
       </div>
-      <div className="bg-[#2D5209] px-5 py-2.5 flex items-center gap-1.5">
+      <div className="bg-[#3B6D11] px-5 py-2 flex items-center gap-1.5">
         <i className="ti ti-hand-click text-white/70 text-[12px]"/>
         <span className="text-white text-[11px] font-semibold">아래 프로젝트를 선택하면 내 할 일이 열려요</span>
       </div>
@@ -88,31 +88,31 @@ function MyPartHeader() {
 function DashboardHeader() {
   return (
     <div className="mb-6 rounded-[20px] overflow-hidden shadow-md">
-      <div className="bg-[#854F0B] px-5 pt-5 pb-4">
+      <div className="bg-[#FEF3E2] px-5 pt-4 pb-3">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-10 h-10 rounded-[12px] bg-white/20 flex items-center justify-center">
             <i className="ti ti-layout-dashboard text-white text-[20px]"/>
           </div>
           <div>
-            <div className="text-white text-[17px] font-black">본부 현황판</div>
-            <div className="text-[#FDE68A] text-[11px]">전체 준비율 · 파트별 진행 상태</div>
+            <div className="text-[#1A1A2E] text-[15px] font-bold">본부 현황판</div>
+            <div className="text-[#854F0B] text-[11px]">전체 준비율 · 파트별 진행 상태</div>
           </div>
         </div>
         <div className="bg-white/10 rounded-[10px] p-3">
           <div className="flex gap-3 mb-2">
             {[{label:'전체 준비율',value:'68%',color:'#FDE68A'},{label:'진행 중',value:'3팀',color:'#6EE7B7'},{label:'지연',value:'1팀',color:'#FCA5A5'}].map(s => (
               <div key={s.label} className="flex-1 text-center">
-                <div className="text-[16px] font-black" style={{color:s.color}}>{s.value}</div>
-                <div className="text-[9px] text-white/60 mt-0.5">{s.label}</div>
+                <div className="text-[15px] font-black text-[#854F0B]">{s.value}</div>
+                <div className="text-[9px] text-[#A0AEC0] mt-0.5">{s.label}</div>
               </div>
             ))}
           </div>
-          <div className="h-2 bg-white/20 rounded-full overflow-hidden">
-            <div className="h-full bg-[#FDE68A] rounded-full" style={{width:'68%'}}/>
+          <div className="h-2 bg-[#F1EFE8] rounded-full overflow-hidden">
+            <div className="h-full bg-[#854F0B] rounded-full" style={{width:'68%'}}/>
           </div>
         </div>
       </div>
-      <div className="bg-[#6B3F09] px-5 py-2.5 flex items-center gap-1.5">
+      <div className="bg-[#854F0B] px-5 py-2 flex items-center gap-1.5">
         <i className="ti ti-hand-click text-white/70 text-[12px]"/>
         <span className="text-white text-[11px] font-semibold">아래 프로젝트를 선택하면 현황판이 열려요</span>
       </div>
@@ -123,26 +123,26 @@ function DashboardHeader() {
 function CommsHeader() {
   return (
     <div className="mb-6 rounded-[20px] overflow-hidden shadow-md">
-      <div className="bg-[#7C3AED] px-5 pt-5 pb-4">
+      <div className="bg-[#EDE9FE] px-5 pt-4 pb-3">
         <div className="flex items-start gap-3 mb-3">
-          <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
-            <i className="ti ti-speakerphone text-white text-[20px]"/>
+          <div className="w-9 h-9 rounded-full bg-[#7C3AED] flex items-center justify-center flex-shrink-0">
+            <i className="ti ti-speakerphone text-white text-[17px]"/>
           </div>
           <div>
-            <div className="text-white text-[17px] font-black">공지 · 연락</div>
-            <div className="text-[#DDD6FE] text-[11px]">팀 전체에 공지 · 긴급 연락 · 미팅 안내</div>
+            <div className="text-[#1A1A2E] text-[15px] font-bold">공지 · 연락</div>
+            <div className="text-[#7C3AED] text-[11px]">팀 전체에 공지 · 긴급 연락 · 미팅 안내</div>
           </div>
         </div>
         <div className="flex flex-col gap-1.5 bg-white/10 rounded-[10px] p-3">
           {[{type:'긴급',color:'#FCA5A5',text:'A그룹 집결지 변경 안내'},{type:'일반',color:'#93C5FD',text:'준비물 최종 점검 완료'}].map((n,i) => (
             <div key={i} className="flex items-center gap-2">
               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{background:n.color+'33',color:n.color}}>{n.type}</span>
-              <span className="text-[11px] text-white truncate">{n.text}</span>
+              <span className="text-[11px] text-[#1A1A2E] truncate">{n.text}</span>
             </div>
           ))}
         </div>
       </div>
-      <div className="bg-[#5B21B6] px-5 py-2.5 flex items-center gap-1.5">
+      <div className="bg-[#7C3AED] px-5 py-2 flex items-center gap-1.5">
         <i className="ti ti-hand-click text-white/70 text-[12px]"/>
         <span className="text-white text-[11px] font-semibold">아래 프로젝트를 선택하면 공지 채널이 열려요</span>
       </div>
@@ -153,7 +153,7 @@ function CommsHeader() {
 function PTTHeader() {
   return (
     <div className="mb-6 rounded-[20px] overflow-hidden shadow-md">
-      <div className="bg-[#1A1A2E] px-5 pt-5 pb-4 flex items-center gap-4">
+      <div className="bg-[#2D2D44] px-5 pt-4 pb-3 flex items-center gap-4">
         <div className="relative flex-shrink-0">
           <div className="w-16 h-22 bg-[#2D2D44] rounded-[12px] border-2 border-[#3D3D5C] flex flex-col items-center justify-between py-2 px-2">
             <div className="w-full h-5 bg-[#0A0A1A] rounded-[4px] flex items-center justify-center">
@@ -179,7 +179,7 @@ function PTTHeader() {
           </div>
         </div>
       </div>
-      <div className="bg-[#E24B4A] px-5 py-2.5 flex items-center gap-1.5">
+      <div className="bg-[#E24B4A] px-5 py-2 flex items-center gap-1.5">
         <i className="ti ti-hand-click text-white/70 text-[12px]"/>
         <span className="text-white text-[11px] font-semibold">아래 프로젝트를 선택하면 무전이 연결돼요</span>
       </div>
