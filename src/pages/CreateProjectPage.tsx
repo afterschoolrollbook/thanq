@@ -61,15 +61,15 @@ export default function CreateProjectPage() {
     if (tmpl.contact)     overviewParts.push(clean(tmpl.contact))
     if (overviewParts.length) setOverview(overviewParts.join('\n'))
 
-    // eventDate: "2025년 6월 15일" 형식 → YYYY-MM-DD 변환 시도
+    // eventDate: "2026-05-29" 또는 "2026년 5월 29일" 형식 모두 지원
     if (tmpl.eventDate) {
       const raw = clean(tmpl.eventDate)
-      const m = raw.match(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/)
-      if (m) {
-        const yyyy = m[1]
-        const mm   = m[2].padStart(2, '0')
-        const dd   = m[3].padStart(2, '0')
-        setDate(`${yyyy}-${mm}-${dd}`)
+      const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+      const korean = raw.match(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/)
+      if (iso) {
+        setDate(raw)
+      } else if (korean) {
+        setDate(`${korean[1]}-${korean[2].padStart(2,'0')}-${korean[3].padStart(2,'0')}`)
       }
     }
   }
