@@ -22,6 +22,7 @@ import BlogPage from '@/pages/BlogPage'
 import BlogPostPage from '@/pages/BlogPostPage'
 import BlogWritePage from '@/pages/BlogWritePage'
 import LandingPage from '@/pages/LandingPage'
+import JoinPage from '@/pages/JoinPage'
 import TemplatePage from '@/pages/TemplatePage'
 import MyPage from '@/pages/MyPage'
 
@@ -67,6 +68,7 @@ export default function App() {
           </Route>
         </Route>
         <Route path="/admin" element={<SiteAdminPage />} />
+        <Route path="/join" element={<JoinPage />} />
         <Route path="/" element={<LandingPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
