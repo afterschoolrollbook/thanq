@@ -54,6 +54,7 @@ async function buildTemplateParts(projectId: string): Promise<TemplatePartDraft[
       name: part.name,
       color: part.color,
       order: part.order,
+      isParticipant: part.isParticipant ?? false,
       cueItems: cueItems.map((c) => {
         const cueLinkedChecks = checkItems.filter((ch) => ch.cueId === c.id)
         return {
@@ -225,6 +226,7 @@ export async function applyTemplateToProject(
       name: tPart.name,
       color,
       order: tPart.order ?? i,
+      isParticipant: tPart.isParticipant ?? false,
       status: 'waiting',
       progress: 0,
       createdAt: new Date().toISOString(),
