@@ -37,18 +37,16 @@ function MiniCalendar({ selectedDate, onChange, eventDates, prepDates, onClose }
         <div key={wi} className="grid grid-cols-7">
           {wk.map((d,di)=>{
             if(!d) return <div key={di}/>
-            const str=toStr(d), isSel=str===selectedDate, isEventDay=eventDates.includes(str), isPrepDay=prepDates.includes(str), isToday=str===new Date().toISOString().split('T')[0]
-            const dayColor = di===0?'text-[#E24B4A]':di===6?'text-[#185FA5]':'text-[#1A1A2E]'
-            const btnClass = isSel
-              ? 'bg-[#185FA5] text-white'
-              : isEventDay
-                ? `border-2 border-[#DC2626] text-[#DC2626] font-bold ${dayColor}`
-                : `${dayColor} hover:bg-[#F4F6F9]`
-            return <button key={di} onClick={()=>{onChange(str);onClose()}} className={`relative h-7 w-full flex flex-col items-center justify-center rounded-full text-[11px] font-medium ${btnClass}`}>
+            const str=toStr(d), isSel=str===selectedDate, isEv=eventDates.includes(str), isPrep=prepDates.includes(str), isToday=str===new Date().toISOString().split('T')[0]
+            const dc=di===0?'text-[#E24B4A]':di===6?'text-[#185FA5]':'text-[#1A1A2E]'
+            const bc=isSel?'bg-[#185FA5] text-white':isEv?`border-2 border-[#DC2626] text-[#DC2626] font-bold`:`${dc} hover:bg-[#F4F6F9]`
+            return <button key={di} onClick={()=>{onChange(str);onClose()}} className={`relative h-7 w-full flex flex-col items-center justify-center rounded-full text-[11px] font-medium ${bc}`}>
               {d}
-              {isPrepDay && !isSel && !isEventDay && <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#DC2626]"/>}
-              {isToday && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3 h-0.5 rounded-full bg-[#185FA5]"/>}
+              {isPrep&&!isSel&&!isEv&&<span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#DC2626]"/>}
+              {isToday&&<span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3 h-0.5 rounded-full bg-[#185FA5]"/>}
             </button>
+          })}
+        </div>
       ))}
     </div>
   )
