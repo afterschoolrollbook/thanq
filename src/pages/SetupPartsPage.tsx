@@ -32,7 +32,10 @@ export default function SetupPartsPage() {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
 
   const joinCode = projectId?.slice(-6).toUpperCase() ?? 'AB3X7F'
-  const joinLink = `${window.location.origin}/join?code=${joinCode}`
+  const baseJoinLink = `${window.location.origin}/join?code=${joinCode}`
+  // invitePartId는 현재 초대 중인 파트의 임시 ID (저장 전이라 없음 → 저장 후 공유)
+  const [invitePartLink, setInvitePartLink] = useState('')
+  const joinLink = invitePartLink || baseJoinLink
 
   useEffect(() => {
     if (!projectId) return
@@ -97,6 +100,10 @@ export default function SetupPartsPage() {
     setInviteTarget({ group, idx })
     const part = group === 'staff' ? staffParts[idx] : participantParts[idx]
     setManager(part.manager ?? emptyManager())
+    // 파트 역할 링크 생성 (partKey = group+idx 조합, 저장 시 실제 partId로 교체됨)
+    const partKey = `${group}_${idx}`
+    const role = group === 'participant' ? 'participant' : 'staff'
+    setInvitePartLink(`${baseJoinLink}&partKey=${partKey}&role=${role}&partName=${encodeURIComponent(part.name || (group === 'staff' ? `운영팀 ${idx+1}` : `그룹 ${idx+1}`))}`)
   }
 
   function saveManager() {
@@ -154,9 +161,15 @@ export default function SetupPartsPage() {
         if (p.manager?.alias?.trim() && user) {
           aliasMap[partId] = p.manager.alias.trim()
         }
-        // 파트 role을 parts에 저장 (isParticipant 기반)
+        // 파트 role 저장
         const memberRole = p.isParticipant ? 'participant' : 'staff'
-        await set(ref(db, `parts/${projectId}/${partId}/memberRole`), memberRole)
+        // partKey → partId 매핑 저장 (JoinPage에서 참조)
+        const groupName = p.isParticipant ? 'participant' : 'staff'
+        const idxInGroup = p.isParticipant
+          ? participantParts.filter(pp => pp.name.trim()).indexOf(p as any)
+          : staffParts.filter(pp => pp.name.trim()).indexOf(p as any)
+        const partKey = `${groupName}_${idxInGroup}`
+        await set(ref(db, `partKeyMap/${projectId}/${partKey}`), { partId, partName: p.name.trim(), memberRole })
       }
       // 오너를 기획자로 등록
       if (user) {

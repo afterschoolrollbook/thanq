@@ -31,6 +31,8 @@ export default function ProjectHomePage() {
   const [myPartName, setMyPartName] = useState<string>('')
   const [roleChangeTarget, setRoleChangeTarget] = useState<Part | null>(null)
   const [roleChangeRole, setRoleChangeRole] = useState<string>('staff')
+  const [showInviteModal, setShowInviteModal] = useState<Part | null>(null)
+  const [inviteCopied, setInviteCopied] = useState(false)
   const [myChecks, setMyChecks] = useState<CheckItem[]>([])
   const [loading, setLoading] = useState(true)
   const [showExport, setShowExport] = useState(false)
@@ -151,6 +153,18 @@ export default function ProjectHomePage() {
       }, { onlyOnce: true })
     })
   }, [projectId, parts])
+
+  function getInviteLink(part: Part, role: string = 'staff') {
+    const partKey = `${part.isParticipant ? 'participant' : 'staff'}_${parts.filter(p => !!(p as any).isParticipant === !!(part as any).isParticipant).indexOf(part)}`
+    const base = `${window.location.origin}/join?code=${project?.joinCode ?? projectId?.slice(-6).toUpperCase()}`
+    return `${base}&partKey=${partKey}&role=${role}&partName=${encodeURIComponent(part.name)}`
+  }
+
+  async function copyInviteLink(part: Part, role: string = 'staff') {
+    await navigator.clipboard.writeText(getInviteLink(part, role))
+    setInviteCopied(true)
+    setTimeout(() => setInviteCopied(false), 2000)
+  }
 
   async function saveMemberRole(part: Part, role: string) {
     if (!projectId || !user) return
@@ -565,6 +579,13 @@ export default function ProjectHomePage() {
                         {part.id === myPartId && (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#E6F1FB] text-[#185FA5]">나</span>
                         )}
+                        {/* 초대 버튼 - 기획자 또는 내 파트 팀장 */}
+                        {(isOwner || part.id === myPartId) && !editingParts && (
+                          <button onClick={() => setShowInviteModal(part)}
+                            className="text-[#A0AEC0] hover:text-[#185FA5] transition-colors">
+                            <i className="ti ti-user-plus text-[13px]"/>
+                          </button>
+                        )}
                         {/* 역할 뱃지 */}
                         {(part as any).memberRole && (
                           <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
@@ -698,6 +719,39 @@ export default function ProjectHomePage() {
           </div>
         )}
       </div>
+
+      {/* 팀원 초대 모달 */}
+      {showInviteModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-5" onClick={() => setShowInviteModal(null)}>
+          <div className="bg-white rounded-[20px] p-5 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-[16px] font-semibold">팀원 초대</div>
+              <button onClick={() => setShowInviteModal(null)}><i className="ti ti-x text-[18px] text-[#A0AEC0]"/></button>
+            </div>
+            <div className="flex items-center gap-2 mb-4 p-3 bg-[#F4F6F9] rounded-[10px]">
+              <span className="w-2.5 h-2.5 rounded-full" style={{ background: showInviteModal.color }}/>
+              <span className="text-[13px] font-semibold">{showInviteModal.name}</span>
+            </div>
+            <p className="text-[12px] text-[#64748B] mb-4">초대 링크를 복사해서 팀원에게 공유하세요. 링크로 입장하면 이 파트에 자동 배정돼요.</p>
+            <div className="bg-[#F4F6F9] rounded-[10px] p-3 mb-4 flex items-center gap-2">
+              <span className="text-[11px] text-[#64748B] flex-1 truncate">{getInviteLink(showInviteModal, (showInviteModal as any).isParticipant ? 'participant' : 'staff')}</span>
+            </div>
+            <div className="flex flex-col gap-2">
+              <button onClick={() => copyInviteLink(showInviteModal, (showInviteModal as any).isParticipant ? 'participant' : 'staff')}
+                className={`w-full h-[44px] rounded-[12px] text-[13px] font-semibold flex items-center justify-center gap-2 transition-colors ${inviteCopied ? 'bg-[#3B6D11] text-white' : 'bg-[#185FA5] text-white'}`}>
+                <i className={`ti ${inviteCopied ? 'ti-check' : 'ti-copy'} text-[14px]`}/>
+                {inviteCopied ? '복사됐어요!' : '링크 복사'}
+              </button>
+              {navigator.share && (
+                <button onClick={() => navigator.share({ title: 'ThanQ 초대', url: getInviteLink(showInviteModal, (showInviteModal as any).isParticipant ? 'participant' : 'staff') })}
+                  className="w-full h-[44px] border border-[#E2E8F0] rounded-[12px] text-[13px] text-[#64748B] flex items-center justify-center gap-2">
+                  <i className="ti ti-share text-[14px]"/> 공유하기
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 역할 변경 모달 */}
       {roleChangeTarget && (
