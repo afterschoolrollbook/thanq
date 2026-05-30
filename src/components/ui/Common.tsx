@@ -133,11 +133,11 @@ export function BottomTabBar() {
         {/* 프로젝트 */}
         <button onClick={() => navigate('/projects')}
           className={`flex-1 flex flex-col items-center py-2.5 gap-0.5 text-[11px] font-medium transition-all relative ${
-            location.pathname === '/projects' || location.pathname.includes('/home')
+            location.pathname === '/projects' || /^\/p\/[^/]+\/home$/.test(location.pathname)
               ? 'text-[#185FA5] bg-[#E6F1FB]'
               : 'text-[#A0AEC0] hover:text-[#185FA5]'
           }`}>
-          {(location.pathname === '/projects' || location.pathname.includes('/home')) && <div className="absolute top-0 left-0 right-0 h-0.5 bg-[#185FA5] rounded-b"/>}
+          {(location.pathname === '/projects' || /^\/p\/[^/]+\/home$/.test(location.pathname)) && <div className="absolute top-0 left-0 right-0 h-0.5 bg-[#185FA5] rounded-b"/>}
           <i className="ti ti-folder text-[20px]" />
           <span>프로젝트</span>
         </button>
