@@ -649,31 +649,31 @@ function DefaultCard({ project, onClick }: { project: Project; onClick: () => vo
   const statusLabel: Record<Project['status'], string> = { planning:'기획 중', ready:'준비 중', live:'진행 중', done:'완료' }
   const statusColor: Record<Project['status'], string> = {
     planning:'bg-[#F1EFE8] text-[#5F5E5A]',
-    ready:'bg-[#E6F1FB] text-[#185FA5]',
+    ready:'bg-[#FEF3E2] text-[#E8820C]',
     live:'bg-[#EAF3DE] text-[#3B6D11]',
     done:'bg-[#F1EFE8] text-[#A0AEC0]',
   }
   return (
     <button onClick={onClick} className="w-full hover:scale-[1.01] transition-transform text-left">
-      <div className={`relative bg-white rounded-[14px] overflow-hidden hover:shadow-md transition-shadow border-[1.5px] ${isLive?'border-[#185FA5]':'border-[#B5D4F4]'}`}>
+      <div className={`relative bg-white rounded-[14px] overflow-hidden hover:shadow-md transition-shadow border-[1.5px] ${isLive?'border-[#E8820C]':'border-[#F4D7A8]'}`}>
         {/* 티켓 헤더 */}
-        <div className={`px-4 py-2 flex items-center justify-between ${isLive?'bg-[#E6F1FB]':'bg-[#F0F7FF]'}`}>
+        <div className={`px-4 py-2 flex items-center justify-between ${isLive?'bg-[#FEF3E2]':'bg-[#FFF8F0]'}`}>
           <div className="flex items-center gap-2">
             {isLive && <span className="flex items-center gap-1 text-[10px] font-semibold text-white bg-[#E24B4A] px-2 py-0.5 rounded-full"><span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse inline-block"/>LIVE</span>}
             <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${statusColor[project.status]}`}>{statusLabel[project.status]}</span>
           </div>
-          <span className={`text-[12px] font-black ${dday==='D-DAY'?'text-[#E24B4A]':'text-[#185FA5]'}`}>{dday}</span>
+          <span className={`text-[12px] font-black ${dday==='D-DAY'?'text-[#E24B4A]':'text-[#E8820C]'}`}>{dday}</span>
         </div>
         {/* 절취선 위 */}
         <div className="relative flex items-center h-[14px]">
-          <div className="absolute -left-[7px] w-[14px] h-[14px] rounded-full bg-[#F4F6F9] border-[1.5px] border-[#B5D4F4]"/>
-          <div className="flex-1 border-t-2 border-dashed border-[#B5D4F4] mx-1"/>
-          <div className="absolute -right-[7px] w-[14px] h-[14px] rounded-full bg-[#F4F6F9] border-[1.5px] border-[#B5D4F4]"/>
+          <div className="absolute -left-[7px] w-[14px] h-[14px] rounded-full bg-[#F4F6F9] border-[1.5px] border-[#F4D7A8]"/>
+          <div className="flex-1 border-t-2 border-dashed border-[#F4D7A8] mx-1"/>
+          <div className="absolute -right-[7px] w-[14px] h-[14px] rounded-full bg-[#F4F6F9] border-[1.5px] border-[#F4D7A8]"/>
         </div>
         {/* 본문 */}
         <div className="px-4 py-2 flex items-center gap-3">
           <div className="flex-shrink-0 text-center">
-            <div className={`text-[36px] font-black leading-none ${dday==='D-DAY'?'text-[#E24B4A]':'text-[#185FA5]'}`}>{d.getDate()}</div>
+            <div className={`text-[36px] font-black leading-none ${dday==='D-DAY'?'text-[#E24B4A]':'text-[#E8820C]'}`}>{d.getDate()}</div>
             <div className="text-[10px] text-[#94A3B8] font-semibold">{d.getMonth()+1}월 {d.getFullYear()}</div>
           </div>
           <div className="flex-1 min-w-0">
@@ -681,20 +681,20 @@ function DefaultCard({ project, onClick }: { project: Project; onClick: () => vo
             {project.venue && <div className="text-[11px] text-[#64748B] flex items-center gap-1 mt-0.5"><i className="ti ti-map-pin text-[11px]"/>{project.venue}</div>}
           </div>
           {/* 도장 */}
-          <div className="flex-shrink-0 w-[38px] h-[38px] rounded-full border-2 border-[#185FA5] flex items-center justify-center opacity-20 rotate-[-12deg]">
-            <span className="text-[6px] font-black text-[#185FA5] text-center leading-tight">PRJ<br/>2026</span>
+          <div className="flex-shrink-0 w-[38px] h-[38px] rounded-full border-2 border-[#E8820C] flex items-center justify-center opacity-40 rotate-[-12deg]">
+            <span className="text-[6px] font-black text-[#E8820C] text-center leading-tight">PRJ<br/>2026</span>
           </div>
         </div>
         {/* 절취선 아래 */}
         <div className="relative flex items-center h-[14px]">
-          <div className="absolute -left-[7px] w-[14px] h-[14px] rounded-full bg-[#F4F6F9] border-[1.5px] border-[#B5D4F4]"/>
-          <div className="flex-1 border-t-2 border-dashed border-[#B5D4F4] mx-1"/>
-          <div className="absolute -right-[7px] w-[14px] h-[14px] rounded-full bg-[#F4F6F9] border-[1.5px] border-[#B5D4F4]"/>
+          <div className="absolute -left-[7px] w-[14px] h-[14px] rounded-full bg-[#F4F6F9] border-[1.5px] border-[#F4D7A8]"/>
+          <div className="flex-1 border-t-2 border-dashed border-[#F4D7A8] mx-1"/>
+          <div className="absolute -right-[7px] w-[14px] h-[14px] rounded-full bg-[#F4F6F9] border-[1.5px] border-[#F4D7A8]"/>
         </div>
         {/* 하단 */}
         <div className="px-4 py-2 flex items-center justify-between">
-          <span className="text-[11px] font-mono font-black tracking-widest text-[#185FA5]">{project.joinCode}</span>
-          <span className="text-[12px] text-[#185FA5] font-semibold flex items-center gap-1">이어서 작업하기 <i className="ti ti-arrow-right"/></span>
+          <span className="text-[11px] font-mono font-black tracking-widest text-[#E8820C]">{project.joinCode}</span>
+          <span className="text-[12px] text-[#E8820C] font-semibold flex items-center gap-1">이어서 작업하기 <i className="ti ti-arrow-right"/></span>
         </div>
       </div>
     </button>
@@ -806,30 +806,30 @@ export default function ProjectsPage() {
                 <p className="text-[13px] text-[#64748B] mt-0.5">진행 중이거나 예정된 행사를 관리하세요</p>
               </div>
               <button onClick={() => navigate('/onboarding/field')}
-                className="h-[38px] px-4 bg-[#185FA5] text-white rounded-[10px] flex items-center gap-1.5 text-[13px] font-semibold">
+                className="h-[38px] px-4 bg-[#E8820C] text-white rounded-[10px] flex items-center gap-1.5 text-[13px] font-semibold">
                 <i className="ti ti-plus text-[14px]" /> 새 프로젝트
               </button>
             </div>
             <div className="mb-4">
               {!showJoinInput ? (
                 <button onClick={() => setShowJoinInput(true)}
-                  className="w-full bg-white border border-[#E2E8F0] rounded-[12px] px-4 py-3 flex items-center gap-3 hover:border-[#185FA5] transition-colors">
-                  <div className="w-9 h-9 rounded-full bg-[#F4F6F9] flex items-center justify-center flex-shrink-0">
-                    <i className="ti ti-key text-[#64748B] text-[16px]" />
+                  className="w-full bg-white border border-[#F4D7A8] rounded-[12px] px-4 py-3 flex items-center gap-3 hover:border-[#E8820C] transition-colors">
+                  <div className="w-9 h-9 rounded-full bg-[#FFF8F0] flex items-center justify-center flex-shrink-0">
+                    <i className="ti ti-key text-[#E8820C] text-[16px]" />
                   </div>
                   <div className="text-left flex-1">
                     <div className="text-[13px] font-semibold">참여 코드로 입장</div>
                     <div className="text-[11px] text-[#64748B]">초대받은 프로젝트에 참여하기</div>
                   </div>
-                  <i className="ti ti-chevron-right text-[#A0AEC0]" />
+                  <i className="ti ti-chevron-right text-[#E8820C]" />
                 </button>
               ) : (
-                <div className="bg-white border-2 border-[#185FA5] rounded-[12px] px-4 py-3 flex items-center gap-2">
-                  <input className="flex-1 text-[14px] font-bold tracking-widest text-[#185FA5] outline-none placeholder-[#B5D4F4]"
+                <div className="bg-white border-2 border-[#E8820C] rounded-[12px] px-4 py-3 flex items-center gap-2">
+                  <input className="flex-1 text-[14px] font-bold tracking-widest text-[#E8820C] outline-none placeholder-[#F4D7A8]"
                     placeholder="참여 코드 6자리" value={joinCode}
                     onChange={(e) => setJoinCode(e.target.value.toUpperCase())} maxLength={6} autoFocus />
                   <button onClick={() => setShowJoinInput(false)} className="text-[#A0AEC0] text-[12px]">취소</button>
-                  <button className="h-[32px] px-3 bg-[#185FA5] text-white rounded-[8px] text-[12px] font-semibold">입장</button>
+                  <button className="h-[32px] px-3 bg-[#E8820C] text-white rounded-[8px] text-[12px] font-semibold">입장</button>
                 </div>
               )}
             </div>
@@ -841,14 +841,24 @@ export default function ProjectsPage() {
           <div className="flex items-center justify-between mb-3">
             <span className="text-[12px] text-[#64748B]">{viewMode === 'icon' ? '아이콘 보기' : '리스트 보기'}</span>
             <div className="flex items-center gap-1 bg-white border border-[#E2E8F0] rounded-[10px] p-1">
-              <button onClick={() => setViewMode('icon')}
-                className={`w-7 h-7 rounded-[7px] flex items-center justify-center transition-all ${viewMode==='icon'?'bg-[#185FA5] text-white':'text-[#A0AEC0] hover:text-[#185FA5]'}`}>
-                <i className="ti ti-layout-grid text-[13px]"/>
-              </button>
-              <button onClick={() => setViewMode('list')}
-                className={`w-7 h-7 rounded-[7px] flex items-center justify-center transition-all ${viewMode==='list'?'bg-[#185FA5] text-white':'text-[#A0AEC0] hover:text-[#185FA5]'}`}>
-                <i className="ti ti-list text-[13px]"/>
-              </button>
+              {(() => {
+                const activeColor = !nextTab ? 'bg-[#E8820C]'
+                  : nextTab==='my-part' ? 'bg-[#3B6D11]'
+                  : nextTab==='dashboard' ? 'bg-[#475569]'
+                  : nextTab==='comms' ? 'bg-[#7C3AED]'
+                  : nextTab==='ptt' ? 'bg-[#3B7A57]'
+                  : 'bg-[#185FA5]'
+                return <>
+                  <button onClick={() => setViewMode('icon')}
+                    className={`w-7 h-7 rounded-[7px] flex items-center justify-center transition-all ${viewMode==='icon'?`${activeColor} text-white`:'text-[#A0AEC0]'}`}>
+                    <i className="ti ti-layout-grid text-[13px]"/>
+                  </button>
+                  <button onClick={() => setViewMode('list')}
+                    className={`w-7 h-7 rounded-[7px] flex items-center justify-center transition-all ${viewMode==='list'?`${activeColor} text-white`:'text-[#A0AEC0]'}`}>
+                    <i className="ti ti-list text-[13px]"/>
+                  </button>
+                </>
+              })()}
             </div>
           </div>
         )}
@@ -860,7 +870,7 @@ export default function ProjectsPage() {
             <i className="ti ti-folder-open text-[48px] text-[#A0AEC0] block mb-3 opacity-40" />
             <p className="text-[13px] text-[#64748B]">아직 프로젝트가 없어요</p>
             <button onClick={() => navigate('/onboarding/field')}
-              className="mt-4 h-[38px] px-5 bg-[#185FA5] text-white rounded-[10px] text-[13px] font-semibold inline-flex items-center gap-1.5">
+              className="mt-4 h-[38px] px-5 bg-[#E8820C] text-white rounded-[10px] text-[13px] font-semibold inline-flex items-center gap-1.5">
               <i className="ti ti-plus" /> 새 프로젝트 만들기
             </button>
           </div>
