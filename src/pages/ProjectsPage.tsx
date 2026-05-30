@@ -180,10 +180,171 @@ function PTTHeader() {
   )
 }
 
-// ── 탭별 테마 프로젝트 카드 ───────────────────────────────
-function ProjectCard({ project, nextTab, onClick }: {
-  project: Project; nextTab: string | null; onClick: () => void
-}) {
+// ── 탭별 실루엣 카드 ─────────────────────────────────────
+
+function TimelineCard({ project, onClick }: { project: Project; onClick: () => void }) {
+  const dday = getDday(project.date)
+  const d = new Date(project.date)
+  return (
+    <button onClick={onClick} className="w-full text-left hover:shadow-lg transition-all">
+      <div className="bg-white border-2 border-[#185FA5] rounded-[14px] overflow-hidden">
+        <div className="bg-[#185FA5] px-4 py-2 flex items-center justify-between">
+          <span className="text-white text-[11px] font-semibold">📅 일정표</span>
+          <span className={`text-[13px] font-black ${dday==='D-DAY'?'text-[#FFD700]':'text-white'}`}>{dday}</span>
+        </div>
+        <div className="px-4 py-3 flex items-center gap-3">
+          <div className="w-12 h-12 rounded-[10px] bg-[#E6F1FB] flex flex-col items-center justify-center flex-shrink-0">
+            <span className="text-[10px] font-bold text-[#185FA5]">{d.getMonth()+1}월</span>
+            <span className="text-[20px] font-black text-[#185FA5] leading-tight">{d.getDate()}</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[14px] font-bold text-[#1A1A2E] truncate">{project.name}</div>
+            <div className="text-[11px] text-[#64748B] mt-0.5 flex items-center gap-1">
+              {project.venue && <><i className="ti ti-map-pin text-[10px]"/>{project.venue}</>}
+            </div>
+          </div>
+        </div>
+        <div className="px-4 py-2 bg-[#F4F6F9] flex items-center justify-between">
+          <span className="text-[11px] font-mono font-bold text-[#A0AEC0]">{project.joinCode}</span>
+          <span className="text-[11px] font-bold text-[#185FA5] flex items-center gap-1">일정표 열기 <i className="ti ti-arrow-right"/></span>
+        </div>
+      </div>
+    </button>
+  )
+}
+
+function CommsCard({ project, onClick }: { project: Project; onClick: () => void }) {
+  const dday = getDday(project.date)
+  return (
+    <button onClick={onClick} className="w-full text-left hover:shadow-lg transition-all">
+      <div className="bg-white border-2 border-[#7C3AED] rounded-[14px] overflow-hidden">
+        <div className="bg-[#7C3AED] px-4 py-2 flex items-center justify-between">
+          <span className="text-white text-[11px] font-semibold">📢 공지 · 연락</span>
+          <span className={`text-[13px] font-black ${dday==='D-DAY'?'text-[#FFD700]':'text-white'}`}>{dday}</span>
+        </div>
+        <div className="px-4 py-3 flex items-center gap-3">
+          <div className="w-12 h-12 rounded-full bg-[#EDE9FE] flex items-center justify-center flex-shrink-0 relative">
+            <i className="ti ti-speakerphone text-[#7C3AED] text-[22px]"/>
+            <div className="absolute -right-1 -top-1 w-3 h-3 rounded-full bg-[#E24B4A] border-2 border-white"/>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[14px] font-bold text-[#1A1A2E] truncate">{project.name}</div>
+            <div className="text-[11px] text-[#64748B] mt-0.5">{project.date.replace(/-/g,'.')}</div>
+          </div>
+        </div>
+        <div className="px-4 py-2 bg-[#F4F6F9] flex items-center justify-between">
+          <span className="text-[11px] font-mono font-bold text-[#A0AEC0]">{project.joinCode}</span>
+          <span className="text-[11px] font-bold text-[#7C3AED] flex items-center gap-1">채널 열기 <i className="ti ti-arrow-right"/></span>
+        </div>
+      </div>
+    </button>
+  )
+}
+
+function PTTCard({ project, onClick }: { project: Project; onClick: () => void }) {
+  const dday = getDday(project.date)
+  return (
+    <button onClick={onClick} className="w-full text-left hover:shadow-lg transition-all">
+      <div className="bg-[#1A1A2E] border-2 border-[#E24B4A] rounded-[14px] overflow-hidden">
+        <div className="bg-[#E24B4A] px-4 py-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-white animate-pulse"/>
+            <span className="text-white text-[11px] font-semibold">무전 채널</span>
+          </div>
+          <span className={`text-[13px] font-black ${dday==='D-DAY'?'text-[#FFD700]':'text-white'}`}>{dday}</span>
+        </div>
+        <div className="px-4 py-3 flex items-center gap-3">
+          <div className="w-12 h-14 bg-[#2D2D44] rounded-[8px] border border-[#3D3D5C] flex flex-col items-center justify-between py-1.5 px-1 flex-shrink-0 relative">
+            <div className="w-full h-3 bg-[#0A0A1A] rounded-[3px]"/>
+            <div className="w-7 h-7 rounded-full border-[3px] border-[#E24B4A] flex items-center justify-center">
+              <i className="ti ti-microphone text-[11px] text-white"/>
+            </div>
+            <div className="w-full flex gap-0.5">
+              <div className="flex-1 h-1 bg-[#3D3D5C] rounded-full"/>
+              <div className="flex-1 h-1 bg-[#3D3D5C] rounded-full"/>
+            </div>
+            <div className="absolute -right-0.5 top-2 w-1 h-4 bg-[#E24B4A] rounded-r"/>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[14px] font-bold text-white truncate">{project.name}</div>
+            <div className="text-[11px] text-[#A0AEC0] mt-0.5">{project.date.replace(/-/g,'.')}</div>
+          </div>
+        </div>
+        <div className="px-4 py-2 bg-[#0A0A1A] flex items-center justify-between">
+          <span className="text-[11px] font-mono font-bold text-[#3D3D5C]">{project.joinCode}</span>
+          <span className="text-[11px] font-bold text-[#E24B4A] flex items-center gap-1">무전 연결 <i className="ti ti-arrow-right"/></span>
+        </div>
+      </div>
+    </button>
+  )
+}
+
+function MyPartCard({ project, onClick }: { project: Project; onClick: () => void }) {
+  const dday = getDday(project.date)
+  return (
+    <button onClick={onClick} className="w-full text-left hover:shadow-lg transition-all">
+      <div className="bg-white border-2 border-[#3B6D11] rounded-[14px] overflow-hidden">
+        <div className="bg-[#3B6D11] px-4 py-2 flex items-center justify-between">
+          <span className="text-white text-[11px] font-semibold">✅ 내 할 일</span>
+          <span className={`text-[13px] font-black ${dday==='D-DAY'?'text-[#FFD700]':'text-white'}`}>{dday}</span>
+        </div>
+        <div className="px-4 py-3 flex items-center gap-3">
+          <div className="w-12 flex flex-col gap-1.5 flex-shrink-0">
+            {[true,true,false,false].map((done,i) => (
+              <div key={i} className="flex items-center gap-1">
+                <div className={`w-3 h-3 rounded flex items-center justify-center flex-shrink-0 ${done?'bg-[#3B6D11]':'border border-[#E2E8F0]'}`}>
+                  {done && <i className="ti ti-check text-white text-[7px]"/>}
+                </div>
+                <div className={`flex-1 h-1.5 rounded-full ${done?'bg-[#3B6D11]':'bg-[#F1F5F9]'}`}/>
+              </div>
+            ))}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[14px] font-bold text-[#1A1A2E] truncate">{project.name}</div>
+            <div className="text-[11px] text-[#64748B] mt-0.5">{project.date.replace(/-/g,'.')}</div>
+          </div>
+        </div>
+        <div className="px-4 py-2 bg-[#F4F6F9] flex items-center justify-between">
+          <span className="text-[11px] font-mono font-bold text-[#A0AEC0]">{project.joinCode}</span>
+          <span className="text-[11px] font-bold text-[#3B6D11] flex items-center gap-1">할 일 열기 <i className="ti ti-arrow-right"/></span>
+        </div>
+      </div>
+    </button>
+  )
+}
+
+function DashboardCard({ project, onClick }: { project: Project; onClick: () => void }) {
+  const dday = getDday(project.date)
+  return (
+    <button onClick={onClick} className="w-full text-left hover:shadow-lg transition-all">
+      <div className="bg-white border-2 border-[#854F0B] rounded-[14px] overflow-hidden">
+        <div className="bg-[#854F0B] px-4 py-2 flex items-center justify-between">
+          <span className="text-white text-[11px] font-semibold">📊 본부 현황판</span>
+          <span className={`text-[13px] font-black ${dday==='D-DAY'?'text-[#FFD700]':'text-white'}`}>{dday}</span>
+        </div>
+        <div className="px-4 py-3 flex items-center gap-3">
+          <div className="w-12 flex flex-col gap-1.5 flex-shrink-0">
+            {[{w:'80%',c:'#185FA5'},{w:'50%',c:'#3B6D11'},{w:'20%',c:'#E24B4A'}].map((b,i) => (
+              <div key={i} className="flex-1 h-2 bg-[#F1F5F9] rounded-full overflow-hidden">
+                <div className="h-full rounded-full" style={{ width:b.w, background:b.c }}/>
+              </div>
+            ))}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[14px] font-bold text-[#1A1A2E] truncate">{project.name}</div>
+            <div className="text-[11px] text-[#64748B] mt-0.5">{project.date.replace(/-/g,'.')}</div>
+          </div>
+        </div>
+        <div className="px-4 py-2 bg-[#F4F6F9] flex items-center justify-between">
+          <span className="text-[11px] font-mono font-bold text-[#A0AEC0]">{project.joinCode}</span>
+          <span className="text-[11px] font-bold text-[#854F0B] flex items-center gap-1">현황판 열기 <i className="ti ti-arrow-right"/></span>
+        </div>
+      </div>
+    </button>
+  )
+}
+
+function DefaultCard({ project, onClick }: { project: Project; onClick: () => void }) {
   const dday = getDday(project.date)
   const isLive = project.status === 'live'
   const statusLabel: Record<Project['status'], string> = { planning:'기획 중', ready:'준비 중', live:'진행 중', done:'완료' }
@@ -191,57 +352,42 @@ function ProjectCard({ project, nextTab, onClick }: {
     planning:'bg-[#F1EFE8] text-[#5F5E5A]', ready:'bg-[#E6F1FB] text-[#185FA5]',
     live:'bg-[#EAF3DE] text-[#3B6D11]', done:'bg-[#F1EFE8] text-[#A0AEC0]',
   }
-  const btnColor: Record<string, string> = {
-    timeline:'#185FA5', 'my-part':'#3B6D11', dashboard:'#854F0B', comms:'#7C3AED', ptt:'#E24B4A'
-  }
-  const arrowColor = nextTab ? (btnColor[nextTab] ?? '#185FA5') : '#185FA5'
-
-  // 탭별 카드 왼쪽 아이콘
-  const tabIcon: Record<string, { icon: string; bg: string; color: string }> = {
-    timeline:  { icon:'ti-calendar-event', bg:'#E6F1FB', color:'#185FA5' },
-    'my-part': { icon:'ti-checklist',      bg:'#EAF3DE', color:'#3B6D11' },
-    dashboard: { icon:'ti-layout-dashboard', bg:'#FAEEDA', color:'#854F0B' },
-    comms:     { icon:'ti-speakerphone',   bg:'#EDE9FE', color:'#7C3AED' },
-    ptt:       { icon:'ti-radio',          bg:'#FCEBEB', color:'#E24B4A' },
-  }
-  const ti = nextTab ? (tabIcon[nextTab] ?? tabIcon['timeline']) : null
-
   return (
     <button onClick={onClick}
       className={`w-full text-left bg-white border rounded-[14px] p-4 hover:shadow-md transition-all ${isLive ? 'border-[#185FA5] bg-[#E6F1FB]' : 'border-[#E2E8F0]'}`}>
-      <div className="flex items-start gap-3">
-        {/* 탭별 아이콘 */}
-        {ti && (
-          <div className="w-10 h-10 rounded-[10px] flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: ti.bg }}>
-            <i className={`ti ${ti.icon} text-[18px]`} style={{ color: ti.color }}/>
-          </div>
-        )}
+      <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                {isLive && <span className="flex items-center gap-1 text-[10px] font-semibold text-white bg-[#E24B4A] px-2 py-0.5 rounded-full"><span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse inline-block"/>LIVE</span>}
-                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${statusStyle[project.status]}`}>{statusLabel[project.status]}</span>
-              </div>
-              <div className="text-[15px] font-semibold text-[#1A1A2E] truncate">{project.name}</div>
-              <div className="text-[11px] text-[#64748B] mt-0.5 flex items-center gap-1.5 flex-wrap">
-                {project.venue && <span className="flex items-center gap-1"><i className="ti ti-map-pin text-[11px]"/>{project.venue}</span>}
-                {project.date && <span>{project.date.replace(/-/g,'.')}</span>}
-              </div>
-            </div>
-            <div className={`text-[20px] font-black flex-shrink-0 ${dday==='D-DAY'?'text-[#E24B4A]':'text-[#185FA5]'}`}>{dday}</div>
+          <div className="flex items-center gap-2 mb-1.5">
+            {isLive && <span className="flex items-center gap-1 text-[10px] font-semibold text-white bg-[#E24B4A] px-2 py-0.5 rounded-full"><span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse inline-block"/>LIVE</span>}
+            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${statusStyle[project.status]}`}>{statusLabel[project.status]}</span>
           </div>
-          <div className="flex items-center justify-between mt-2 pt-2 border-t border-[#F1F5F9]">
-            <span className="text-[11px] font-mono font-bold tracking-widest text-[#A0AEC0]">{project.joinCode}</span>
-            <span className="text-[12px] font-bold flex items-center gap-1" style={{ color: arrowColor }}>
-              선택하기 <i className="ti ti-arrow-right text-[13px]"/>
-            </span>
+          <div className="text-[15px] font-semibold text-[#1A1A2E] truncate">{project.name}</div>
+          <div className="text-[12px] text-[#64748B] mt-0.5 flex items-center gap-1.5 flex-wrap">
+            {project.venue && <span className="flex items-center gap-1"><i className="ti ti-map-pin text-[12px]"/>{project.venue}</span>}
+            {project.date && <span>{project.date.replace(/-/g,'.')}</span>}
           </div>
         </div>
+        <div className={`text-[22px] font-black flex-shrink-0 ${dday==='D-DAY'?'text-[#E24B4A]':'text-[#185FA5]'}`}>{dday}</div>
+      </div>
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-mono font-bold tracking-widest text-[#185FA5]">{project.joinCode}</span>
+        <span className="text-[12px] text-[#185FA5] font-semibold flex items-center gap-1">이어서 작업하기 <i className="ti ti-arrow-right text-[13px]"/></span>
       </div>
     </button>
   )
 }
+
+function ProjectCard({ project, nextTab, onClick }: {
+  project: Project; nextTab: string | null; onClick: () => void
+}) {
+  if (nextTab === 'timeline')  return <TimelineCard  project={project} onClick={onClick}/>
+  if (nextTab === 'comms')     return <CommsCard     project={project} onClick={onClick}/>
+  if (nextTab === 'ptt')       return <PTTCard       project={project} onClick={onClick}/>
+  if (nextTab === 'my-part')   return <MyPartCard    project={project} onClick={onClick}/>
+  if (nextTab === 'dashboard') return <DashboardCard project={project} onClick={onClick}/>
+  return <DefaultCard project={project} onClick={onClick}/>
+}
+
 
 // ── 메인 ─────────────────────────────────────────────────
 export default function ProjectsPage() {
