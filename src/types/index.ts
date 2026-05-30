@@ -38,7 +38,9 @@ export interface Project {
   name: string
   fieldType: FieldType
   fieldTerms: FieldTerms
-  date: string           // ISO date string
+  prepDate?: string      // 준비 시작일 (ISO date)
+  date: string           // 행사 시작일 (D-day 기준, ISO date)
+  dateEnd?: string       // 행사 종료일 (여러 날 행사일 때만)
   startTime: string      // HH:mm
   endTime: string        // HH:mm
   venue: string
@@ -199,7 +201,9 @@ export interface TemplateFile {
   allowedEmail?: string    // 허용된 이메일 (설정 시 해당 이메일 로그인한 사람만 열람 가능)
   // 프로젝트 기본 정보 (템플릿에서 자동 채우기용)
   projectName?: string     // 행사명 예시
-  eventDate?: string       // 행사 일자 예시
+  prepDate?: string        // 준비 시작일 예시 (ISO date)
+  eventDate?: string       // 행사 시작일 예시 (ISO date)
+  eventDateEnd?: string    // 행사 종료일 예시 (여러 날)
   location?: string        // 장소 예시
   contact?: string         // 연락처 예시
 }
