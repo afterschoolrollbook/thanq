@@ -7,7 +7,7 @@ import { getDday } from '@/utils/joinCode'
 import { Topbar, BottomTabBar } from '@/components/ui/Common'
 import type { Project } from '@/types'
 
-// ── 타임라인 테마 ─────────────────────────────────────────
+// ── 탭별 테마 헤더 ────────────────────────────────────────
 function TimelineHeader() {
   return (
     <div className="mb-5 bg-white border border-[#E2E8F0] rounded-[16px] overflow-hidden">
@@ -17,7 +17,6 @@ function TimelineHeader() {
           <span className="text-[15px] font-bold text-[#1A1A2E]">일정표</span>
         </div>
         <p className="text-[12px] text-[#64748B] mb-3">팀별·시간대별 당일 운영 일정을 한눈에 확인하고 체크리스트를 관리해요</p>
-        {/* 미니 그리드 시각화 */}
         <div className="flex gap-1.5 rounded-[10px] border border-[#E2E8F0] p-2 bg-[#F8FAFC] overflow-hidden">
           <div className="flex flex-col gap-1 flex-shrink-0">
             {['07:00','07:30','08:00','08:30'].map(t => (
@@ -51,7 +50,6 @@ function TimelineHeader() {
   )
 }
 
-// ── 내 파트 테마 ──────────────────────────────────────────
 function MyPartHeader() {
   return (
     <div className="mb-5 bg-white border border-[#E2E8F0] rounded-[16px] overflow-hidden">
@@ -85,7 +83,6 @@ function MyPartHeader() {
   )
 }
 
-// ── 대시보드 테마 ─────────────────────────────────────────
 function DashboardHeader() {
   return (
     <div className="mb-5 bg-white border border-[#E2E8F0] rounded-[16px] overflow-hidden">
@@ -114,7 +111,6 @@ function DashboardHeader() {
   )
 }
 
-// ── 소통 테마 ─────────────────────────────────────────────
 function CommsHeader() {
   return (
     <div className="mb-5 bg-white border border-[#E2E8F0] rounded-[16px] overflow-hidden">
@@ -148,7 +144,6 @@ function CommsHeader() {
   )
 }
 
-// ── 무전 테마 ─────────────────────────────────────────────
 function PTTHeader() {
   return (
     <div className="mb-5 bg-[#1A1A2E] rounded-[16px] overflow-hidden">
@@ -170,7 +165,7 @@ function PTTHeader() {
         </div>
         <div className="flex-1 min-w-0">
           <div className="text-[15px] font-bold text-white mb-1">무전</div>
-          <p className="text-[11px] text-[#A0AEC0] leading-relaxed mb-2">버튼을 누르고 말하면 담당자에게 즉시 음성이 전달돼요. 프로젝트를 선택하면 해당 팀으로 바로 연결해요</p>
+          <p className="text-[11px] text-[#A0AEC0] leading-relaxed mb-2">버튼을 누르고 말하면 담당자에게 즉시 음성이 전달돼요</p>
           <div className="flex items-center gap-1.5">
             {['운영팀','포토팀','안전팀'].map(t => (
               <span key={t} className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-[#2D2D44] text-[#A0AEC0]">{t}</span>
@@ -182,6 +177,69 @@ function PTTHeader() {
         <i className="ti ti-hand-click text-[12px]"/>아래에서 프로젝트를 선택하면 무전이 연결돼요
       </div>
     </div>
+  )
+}
+
+// ── 탭별 테마 프로젝트 카드 ───────────────────────────────
+function ProjectCard({ project, nextTab, onClick }: {
+  project: Project; nextTab: string | null; onClick: () => void
+}) {
+  const dday = getDday(project.date)
+  const isLive = project.status === 'live'
+  const statusLabel: Record<Project['status'], string> = { planning:'기획 중', ready:'준비 중', live:'진행 중', done:'완료' }
+  const statusStyle: Record<Project['status'], string> = {
+    planning:'bg-[#F1EFE8] text-[#5F5E5A]', ready:'bg-[#E6F1FB] text-[#185FA5]',
+    live:'bg-[#EAF3DE] text-[#3B6D11]', done:'bg-[#F1EFE8] text-[#A0AEC0]',
+  }
+  const btnColor: Record<string, string> = {
+    timeline:'#185FA5', 'my-part':'#3B6D11', dashboard:'#854F0B', comms:'#7C3AED', ptt:'#E24B4A'
+  }
+  const arrowColor = nextTab ? (btnColor[nextTab] ?? '#185FA5') : '#185FA5'
+
+  // 탭별 카드 왼쪽 아이콘
+  const tabIcon: Record<string, { icon: string; bg: string; color: string }> = {
+    timeline:  { icon:'ti-calendar-event', bg:'#E6F1FB', color:'#185FA5' },
+    'my-part': { icon:'ti-checklist',      bg:'#EAF3DE', color:'#3B6D11' },
+    dashboard: { icon:'ti-layout-dashboard', bg:'#FAEEDA', color:'#854F0B' },
+    comms:     { icon:'ti-speakerphone',   bg:'#EDE9FE', color:'#7C3AED' },
+    ptt:       { icon:'ti-radio',          bg:'#FCEBEB', color:'#E24B4A' },
+  }
+  const ti = nextTab ? (tabIcon[nextTab] ?? tabIcon['timeline']) : null
+
+  return (
+    <button onClick={onClick}
+      className={`w-full text-left bg-white border rounded-[14px] p-4 hover:shadow-md transition-all ${isLive ? 'border-[#185FA5] bg-[#E6F1FB]' : 'border-[#E2E8F0]'}`}>
+      <div className="flex items-start gap-3">
+        {/* 탭별 아이콘 */}
+        {ti && (
+          <div className="w-10 h-10 rounded-[10px] flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: ti.bg }}>
+            <i className={`ti ${ti.icon} text-[18px]`} style={{ color: ti.color }}/>
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                {isLive && <span className="flex items-center gap-1 text-[10px] font-semibold text-white bg-[#E24B4A] px-2 py-0.5 rounded-full"><span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse inline-block"/>LIVE</span>}
+                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${statusStyle[project.status]}`}>{statusLabel[project.status]}</span>
+              </div>
+              <div className="text-[15px] font-semibold text-[#1A1A2E] truncate">{project.name}</div>
+              <div className="text-[11px] text-[#64748B] mt-0.5 flex items-center gap-1.5 flex-wrap">
+                {project.venue && <span className="flex items-center gap-1"><i className="ti ti-map-pin text-[11px]"/>{project.venue}</span>}
+                {project.date && <span>{project.date.replace(/-/g,'.')}</span>}
+              </div>
+            </div>
+            <div className={`text-[20px] font-black flex-shrink-0 ${dday==='D-DAY'?'text-[#E24B4A]':'text-[#185FA5]'}`}>{dday}</div>
+          </div>
+          <div className="flex items-center justify-between mt-2 pt-2 border-t border-[#F1F5F9]">
+            <span className="text-[11px] font-mono font-bold tracking-widest text-[#A0AEC0]">{project.joinCode}</span>
+            <span className="text-[12px] font-bold flex items-center gap-1" style={{ color: arrowColor }}>
+              선택하기 <i className="ti ti-arrow-right text-[13px]"/>
+            </span>
+          </div>
+        </div>
+      </div>
+    </button>
   )
 }
 
@@ -213,16 +271,6 @@ export default function ProjectsPage() {
     return () => unsub()
   }, [user])
 
-  const statusLabel: Record<Project['status'], string> = { planning:'기획 중', ready:'준비 중', live:'진행 중', done:'완료' }
-  const statusStyle: Record<Project['status'], string> = {
-    planning:'bg-[#F1EFE8] text-[#5F5E5A]', ready:'bg-[#E6F1FB] text-[#185FA5]',
-    live:'bg-[#EAF3DE] text-[#3B6D11]', done:'bg-[#F1EFE8] text-[#A0AEC0]',
-  }
-  const btnColor: Record<string, string> = {
-    timeline:'#185FA5', 'my-part':'#3B6D11', dashboard:'#854F0B', comms:'#7C3AED', ptt:'#E24B4A'
-  }
-  const arrowColor = nextTab ? (btnColor[nextTab] ?? '#185FA5') : '#185FA5'
-
   return (
     <div className="min-h-screen bg-[#F4F6F9]">
       <Topbar />
@@ -248,7 +296,6 @@ export default function ProjectsPage() {
                 <i className="ti ti-plus text-[14px]" /> 새 프로젝트
               </button>
             </div>
-            {/* 참여 코드 */}
             <div className="mb-4">
               {!showJoinInput ? (
                 <button onClick={() => setShowJoinInput(true)}
@@ -288,36 +335,9 @@ export default function ProjectsPage() {
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {projects.map((project) => {
-              const dday = getDday(project.date)
-              const isLive = project.status === 'live'
-              return (
-                <button key={project.id} onClick={() => goToProject(project.id)}
-                  className={`w-full text-left bg-white border rounded-[14px] p-4 hover:shadow-md transition-all ${isLive ? 'border-[#185FA5] bg-[#E6F1FB]' : 'border-[#E2E8F0]'}`}>
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1.5">
-                        {isLive && <span className="flex items-center gap-1 text-[10px] font-semibold text-white bg-[#E24B4A] px-2 py-0.5 rounded-full"><span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse inline-block"/>LIVE</span>}
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${statusStyle[project.status]}`}>{statusLabel[project.status]}</span>
-                      </div>
-                      <div className="text-[15px] font-semibold text-[#1A1A2E] truncate">{project.name}</div>
-                      <div className="text-[12px] text-[#64748B] mt-0.5 flex items-center gap-1.5 flex-wrap">
-                        {project.venue && <span className="flex items-center gap-1"><i className="ti ti-map-pin text-[12px]"/>{project.venue}</span>}
-                        {project.date && <span>{project.date.replace(/-/g,'.')}</span>}
-                        {project.startTime && <span>{project.startTime}{project.endTime?` ~ ${project.endTime}`:''}</span>}
-                      </div>
-                    </div>
-                    <div className={`text-[22px] font-black flex-shrink-0 ${dday==='D-DAY'?'text-[#E24B4A]':'text-[#185FA5]'}`}>{dday}</div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-mono font-bold tracking-widest text-[#185FA5]">{project.joinCode}</span>
-                    <span className="text-[12px] font-semibold flex items-center gap-1" style={{ color: arrowColor }}>
-                      {nextTab ? '선택하기' : '이어서 작업하기'} <i className="ti ti-arrow-right text-[13px]"/>
-                    </span>
-                  </div>
-                </button>
-              )
-            })}
+            {projects.map((project) => (
+              <ProjectCard key={project.id} project={project} nextTab={nextTab} onClick={() => goToProject(project.id)}/>
+            ))}
           </div>
         )}
       </div>
