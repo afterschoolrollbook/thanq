@@ -62,16 +62,29 @@ export async function exportProjectAsTemplate(
       name: part.name,
       color: part.color,
       order: part.order,
-      cueItems: cueItems.map((c) => ({
-        title: c.title,
-        startTime: c.startTime,
-        durationMin: c.durationMin,
-        memo: c.memo,
-      })),
-      checkItems: checkItems.map((c) => ({
-        title: c.title,
-        category: c.category,
-      })),
+      cueItems: cueItems.map((c) => {
+        // 이 큐에 연결된 체크리스트만 추출 (cueId 매핑)
+        const cueLinkedChecks = checkItems.filter((ch) => ch.cueId === c.id)
+        return {
+          title: c.title,
+          startTime: c.startTime,
+          durationMin: c.durationMin,
+          memo: c.memo,
+          ...(cueLinkedChecks.length > 0 ? {
+            checkItems: cueLinkedChecks.map((ch) => ({
+              title: ch.title,
+              category: ch.category,
+            }))
+          } : {}),
+        }
+      }),
+      // 파트 레벨 체크리스트 (어떤 큐에도 연결 안 된 것만)
+      checkItems: checkItems
+        .filter((c) => !c.cueId)
+        .map((c) => ({
+          title: c.title,
+          category: c.category,
+        })),
     })
   }
 
@@ -125,16 +138,27 @@ export async function exportProjectAsTemplateJson(
       name: part.name,
       color: part.color,
       order: part.order,
-      cueItems: cueItems.map((c) => ({
-        title: c.title,
-        startTime: c.startTime,
-        durationMin: c.durationMin,
-        memo: c.memo,
-      })),
-      checkItems: checkItems.map((c) => ({
-        title: c.title,
-        category: c.category,
-      })),
+      cueItems: cueItems.map((c) => {
+        const cueLinkedChecks = checkItems.filter((ch) => ch.cueId === c.id)
+        return {
+          title: c.title,
+          startTime: c.startTime,
+          durationMin: c.durationMin,
+          memo: c.memo,
+          ...(cueLinkedChecks.length > 0 ? {
+            checkItems: cueLinkedChecks.map((ch) => ({
+              title: ch.title,
+              category: ch.category,
+            }))
+          } : {}),
+        }
+      }),
+      checkItems: checkItems
+        .filter((c) => !c.cueId)
+        .map((c) => ({
+          title: c.title,
+          category: c.category,
+        })),
     })
   }
 
@@ -176,8 +200,9 @@ export async function applyTemplateToProject(
 
     for (const [j, cue] of tPart.cueItems.entries()) {
       const cueRef = push(ref(db, `cueItems/${projectId}/${partId}`))
+      const cueId = cueRef.key!
       await set(cueRef, {
-        id: cueRef.key,
+        id: cueId,
         partId,
         projectId,
         order: j,
@@ -189,14 +214,33 @@ export async function applyTemplateToProject(
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })
+
+      // 큐 항목에 직접 연결된 체크리스트 생성 (cueId 연결)
+      if (cue.checkItems && cue.checkItems.length > 0) {
+        for (const check of cue.checkItems) {
+          const checkRef = push(ref(db, `checkItems/${projectId}/${partId}`))
+          await set(checkRef, {
+            id: checkRef.key,
+            partId,
+            projectId,
+            cueId,           // ← 큐와 연결
+            category: check.category,
+            title: check.title,
+            isDone: false,
+            createdAt: new Date().toISOString(),
+          })
+        }
+      }
     }
 
+    // 파트 레벨 체크리스트 (큐에 미연결)
     for (const check of tPart.checkItems) {
       const checkRef = push(ref(db, `checkItems/${projectId}/${partId}`))
       await set(checkRef, {
         id: checkRef.key,
         partId,
         projectId,
+        // cueId 없음 → 파트 레벨
         category: check.category,
         title: check.title,
         isDone: false,
