@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { ref, onValue } from 'firebase/database'
+import { ref, onValue, remove, get } from 'firebase/database'
 import { db } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
 import { getDday } from '@/utils/joinCode'
@@ -642,7 +642,7 @@ function ProjectSelectCard({ project, nextTab, parts, onClick }: {
 }
 
 // 기본 카드 (프로젝트 직접 진입) — 티켓 입장권 디자인
-function DefaultCard({ project, onClick }: { project: Project; onClick: () => void }) {
+function DefaultCard({ project, onClick, onDelete }: { project: Project; onClick: () => void; onDelete?: () => void }) {
   const dday = getDday(project.date)
   const d = new Date(project.date)
   const isLive = project.status === 'live'
@@ -694,7 +694,15 @@ function DefaultCard({ project, onClick }: { project: Project; onClick: () => vo
         {/* 하단 */}
         <div className="px-4 py-2 flex items-center justify-between">
           <span className="text-[11px] font-mono font-black tracking-widest text-[#E8820C]">{project.joinCode}</span>
-          <span className="text-[12px] text-[#E8820C] font-semibold flex items-center gap-1">이어서 작업하기 <i className="ti ti-arrow-right"/></span>
+          <div className="flex items-center gap-2">
+            {onDelete && (
+              <button onClick={e => { e.stopPropagation(); onDelete() }}
+                className="text-[#A0AEC0] hover:text-[#DC2626] transition-colors p-1">
+                <i className="ti ti-trash text-[14px]"/>
+              </button>
+            )}
+            <span className="text-[12px] text-[#E8820C] font-semibold flex items-center gap-1">이어서 작업하기 <i className="ti ti-arrow-right"/></span>
+          </div>
         </div>
       </div>
     </button>
@@ -702,7 +710,7 @@ function DefaultCard({ project, onClick }: { project: Project; onClick: () => vo
 }
 
 // ── 프로젝트 탭 아이콘형 카드 (티켓 배지 오렌지) ──────────
-function DefaultIconCard({ project, onClick }: { project: Project; onClick: () => void }) {
+function DefaultIconCard({ project, onClick, onDelete }: { project: Project; onClick: () => void; onDelete?: () => void }) {
   const dday = getDday(project.date)
   const d = new Date(project.date)
   const isLive = project.status === 'live'
@@ -739,8 +747,14 @@ function DefaultIconCard({ project, onClick }: { project: Project; onClick: () =
           <div className="flex-1 border-t-[1.5px] border-dashed border-[#F4D7A8] mx-1"/>
           <div className="absolute -right-[5px] w-[10px] h-[10px] rounded-full bg-[#F4F6F9] border border-[#F4D7A8]"/>
         </div>
-        <div className="px-2 py-1.5">
+        <div className="px-2 py-1.5 flex items-center justify-between">
           <div className="text-[7px] font-mono font-bold text-[#E8820C] tracking-widest truncate">{project.joinCode}</div>
+          {onDelete && (
+            <button onClick={e => { e.stopPropagation(); onDelete() }}
+              className="text-[#A0AEC0] hover:text-[#DC2626] transition-colors">
+              <i className="ti ti-trash text-[11px]"/>
+            </button>
+          )}
         </div>
       </div>
     </button>
@@ -760,6 +774,8 @@ export default function ProjectsPage() {
 
   const nextTab = new URLSearchParams(location.search).get('next')
   const [viewMode, setViewMode] = useState<'icon'|'list'>('icon')
+  const [deleteTarget, setDeleteTarget] = useState<Project | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   function goToProject(projectId: string) {
     navigate(`/p/${projectId}/${nextTab ?? 'home'}`)
@@ -784,6 +800,27 @@ export default function ProjectsPage() {
     })
     return () => unsub()
   }, [user])
+
+  async function deleteProject(project: Project) {
+    setDeleting(true)
+    try {
+      // parts 불러와서 큐/체크리스트 삭제
+      const partsSnap = await get(ref(db, `parts/${project.id}`))
+      if (partsSnap.exists()) {
+        const parts: Part[] = Object.values(partsSnap.val())
+        for (const part of parts) {
+          await remove(ref(db, `cueItems/${project.id}/${part.id}`))
+          await remove(ref(db, `checkItems/${project.id}/${part.id}`))
+        }
+      }
+      await remove(ref(db, `parts/${project.id}`))
+      await remove(ref(db, `projectMembers/${project.id}`))
+      await remove(ref(db, `projects/${project.id}`))
+      setDeleteTarget(null)
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#F4F6F9]">
@@ -879,7 +916,7 @@ export default function ProjectsPage() {
           {viewMode === 'icon' ? (
             <div className="grid grid-cols-5 gap-2">
               {projects.map(project => {
-                if (!nextTab)                return <DefaultIconCard    key={project.id} project={project} onClick={() => goToProject(project.id)}/>
+                if (!nextTab)                return <DefaultIconCard    key={project.id} project={project} onClick={() => goToProject(project.id)} onDelete={() => setDeleteTarget(project)}/>
                 if (nextTab === 'timeline') return <TimelineShapeCard  key={project.id} project={project} onClick={() => goToProject(project.id)}/>
                 if (nextTab === 'comms')    return <CommsIconCard      key={project.id} project={project} onClick={() => goToProject(project.id)}/>
                 if (nextTab === 'ptt')      return <PTTIconCard        key={project.id} project={project} onClick={() => goToProject(project.id)}/>
@@ -892,7 +929,7 @@ export default function ProjectsPage() {
           <div className="flex flex-col gap-3">
             {projects.map(project => nextTab
               ? <ProjectSelectCard key={project.id} project={project} nextTab={nextTab} parts={allParts[project.id] ?? []} onClick={() => goToProject(project.id)}/>
-              : <DefaultCard key={project.id} project={project} onClick={() => goToProject(project.id)}/>
+              : <DefaultCard key={project.id} project={project} onClick={() => goToProject(project.id)} onDelete={() => setDeleteTarget(project)}/>
             )}
           </div>
           )}
@@ -900,6 +937,40 @@ export default function ProjectsPage() {
         )}
       </div>
       <BottomTabBar />
+
+      {/* 삭제 확인 모달 */}
+      {deleteTarget && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-5"
+          onClick={() => !deleting && setDeleteTarget(null)}>
+          <div className="bg-white rounded-[20px] p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <div className="flex flex-col items-center text-center mb-5">
+              <div className="w-14 h-14 rounded-full bg-[#FEE2E2] flex items-center justify-center mb-3">
+                <i className="ti ti-trash text-[#DC2626] text-[28px]" />
+              </div>
+              <div className="text-[17px] font-bold text-[#1A1A2E] mb-1">프로젝트를 삭제할까요?</div>
+              <div className="text-[13px] font-semibold text-[#1A1A2E] mb-3">"{deleteTarget.name}"</div>
+              <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-[12px] p-3 text-left w-full flex flex-col gap-1.5">
+                <div className="flex items-center gap-2 text-[12px] text-[#DC2626]">
+                  <i className="ti ti-x text-[12px]" /> 파트, 큐시트, 체크리스트 전부 삭제돼요
+                </div>
+                <div className="flex items-center gap-2 text-[12px] text-[#DC2626]">
+                  <i className="ti ti-x text-[12px]" /> 삭제된 데이터는 <strong>복구할 수 없어요</strong>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setDeleteTarget(null)} disabled={deleting}
+                className="flex-1 h-[46px] border border-[#E2E8F0] rounded-[12px] text-[13px] font-semibold text-[#64748B]">
+                취소
+              </button>
+              <button onClick={() => deleteProject(deleteTarget)} disabled={deleting}
+                className="flex-1 h-[46px] bg-[#DC2626] text-white rounded-[12px] text-[13px] font-bold flex items-center justify-center gap-2 disabled:opacity-50">
+                {deleting ? <><i className="ti ti-loader-2 animate-spin text-[14px]"/>삭제 중...</> : <><i className="ti ti-trash text-[14px]"/>삭제하기</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
