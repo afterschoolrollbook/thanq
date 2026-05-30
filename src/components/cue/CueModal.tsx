@@ -107,8 +107,8 @@ export function InlinePTT({ projectId, cue }: { projectId: string; cue: CueWithP
 }
 
 // ── 큐 상세 모달 ──────────────────────────────────────────
-export function CueModal({ cue, projectId, onClose }: {
-  cue: CueWithPart; projectId: string; onClose: () => void
+export function CueModal({ cue, projectId, onClose, isReadOnly = false }: {
+  cue: CueWithPart; projectId: string; onClose: () => void; isReadOnly?: boolean
 }) {
   const [checks, setChecks] = useState<CheckItem[]>([])
   const [tab, setTab] = useState<'radio'|'check'|'memo'|'photo'>('check')
@@ -117,6 +117,9 @@ export function CueModal({ cue, projectId, onClose }: {
   const [editingTitle, setEditingTitle] = useState(false)
   const [title, setTitle] = useState(cue.title)
   const [savingMemo, setSavingMemo] = useState(false)
+  const [editingCheckId, setEditingCheckId] = useState<string|null>(null)
+  const [editingCheckTitle, setEditingCheckTitle] = useState('')
+  const [toast, setToast] = useState('')
   const [uploading, setUploading] = useState(false)
   const [photos, setPhotos] = useState<{url:string;name:string;uploadedAt:string}[]>(
     cue.photos ? Object.values(cue.photos) : []
@@ -144,6 +147,7 @@ export function CueModal({ cue, projectId, onClose }: {
   }, [projectId, cue.partId, cue.id])
 
   async function toggleCheck(item: CheckItem) {
+    if (isReadOnly) { showReadOnlyToast(); return }
     await update(dbRef(db, `checkItems/${projectId}/${cue.partId}/${item.id}`), { isDone: !item.isDone })
   }
   async function addCheck() {
@@ -152,15 +156,30 @@ export function CueModal({ cue, projectId, onClose }: {
     await set(r, { id: r.key, partId: cue.partId, projectId, cueId: cue.id, category: 'prep', title: newCheckTitle.trim(), isDone: false, createdAt: new Date().toISOString() })
     setNewCheckTitle('')
   }
+  function showReadOnlyToast() {
+    setToast('해당 팀에 요청해주세요!')
+    setTimeout(() => setToast(''), 2500)
+  }
+
+  async function updateCheckTitle(item: CheckItem, title: string) {
+    if (isReadOnly) { showReadOnlyToast(); return }
+    if (!title.trim()) { setEditingCheckId(null); return }
+    await update(dbRef(db, `checkItems/${projectId}/${cue.partId}/${item.id}`), { title: title.trim() })
+    setEditingCheckId(null)
+  }
+
   async function deleteCheck(item: CheckItem) {
+    if (isReadOnly) { showReadOnlyToast(); return }
     await set(dbRef(db, `checkItems/${projectId}/${cue.partId}/${item.id}`), null)
   }
   async function saveMemo() {
+    if (isReadOnly) { showReadOnlyToast(); return }
     setSavingMemo(true)
     await update(dbRef(db, `cueItems/${projectId}/${cue.partId}/${cue.id}`), { memo, updatedAt: new Date().toISOString() })
     setSavingMemo(false)
   }
   async function saveTitle() {
+    if (isReadOnly) { showReadOnlyToast(); return }
     if (!title.trim()) return
     await update(dbRef(db, `cueItems/${projectId}/${cue.partId}/${cue.id}`), { title: title.trim(), updatedAt: new Date().toISOString() })
     setEditingTitle(false)
@@ -216,7 +235,7 @@ export function CueModal({ cue, projectId, onClose }: {
               <button onClick={()=>setEditingTitle(false)} className="text-[#A0AEC0] text-[12px]">취소</button>
             </div>
           ) : (
-            <div className="flex items-center gap-2 group cursor-pointer" onClick={()=>setEditingTitle(true)}>
+            <div className="flex items-center gap-2 group cursor-pointer" onClick={()=>{ if(isReadOnly){showReadOnlyToast();return} setEditingTitle(true)}}>
               <div className="text-[15px] font-bold text-[#1A1A2E]">{title}</div>
               <i className="ti ti-pencil text-[#A0AEC0] text-[13px] opacity-0 group-hover:opacity-100 transition-opacity"/>
             </div>
@@ -265,7 +284,24 @@ export function CueModal({ cue, projectId, onClose }: {
                     className={`w-5 h-5 rounded flex items-center justify-center border-2 flex-shrink-0 ${item.isDone?'bg-[#3B6D11] border-[#3B6D11]':'border-[#E2E8F0] hover:border-[#185FA5]'}`}>
                     {item.isDone&&<i className="ti ti-check text-white text-[11px]"/>}
                   </button>
-                  <span className={`text-[13px] flex-1 ${item.isDone?'line-through text-[#A0AEC0]':'text-[#1A1A2E]'}`}>{item.title}</span>
+                  {editingCheckId === item.id ? (
+                    <input
+                      className="flex-1 text-[13px] border-b border-[#185FA5] outline-none bg-transparent"
+                      value={editingCheckTitle} autoFocus
+                      onChange={e=>setEditingCheckTitle(e.target.value)}
+                      onBlur={()=>updateCheckTitle(item, editingCheckTitle)}
+                      onKeyDown={e=>{if(e.key==='Enter')updateCheckTitle(item,editingCheckTitle);if(e.key==='Escape')setEditingCheckId(null)}}
+                    />
+                  ) : (
+                    <span className={`text-[13px] flex-1 ${item.isDone?'line-through text-[#A0AEC0]':'text-[#1A1A2E]'}`}
+                      onDoubleClick={()=>{if(!isReadOnly){setEditingCheckId(item.id);setEditingCheckTitle(item.title)}}}>
+                      {item.title}
+                    </span>
+                  )}
+                  <button onClick={()=>{if(isReadOnly){showReadOnlyToast();return}setEditingCheckId(item.id);setEditingCheckTitle(item.title)}}
+                    className="text-[#E2E8F0] hover:text-[#185FA5]">
+                    <i className="ti ti-pencil text-[13px]"/>
+                  </button>
                   <button onClick={()=>deleteCheck(item)} className="text-[#E2E8F0] hover:text-[#E24B4A]">
                     <i className="ti ti-trash text-[14px]"/>
                   </button>
@@ -322,8 +358,15 @@ export function CueModal({ cue, projectId, onClose }: {
           )}
         </div>
 
+        {/* 읽기전용 토스트 */}
+        {toast && (
+          <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[60] bg-[#1A1A2E] text-white text-[12px] font-semibold px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2">
+            <i className="ti ti-lock text-[13px]"/> {toast}
+          </div>
+        )}
+
         {/* 하단 입력 (체크리스트 탭만) */}
-        {tab === 'check' && (
+        {tab === 'check' && !isReadOnly && (
           <div className="px-5 pb-6 pt-3 border-t border-[#F1F5F9] flex gap-2">
             <input
               className="flex-1 h-[40px] border border-[#E2E8F0] rounded-[10px] px-3 text-[13px] focus:outline-none focus:border-[#185FA5]"
