@@ -89,6 +89,8 @@ async function buildProjectMeta(projectId: string): Promise<{
   prepDate?: string
   eventDate?: string
   eventDateEnd?: string
+  startTime?: string
+  endTime?: string
   location?: string
   contact?: string
   fieldLabel?: string
@@ -103,6 +105,8 @@ async function buildProjectMeta(projectId: string): Promise<{
     ...(project.prepDate   ? { prepDate:       project.prepDate }  : {}),
     ...(project.date       ? { eventDate:      project.date }      : {}),
     ...(project.dateEnd    ? { eventDateEnd:   project.dateEnd }   : {}),
+    ...(project.startTime  ? { startTime:      project.startTime } : {}),
+    ...(project.endTime    ? { endTime:        project.endTime }   : {}),
     ...(project.venue      ? { location:       project.venue }     : {}),
     ...(project.overview   ? { contact:        project.overview }  : {}),
     fieldLabel: FIELD_LABELS[project.fieldType]?.label ?? project.fieldType,
@@ -187,11 +191,13 @@ export async function applyTemplateToProject(
 
   // 프로젝트 기본 정보 업데이트 (템플릿에 값이 있을 때만)
   const metaUpdate: Record<string, string> = {}
-  if (template.projectName) metaUpdate.name     = template.projectName
-  if (template.prepDate)    metaUpdate.prepDate  = template.prepDate
-  if (template.eventDate)   metaUpdate.date      = template.eventDate
-  if (template.eventDateEnd) metaUpdate.dateEnd  = template.eventDateEnd
-  if (template.location)    metaUpdate.venue     = template.location
+  if (template.projectName)  metaUpdate.name      = template.projectName
+  if (template.prepDate)     metaUpdate.prepDate   = template.prepDate
+  if (template.eventDate)    metaUpdate.date       = template.eventDate
+  if (template.eventDateEnd) metaUpdate.dateEnd    = template.eventDateEnd
+  if (template.startTime)    metaUpdate.startTime  = template.startTime
+  if (template.endTime)      metaUpdate.endTime    = template.endTime
+  if (template.location)     metaUpdate.venue      = template.location
   if (Object.keys(metaUpdate).length > 0) {
     await update(ref(db, `projects/${projectId}`), metaUpdate)
   }
