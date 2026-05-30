@@ -211,7 +211,6 @@ export default function MyPartPage() {
                 {cues.map((cue) => {
                   const cueChecks = checks.filter(c => c.cueId === cue.id)
                   const doneChecks = cueChecks.filter(c => c.isDone).length
-                  const partChecks = checks.filter(c => !c.cueId)
 
                   return (
                     <div key={cue.id}
@@ -300,16 +299,16 @@ export default function MyPartPage() {
                 })}
 
                 {/* 파트 레벨 체크리스트 (큐 미연결) */}
-                {partChecks.length > 0 && (
+                {checks.filter((c: CheckItem) => !c.cueId).length > 0 && (
                   <div className="bg-white border border-[#E2E8F0] rounded-[12px] p-4 mt-2">
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-[13px] font-bold text-[#1A1A2E]">파트 체크리스트</span>
                       <span className="text-[12px] text-[#185FA5] font-semibold">
-                        {partChecks.filter(c => c.isDone).length}/{partChecks.length}
+                        {checks.filter((c: CheckItem) => !c.cueId && c.isDone).length}/{checks.filter((c: CheckItem) => !c.cueId).length}
                       </span>
                     </div>
                     <div className="flex flex-col gap-2">
-                      {partChecks.map(item => (
+                      {checks.filter((c: CheckItem) => !c.cueId).map((item: CheckItem) => (
                         <div key={item.id} className="flex items-center gap-3">
                           <button
                             onClick={() => update(ref(db, `checkItems/${projectId}/${myPart.id}/${item.id}`), { isDone: !item.isDone })}

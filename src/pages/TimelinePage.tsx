@@ -1,12 +1,11 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams } from 'react-router-dom'
-import { ref as dbRef, onValue, update, push, set } from 'firebase/database'
+import { ref as dbRef, onValue } from 'firebase/database'
 import { db } from '@/lib/firebase'
 import { timeToMinutes, minutesToTime } from '@/utils/joinCode'
 import { Topbar, StatusBadge, BottomTabBar } from '@/components/ui/Common'
-import { useAuthStore } from '@/store/authStore'
 import type { Part, CueItem, CheckItem, Project, Notice } from '@/types'
-import { CueModal, InlinePTT, type CueWithPart } from '@/components/cue/CueModal'
+import { CueModal, type CueWithPart } from '@/components/cue/CueModal'
 
 
 // ── 달력 ──────────────────────────────────────────────────
