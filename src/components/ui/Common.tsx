@@ -143,7 +143,9 @@ export function BottomTabBar() {
         </button>
         {/* 나머지 탭 */}
         {tabs.map(({ key, icon, label }) => {
-          const isActive = !!projectId && location.pathname.includes(`/${key}`)
+          const nextParam = new URLSearchParams(location.search).get('next')
+          const isActive = (!!projectId && location.pathname.includes(`/${key}`))
+                        || (!projectId && nextParam === key)
           return (
             <button key={key} onClick={() => handleTab(key)}
               className={`flex-1 flex flex-col items-center py-2.5 gap-0.5 text-[11px] font-medium transition-all relative ${
