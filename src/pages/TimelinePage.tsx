@@ -1,6 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams } from 'react-router-dom'
-import { useAuthStore } from '@/store/authStore'
 import { ref as dbRef, onValue } from 'firebase/database'
 import { db } from '@/lib/firebase'
 import { timeToMinutes, minutesToTime } from '@/utils/joinCode'
