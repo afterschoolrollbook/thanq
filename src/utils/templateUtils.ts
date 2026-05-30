@@ -1,4 +1,4 @@
-import { ref, get, push, set, remove } from 'firebase/database'
+import { ref, get, push, set, remove, update } from 'firebase/database'
 import { db } from '@/lib/firebase'
 import { PART_COLORS } from '@/utils/fieldTerms'
 import type { TemplateFile, TemplatePartDraft, Part, CueItem, CheckItem, FieldType, Project } from '@/types'
@@ -58,6 +58,8 @@ async function buildTemplateParts(projectId: string): Promise<TemplatePartDraft[
         const cueLinkedChecks = checkItems.filter((ch) => ch.cueId === c.id)
         return {
           title: c.title,
+          ...(c.dDay !== undefined ? { dDay: c.dDay } : {}),
+          ...(c.date ? { date: c.date } : {}),
           startTime: c.startTime,
           durationMin: c.durationMin,
           memo: c.memo,
@@ -179,6 +181,17 @@ export async function applyTemplateToProject(
   replaceMode: boolean = false
 ): Promise<void> {
 
+  // 프로젝트 기본 정보 업데이트 (템플릿에 값이 있을 때만)
+  const metaUpdate: Record<string, string> = {}
+  if (template.projectName) metaUpdate.name     = template.projectName
+  if (template.prepDate)    metaUpdate.prepDate  = template.prepDate
+  if (template.eventDate)   metaUpdate.date      = template.eventDate
+  if (template.eventDateEnd) metaUpdate.dateEnd  = template.eventDateEnd
+  if (template.location)    metaUpdate.venue     = template.location
+  if (Object.keys(metaUpdate).length > 0) {
+    await update(ref(db, `projects/${projectId}`), metaUpdate)
+  }
+
   // 덮어쓰기 모드: 기존 파트·큐·체크리스트 전체 삭제
   if (replaceMode) {
     const existingPartsSnap = await get(ref(db, `parts/${projectId}`))
@@ -216,6 +229,8 @@ export async function applyTemplateToProject(
         projectId,
         order: j,
         title: cue.title,
+        ...(cue.dDay !== undefined ? { dDay: cue.dDay } : {}),
+        ...(cue.date ? { date: cue.date } : {}),
         startTime: cue.startTime,
         durationMin: cue.durationMin,
         memo: cue.memo ?? null,
