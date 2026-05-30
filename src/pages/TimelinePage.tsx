@@ -386,7 +386,7 @@ export default function TimelinePage() {
   const [allCues, setAllCues] = useState<CueWithPart[]>([])
   const [allChecks, setAllChecks] = useState<CheckItem[]>([])
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
-  const [showCalendar, setShowCalendar] = useState(false)
+  const [showCalendar, setShowCalendar] = useState(true)
   const [selectedPartId, setSelectedPartId] = useState<string | null>(null)
   const [zoom, setZoom] = useState(1)
   const [activeCue, setActiveCue] = useState<CueWithPart | null>(null)
@@ -394,7 +394,7 @@ export default function TimelinePage() {
   const calendarRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    function h(e: MouseEvent) { if (calendarRef.current && !calendarRef.current.contains(e.target as Node)) setShowCalendar(false) }
+    function h(e: MouseEvent) { if (calendarRef.current && !calendarRef.current.contains(e.target as Node)) {} }
     document.addEventListener('mousedown', h)
     return () => document.removeEventListener('mousedown', h)
   }, [])
@@ -489,7 +489,17 @@ export default function TimelinePage() {
   for (const slot of timeSlots) { slotTops.set(slot,acc); acc+=getSlotH(slot) }
   const totalH = acc
   const totalGridW = TIME_W + COL_W * visibleParts.length
-  const eventDates = project ? [project.date] : []
+  // 준비시작일~행사종료일 사이 날짜 전체를 캘린더에 표시
+  const eventDates = (() => {
+    if (!project) return []
+    const dates: string[] = []
+    const start = new Date((project as any).prepDate || project.date)
+    const end = new Date((project as any).dateEnd || project.date)
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      dates.push(d.toISOString().split('T')[0])
+    }
+    return dates
+  })()
 
   return (
     <div className="min-h-screen bg-[#F4F6F9] flex flex-col">

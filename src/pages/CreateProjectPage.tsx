@@ -26,8 +26,9 @@ export default function CreateProjectPage() {
   const [projectId, setProjectId] = useState<string | null>(null)
   const [name, setName] = useState('')
   const [dateType, setDateType] = useState<'single' | 'range'>('single')
-  const [date, setDate] = useState('')
-  const [dateEnd, setDateEnd] = useState('')
+  const [prepDate, setPrepDate] = useState('')   // 준비 시작일
+  const [date, setDate] = useState('')           // 행사 시작일
+  const [dateEnd, setDateEnd] = useState('')     // 행사 종료일 (여러 날)
   const [startTime, setStartTime] = useState('')
   const [endTime, setEndTime] = useState('')
   const [venue, setVenue] = useState('')
@@ -61,16 +62,25 @@ export default function CreateProjectPage() {
     if (tmpl.contact)     overviewParts.push(clean(tmpl.contact))
     if (overviewParts.length) setOverview(overviewParts.join('\n'))
 
-    // eventDate: "2026-05-29" 또는 "2026년 5월 29일" 형식 모두 지원
-    if (tmpl.eventDate) {
-      const raw = clean(tmpl.eventDate)
+    // eventDate / prepDate ISO 또는 한글 형식 모두 지원
+    function parseDate(raw: string): string | null {
       const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/)
       const korean = raw.match(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/)
-      if (iso) {
-        setDate(raw)
-      } else if (korean) {
-        setDate(`${korean[1]}-${korean[2].padStart(2,'0')}-${korean[3].padStart(2,'0')}`)
-      }
+      if (iso) return raw
+      if (korean) return `${korean[1]}-${korean[2].padStart(2,'0')}-${korean[3].padStart(2,'0')}`
+      return null
+    }
+    if (tmpl.prepDate) {
+      const d = parseDate(clean(tmpl.prepDate))
+      if (d) { setPrepDate(d); saveField('prepDate', d) }
+    }
+    if (tmpl.eventDate) {
+      const d = parseDate(clean(tmpl.eventDate))
+      if (d) { setDate(d); saveField('date', d) }
+    }
+    if (tmpl.eventDateEnd) {
+      const d = parseDate(clean(tmpl.eventDateEnd))
+      if (d) { setDateEnd(d); setDateType('range'); saveField('dateEnd', d); saveField('dateType', 'range') }
     }
   }
 
@@ -86,6 +96,7 @@ export default function CreateProjectPage() {
         draftRef.current = resolvedId
         setProjectId(resolvedId)
         setDateType(draft.dateType ?? 'single')
+        setPrepDate(draft.prepDate ?? '')
         setDate(draft.date ?? '')
         setDateEnd(draft.dateEnd ?? '')
         setStartTime(draft.startTime ?? '')
@@ -165,6 +176,7 @@ export default function CreateProjectPage() {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }
+      if (prepDate) project.prepDate = prepDate
       if (dateType === 'range' && dateEnd) project.dateEnd = dateEnd
 
       console.log("saving project...", projectId)
@@ -261,34 +273,62 @@ export default function CreateProjectPage() {
         {/* 행사 일자 — 선택 */}
         <div className="mb-4">
           <label className={lbl}>
-            행사 일자
+            프로젝트 기간
             <span className={optBadge}>선택</span>
           </label>
+
+          {/* 행사 유형 선택 */}
           <div className="flex gap-2 mb-3">
             <button onClick={() => { setDateType('single'); saveField('dateType', 'single') }}
               className={`px-4 py-1.5 rounded-full text-[12px] font-semibold border-2 transition-colors ${dateType === 'single' ? 'bg-[#185FA5] text-white border-[#185FA5]' : 'border-[#E2E8F0] text-[#64748B] bg-white'}`}>
-              단일 날짜
+              단일 행사
             </button>
             <button onClick={() => { setDateType('range'); saveField('dateType', 'range') }}
               className={`px-4 py-1.5 rounded-full text-[12px] font-semibold border-2 transition-colors ${dateType === 'range' ? 'bg-[#185FA5] text-white border-[#185FA5]' : 'border-[#E2E8F0] text-[#64748B] bg-white'}`}>
-              기간 (여러 날)
+              여러 날 행사
             </button>
           </div>
-          {dateType === 'single' ? (
+
+          {/* 준비 시작일 (공통) */}
+          <div className="mb-2">
+            <div className="text-[11px] font-semibold text-[#64748B] mb-1">준비 시작일</div>
             <div className="relative">
               <i className="ti ti-calendar absolute left-3 top-1/2 -translate-y-1/2 text-[#A0AEC0] text-[15px]" />
-              <input className={`${inp} pl-9`} type="date" value={date} onChange={(e) => ch('date', e.target.value, setDate)} />
+              <input className={`${inp} pl-9`} type="date" value={prepDate}
+                onChange={(e) => ch('prepDate', e.target.value, setPrepDate)} />
             </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <div className="relative flex-1">
-                <i className="ti ti-calendar absolute left-3 top-1/2 -translate-y-1/2 text-[#A0AEC0] text-[15px]" />
-                <input className={`${inp} pl-9`} type="date" value={date} onChange={(e) => ch('date', e.target.value, setDate)} />
+          </div>
+
+          {/* 단일 행사: 행사일 */}
+          {dateType === 'single' && (
+            <div>
+              <div className="text-[11px] font-semibold text-[#185FA5] mb-1">행사일 (D-day)</div>
+              <div className="relative">
+                <i className="ti ti-flag absolute left-3 top-1/2 -translate-y-1/2 text-[#185FA5] text-[15px]" />
+                <input className={`${inp} pl-9 border-[#185FA5]`} type="date" value={date}
+                  onChange={(e) => ch('date', e.target.value, setDate)} />
               </div>
-              <span className="text-[#A0AEC0] font-medium">~</span>
-              <div className="relative flex-1">
-                <i className="ti ti-calendar absolute left-3 top-1/2 -translate-y-1/2 text-[#A0AEC0] text-[15px]" />
-                <input className={`${inp} pl-9`} type="date" value={dateEnd} onChange={(e) => ch('dateEnd', e.target.value, setDateEnd)} />
+            </div>
+          )}
+
+          {/* 여러 날 행사: 행사 시작일 ~ 종료일 */}
+          {dateType === 'range' && (
+            <div className="flex flex-col gap-2">
+              <div>
+                <div className="text-[11px] font-semibold text-[#185FA5] mb-1">행사 시작일 (D-day)</div>
+                <div className="relative">
+                  <i className="ti ti-flag absolute left-3 top-1/2 -translate-y-1/2 text-[#185FA5] text-[15px]" />
+                  <input className={`${inp} pl-9 border-[#185FA5]`} type="date" value={date}
+                    onChange={(e) => ch('date', e.target.value, setDate)} />
+                </div>
+              </div>
+              <div>
+                <div className="text-[11px] font-semibold text-[#64748B] mb-1">행사 종료일</div>
+                <div className="relative">
+                  <i className="ti ti-calendar absolute left-3 top-1/2 -translate-y-1/2 text-[#A0AEC0] text-[15px]" />
+                  <input className={`${inp} pl-9`} type="date" value={dateEnd}
+                    onChange={(e) => ch('dateEnd', e.target.value, setDateEnd)} />
+                </div>
               </div>
             </div>
           )}
