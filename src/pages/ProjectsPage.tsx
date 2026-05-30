@@ -193,34 +193,27 @@ function TimelineShapeCard({ project, onClick }: { project: Project; onClick: ()
   const dday = getDday(project.date)
   const d = new Date(project.date)
   return (
-    <button onClick={onClick} className="w-full hover:scale-[1.02] transition-transform">
-      <div className="relative bg-white rounded-[16px] overflow-hidden shadow-sm border border-[#B5D4F4] hover:shadow-md transition-shadow">
-        {/* 달력 상단 탭 구멍 2개 */}
-        <div className="absolute top-0 left-0 right-0 flex justify-around px-8">
-          <div className="w-4 h-3 bg-[#F4F6F9] rounded-b-full border-x border-b border-[#B5D4F4]"/>
-          <div className="w-4 h-3 bg-[#F4F6F9] rounded-b-full border-x border-b border-[#B5D4F4]"/>
+    <button onClick={onClick} className="w-full hover:scale-[1.03] transition-transform">
+      <div className="bg-white rounded-[10px] overflow-hidden border border-[#B5D4F4] hover:shadow-md transition-shadow">
+        {/* 달력 고리 */}
+        <div className="flex justify-around px-3">
+          <div className="w-2 h-1.5 rounded-b-full border-x border-b border-[#B5D4F4] bg-[#F8FAFC]"/>
+          <div className="w-2 h-1.5 rounded-b-full border-x border-b border-[#B5D4F4] bg-[#F8FAFC]"/>
         </div>
-        {/* 달력 헤더 - 연한 파란색 */}
-        <div className="bg-[#E6F1FB] pt-3 pb-2 px-4 flex items-center justify-between mt-0">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[#185FA5]/60 text-[10px]">{d.getFullYear()}년</span>
-            <span className="text-[#185FA5] font-black text-[13px]">{d.getMonth()+1}월</span>
-          </div>
-          <span className={`text-[12px] font-black ${dday==='D-DAY'?'text-[#E24B4A]':'text-[#185FA5]'}`}>{dday}</span>
+        {/* 헤더 */}
+        <div className="bg-[#E6F1FB] px-2 py-1 flex items-center justify-between">
+          <span className="text-[#185FA5] font-bold text-[9px]">{d.getMonth()+1}월</span>
+          <span className={`text-[8px] font-black ${dday==='D-DAY'?'text-[#E24B4A]':'text-[#185FA5]'}`}>{dday}</span>
         </div>
-        {/* 날짜 크게 */}
-        <div className="px-4 pt-2 pb-1 flex items-center gap-3">
-          <div className="text-[42px] font-black text-[#185FA5] leading-none">{d.getDate()}</div>
-          <div className="flex-1 min-w-0">
-            <div className="text-[13px] font-bold text-[#1A1A2E] truncate">{project.name}</div>
-            {project.venue && <div className="text-[11px] text-[#64748B] flex items-center gap-1 mt-0.5"><i className="ti ti-map-pin text-[10px]"/>{project.venue}</div>}
-          </div>
+        {/* 날짜 */}
+        <div className="px-2 py-1.5 text-center">
+          <div className="text-[24px] font-black text-[#185FA5] leading-none">{d.getDate()}</div>
         </div>
-        {/* 구분선 점선 */}
-        <div className="mx-4 border-t border-dashed border-[#E2E8F0] my-1"/>
-        <div className="px-4 pb-3 flex items-center justify-between">
-          <span className="text-[10px] font-mono text-[#A0AEC0]">{project.joinCode}</span>
-          <span className="text-[11px] font-bold text-[#185FA5]">일정표 열기 →</span>
+        <div className="mx-2 border-t border-dashed border-[#E2E8F0]"/>
+        {/* 프로젝트명 */}
+        <div className="px-2 py-1.5">
+          <div className="text-[9px] font-bold text-[#1A1A2E] truncate">{project.name}</div>
+          <div className="text-[8px] text-[#185FA5] mt-0.5">열기 →</div>
         </div>
       </div>
     </button>
@@ -383,7 +376,7 @@ function DashboardShapeCard({ project, onClick }: { project: Project; onClick: (
 function ProjectSelectCard({ project, nextTab, onClick }: {
   project: Project; nextTab: string | null; onClick: () => void
 }) {
-  if (nextTab === 'timeline')  return <TimelineShapeCard  project={project} onClick={onClick}/>
+  if (nextTab === 'timeline')  return <DefaultCard    project={project} onClick={onClick}/>
   if (nextTab === 'comms')     return <CommsShapeCard     project={project} onClick={onClick}/>
   if (nextTab === 'ptt')       return <PTTShapeCard       project={project} onClick={onClick}/>
   if (nextTab === 'my-part')   return <MyPartShapeCard    project={project} onClick={onClick}/>
@@ -534,16 +527,22 @@ export default function ProjectsPage() {
             </button>
           </div>
         ) : (
+          <>
+          {nextTab === 'timeline' && viewMode === 'icon' ? (
+            <div className="grid grid-cols-5 gap-2">
+              {projects.map(project => (
+                <TimelineShapeCard key={project.id} project={project} onClick={() => goToProject(project.id)}/>
+              ))}
+            </div>
+          ) : (
           <div className="flex flex-col gap-3">
-            {projects.map(project => {
-              if (nextTab === 'timeline' && viewMode === 'icon') {
-                return <TimelineShapeCard key={project.id} project={project} onClick={() => goToProject(project.id)}/>
-              }
-              return nextTab
-                ? <ProjectSelectCard key={project.id} project={project} nextTab={nextTab} onClick={() => goToProject(project.id)}/>
-                : <DefaultCard key={project.id} project={project} onClick={() => goToProject(project.id)}/>
-            })}
+            {projects.map(project => nextTab
+              ? <ProjectSelectCard key={project.id} project={project} nextTab={nextTab} onClick={() => goToProject(project.id)}/>
+              : <DefaultCard key={project.id} project={project} onClick={() => goToProject(project.id)}/>
+            )}
           </div>
+          )}
+          </>
         )}
       </div>
       <BottomTabBar />
