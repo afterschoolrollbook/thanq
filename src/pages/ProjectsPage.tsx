@@ -5,7 +5,7 @@ import { db } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
 import { getDday } from '@/utils/joinCode'
 import { Topbar, BottomTabBar } from '@/components/ui/Common'
-import type { Project } from '@/types'
+import type { Project, Part } from '@/types'
 
 // ── 탭별 헤더 (임팩트 있게) ──────────────────────────────
 function TimelineHeader() {
@@ -88,7 +88,12 @@ function MyPartHeader() {
   )
 }
 
-function DashboardHeader() {
+function DashboardHeader({ allParts }: { allParts: Record<string, Part[]> }) {
+  // 전체 프로젝트의 parts 합산
+  const parts = Object.values(allParts).flat()
+  const progress = parts.length ? Math.round(parts.reduce((s,p) => s + p.progress, 0) / parts.length) : 0
+  const ongoing = parts.filter(p => p.status === 'ongoing').length
+  const delay   = parts.filter(p => p.status === 'delay').length
   return (
     <div className="mb-6 rounded-[20px] overflow-hidden shadow-md">
       <div className="bg-[#F1F4F8] px-5 pt-4 pb-3">
@@ -103,7 +108,11 @@ function DashboardHeader() {
         </div>
         <div className="bg-white rounded-[10px] p-3 border border-[#E2E8F0]">
           <div className="flex gap-3 mb-2">
-            {[{label:'전체 준비율',value:'68%',color:'#475569'},{label:'진행 중',value:'3팀',color:'#3B6D11'},{label:'지연',value:'1팀',color:'#E24B4A'}].map(s => (
+            {[
+              {label:'전체 준비율', value:`${progress}%`, color:'#475569'},
+              {label:'진행 중',     value:`${ongoing}팀`,  color:'#3B6D11'},
+              {label:'지연',        value:`${delay}팀`,    color:'#E24B4A'},
+            ].map(s => (
               <div key={s.label} className="flex-1 text-center">
                 <div className="text-[15px] font-black" style={{color:s.color}}>{s.value}</div>
                 <div className="text-[9px] text-[#A0AEC0] mt-0.5">{s.label}</div>
@@ -111,7 +120,7 @@ function DashboardHeader() {
             ))}
           </div>
           <div className="h-2 bg-[#E2E8F0] rounded-full overflow-hidden">
-            <div className="h-full bg-[#475569] rounded-full" style={{width:'68%'}}/>
+            <div className="h-full bg-[#475569] rounded-full transition-all" style={{width:`${progress}%`}}/>
           </div>
         </div>
       </div>
@@ -363,13 +372,14 @@ function MyPartIconCard({ project, onClick }: { project: Project; onClick: () =>
   )
 }
 
-function DashboardIconCard({ project, onClick }: { project: Project; onClick: () => void }) {
+function DashboardIconCard({ project, parts, onClick }: { project: Project; parts: Part[]; onClick: () => void }) {
   const dday = getDday(project.date)
   const d = new Date(project.date)
+  const progress = parts.length ? Math.round(parts.reduce((s,p) => s + p.progress, 0) / parts.length) : 0
+  const progressColor = progress >= 70 ? '#4CAF50' : progress >= 40 ? '#FDE68A' : '#E24B4A'
   return (
     <button onClick={onClick} className="w-full hover:scale-[1.03] transition-transform">
       <div className="bg-white rounded-[10px] overflow-hidden border border-[#CBD5E1] hover:shadow-md transition-shadow">
-        {/* LED 점 3개 헤더 */}
         <div className="bg-[#F1F4F8] px-2 py-1 flex items-center justify-between">
           <div className="flex gap-1">
             <div className="w-1.5 h-1.5 rounded-full bg-[#4CAF50]"/>
@@ -380,16 +390,15 @@ function DashboardIconCard({ project, onClick }: { project: Project; onClick: ()
         </div>
         <div className="px-2 pt-2 pb-1 text-center">
           <div className="text-[28px] font-black text-[#475569] leading-none">{d.getDate()}</div>
-          <div className="text-[8px] text-[#A0AEC0] mt-0.5 truncate">{project.name}</div>
+          <div className="text-[8px] font-black text-[#1A1A2E] mt-0.5 truncate leading-tight">{project.name}</div>
         </div>
-        {/* 진행 바 */}
         <div className="px-2 pb-2">
           <div className="flex justify-between mb-0.5">
             <span className="text-[7px] text-[#94A3B8]">준비율</span>
-            <span className="text-[7px] font-bold text-[#475569]">68%</span>
+            <span className="text-[7px] font-black" style={{color:progressColor}}>{progress}%</span>
           </div>
           <div className="h-[4px] bg-[#E2E8F0] rounded-full overflow-hidden">
-            <div className="h-full bg-[#475569] rounded-full" style={{width:'68%'}}/>
+            <div className="h-full rounded-full transition-all" style={{width:`${progress}%`, background:progressColor}}/>
           </div>
         </div>
         <div className="mx-2 border-t border-dashed border-[#E2E8F0]"/>
@@ -527,13 +536,18 @@ function MyPartShapeCard({ project, onClick }: { project: Project; onClick: () =
 }
 
 // ── 대시보드 카드 (현황판) ────────────────────────────────
-function DashboardShapeCard({ project, onClick }: { project: Project; onClick: () => void }) {
+function DashboardShapeCard({ project, parts, onClick }: { project: Project; parts: Part[]; onClick: () => void }) {
   const dday = getDday(project.date)
   const d = new Date(project.date)
+  const progress = parts.length ? Math.round(parts.reduce((s,p) => s + p.progress, 0) / parts.length) : 0
+  const ongoing  = parts.filter(p => p.status === 'ongoing').length
+  const delay    = parts.filter(p => p.status === 'delay').length
+  const progressColor = progress >= 70 ? '#4CAF50' : progress >= 40 ? '#E8820C' : '#E24B4A'
+  // 상위 3개 파트만 바로 표시
+  const topParts = parts.slice(0, 3)
   return (
     <button onClick={onClick} className="w-full hover:scale-[1.02] transition-transform">
       <div className="relative bg-white rounded-[14px] overflow-hidden border border-[#CBD5E1] hover:shadow-md transition-shadow">
-        {/* LED 점 헤더 */}
         <div className="bg-[#F1F4F8] px-4 py-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="flex gap-1.5">
@@ -542,6 +556,7 @@ function DashboardShapeCard({ project, onClick }: { project: Project; onClick: (
               <div className="w-2 h-2 rounded-full bg-[#CBD5E1]"/>
             </div>
             <span className="text-[#475569] font-bold text-[10px]">현황판</span>
+            {delay > 0 && <span className="text-[9px] font-bold text-white bg-[#E24B4A] px-1.5 py-0.5 rounded-full">지연 {delay}</span>}
           </div>
           <span className={`text-[11px] font-black ${dday==='D-DAY'?'text-[#E24B4A]':'text-[#475569]'}`}>{dday}</span>
         </div>
@@ -550,21 +565,25 @@ function DashboardShapeCard({ project, onClick }: { project: Project; onClick: (
           <div className="flex-1 min-w-0 text-left">
             <div className="text-[13px] font-bold text-[#1A1A2E] truncate">{project.name}</div>
             {project.venue && <div className="text-[11px] text-[#64748B] flex items-center gap-1"><i className="ti ti-map-pin text-[10px]"/>{project.venue}</div>}
-            {/* 팀별 진행 바 */}
             <div className="flex gap-2 mt-1.5">
-              {[{label:'A팀',val:80,c:'#4CAF50'},{label:'B팀',val:55,c:'#FDE68A'},{label:'전체',val:68,c:'#475569'}].map(b=>(
-                <div key={b.label} className="flex-1">
-                  <div className="text-[7px] text-[#94A3B8] mb-0.5">{b.label}</div>
+              {topParts.length > 0 ? topParts.map(p => (
+                <div key={p.id} className="flex-1">
+                  <div className="text-[7px] text-[#94A3B8] mb-0.5 truncate">{p.name}</div>
                   <div className="h-[3px] bg-[#E2E8F0] rounded-full overflow-hidden">
-                    <div className="h-full rounded-full" style={{width:`${b.val}%`,background:b.c}}/>
+                    <div className="h-full rounded-full transition-all" style={{width:`${p.progress}%`, background: p.status==='delay'?'#E24B4A': p.status==='done'?'#4CAF50':'#475569'}}/>
                   </div>
                 </div>
-              ))}
+              )) : (
+                <div className="flex-1">
+                  <div className="h-[3px] bg-[#E2E8F0] rounded-full"/>
+                </div>
+              )}
             </div>
           </div>
           <div className="flex-shrink-0 text-right">
-            <div className="text-[18px] font-black text-[#475569]">68%</div>
+            <div className="text-[18px] font-black" style={{color:progressColor}}>{progress}%</div>
             <div className="text-[8px] text-[#94A3B8]">준비율</div>
+            {ongoing > 0 && <div className="text-[8px] font-bold text-[#3B6D11] mt-0.5">{ongoing}팀 진행</div>}
           </div>
         </div>
         <div className="mx-4 border-t border-dashed border-[#E2E8F0]"/>
@@ -578,13 +597,13 @@ function DashboardShapeCard({ project, onClick }: { project: Project; onClick: (
 }
 
 
-function ProjectSelectCard({ project, nextTab, onClick }: {
-  project: Project; nextTab: string | null; onClick: () => void
+function ProjectSelectCard({ project, nextTab, parts, onClick }: {
+  project: Project; nextTab: string | null; parts: Part[]; onClick: () => void
 }) {
   if (nextTab === 'comms')     return <CommsShapeCard     project={project} onClick={onClick}/>
   if (nextTab === 'ptt')       return <PTTShapeCard       project={project} onClick={onClick}/>
   if (nextTab === 'my-part')   return <MyPartShapeCard    project={project} onClick={onClick}/>
-  if (nextTab === 'dashboard') return <DashboardShapeCard project={project} onClick={onClick}/>
+  if (nextTab === 'dashboard') return <DashboardShapeCard project={project} parts={parts} onClick={onClick}/>
 
   // 타임라인 리스트 뷰 + 기본 = 슬림 달력형
   const dday = getDday(project.date)
@@ -733,6 +752,7 @@ export default function ProjectsPage() {
   const location = useLocation()
   const user = useAuthStore((s) => s.user)
   const [projects, setProjects] = useState<Project[]>([])
+  const [allParts, setAllParts] = useState<Record<string, Part[]>>({})
   const [loading, setLoading] = useState(true)
   const [showJoinInput, setShowJoinInput] = useState(false)
   const [joinCode, setJoinCode] = useState('')
@@ -749,7 +769,15 @@ export default function ProjectsPage() {
     const unsub = onValue(ref(db, 'projects'), (snap) => {
       if (snap.exists()) {
         const all: Project[] = Object.values(snap.val())
-        setProjects(all.filter(p => p.ownerId === user.uid).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()))
+        const mine = all.filter(p => p.ownerId === user.uid).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        setProjects(mine)
+        // 각 프로젝트의 parts 구독
+        mine.forEach(p => {
+          onValue(ref(db, `parts/${p.id}`), (s) => {
+            const parts: Part[] = s.exists() ? Object.values(s.val()) : []
+            setAllParts(prev => ({ ...prev, [p.id]: parts }))
+          })
+        })
       } else setProjects([])
       setLoading(false)
     })
@@ -764,7 +792,7 @@ export default function ProjectsPage() {
         {/* 탭별 임팩트 헤더 */}
         {nextTab === 'timeline'  && <TimelineHeader />}
         {nextTab === 'my-part'   && <MyPartHeader />}
-        {nextTab === 'dashboard' && <DashboardHeader />}
+        {nextTab === 'dashboard' && <DashboardHeader allParts={allParts} />}
         {nextTab === 'comms'     && <CommsHeader />}
         {nextTab === 'ptt'       && <PTTHeader />}
 
@@ -845,14 +873,14 @@ export default function ProjectsPage() {
                 if (nextTab === 'comms')    return <CommsIconCard      key={project.id} project={project} onClick={() => goToProject(project.id)}/>
                 if (nextTab === 'ptt')      return <PTTIconCard        key={project.id} project={project} onClick={() => goToProject(project.id)}/>
                 if (nextTab === 'my-part')  return <MyPartIconCard     key={project.id} project={project} onClick={() => goToProject(project.id)}/>
-                if (nextTab === 'dashboard')return <DashboardIconCard  key={project.id} project={project} onClick={() => goToProject(project.id)}/>
+                if (nextTab === 'dashboard')return <DashboardIconCard  key={project.id} project={project} parts={allParts[project.id] ?? []} onClick={() => goToProject(project.id)}/>
                 return null
               })}
             </div>
           ) : (
           <div className="flex flex-col gap-3">
             {projects.map(project => nextTab
-              ? <ProjectSelectCard key={project.id} project={project} nextTab={nextTab} onClick={() => goToProject(project.id)}/>
+              ? <ProjectSelectCard key={project.id} project={project} nextTab={nextTab} parts={allParts[project.id] ?? []} onClick={() => goToProject(project.id)}/>
               : <DefaultCard key={project.id} project={project} onClick={() => goToProject(project.id)}/>
             )}
           </div>
