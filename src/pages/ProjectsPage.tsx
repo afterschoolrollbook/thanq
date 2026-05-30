@@ -659,6 +659,48 @@ function DefaultCard({ project, onClick }: { project: Project; onClick: () => vo
   )
 }
 
+// ── 프로젝트 탭 아이콘형 카드 (티켓 배지) ────────────────
+function DefaultIconCard({ project, onClick }: { project: Project; onClick: () => void }) {
+  const dday = getDday(project.date)
+  const d = new Date(project.date)
+  const isLive = project.status === 'live'
+  return (
+    <button onClick={onClick} className="w-full hover:scale-[1.03] transition-transform">
+      <div className={`rounded-[10px] overflow-hidden bg-white hover:shadow-md transition-shadow border-[1.5px] ${isLive?'border-[#185FA5]':'border-[#B5D4F4]'}`}>
+        {/* 헤더 */}
+        <div className={`px-2 py-1 flex items-center justify-between ${isLive?'bg-[#E6F1FB]':'bg-[#F0F7FF]'}`}>
+          {isLive
+            ? <span className="flex items-center gap-0.5 text-[7px] font-semibold text-white bg-[#E24B4A] px-1.5 py-0.5 rounded-full"><span className="w-1 h-1 rounded-full bg-white animate-pulse inline-block"/>LIVE</span>
+            : <div className="w-1.5 h-1.5 rounded-full bg-[#B5D4F4]"/>
+          }
+          <span className={`text-[8px] font-black ${dday==='D-DAY'?'text-[#E24B4A]':'text-[#185FA5]'}`}>{dday}</span>
+        </div>
+        {/* 절취선 */}
+        <div className="relative flex items-center h-[10px]">
+          <div className="absolute -left-[5px] w-[10px] h-[10px] rounded-full bg-[#F4F6F9] border border-[#B5D4F4]"/>
+          <div className="flex-1 border-t-[1.5px] border-dashed border-[#B5D4F4] mx-1"/>
+          <div className="absolute -right-[5px] w-[10px] h-[10px] rounded-full bg-[#F4F6F9] border border-[#B5D4F4]"/>
+        </div>
+        {/* 날짜 + 이름 */}
+        <div className="px-2 py-2 text-center">
+          <div className={`text-[26px] font-black leading-none ${dday==='D-DAY'?'text-[#E24B4A]':'text-[#185FA5]'}`}>{d.getDate()}</div>
+          <div className="text-[7px] text-[#94A3B8] mt-0.5">{d.getMonth()+1}월</div>
+          <div className="text-[8px] font-bold text-[#1A1A2E] mt-1 truncate">{project.name}</div>
+        </div>
+        {/* 절취선 */}
+        <div className="relative flex items-center h-[10px]">
+          <div className="absolute -left-[5px] w-[10px] h-[10px] rounded-full bg-[#F4F6F9] border border-[#B5D4F4]"/>
+          <div className="flex-1 border-t-[1.5px] border-dashed border-[#B5D4F4] mx-1"/>
+          <div className="absolute -right-[5px] w-[10px] h-[10px] rounded-full bg-[#F4F6F9] border border-[#B5D4F4]"/>
+        </div>
+        <div className="px-2 py-1.5">
+          <div className="text-[7px] font-mono font-bold text-[#185FA5] tracking-widest truncate">{project.joinCode}</div>
+        </div>
+      </div>
+    </button>
+  )
+}
+
 // ── 메인 ─────────────────────────────────────────────────
 export default function ProjectsPage() {
   const navigate = useNavigate()
@@ -739,14 +781,14 @@ export default function ProjectsPage() {
           </>
         )}
 
-        {/* 뷰 전환 버튼 - 모든 탭에서 표시 */}
-        {nextTab && projects.length > 0 && (
+        {/* 뷰 전환 버튼 - 모든 탭 + 프로젝트 탭 포함 */}
+        {projects.length > 0 && (
           <div className="flex items-center justify-between mb-3">
             <span className="text-[12px] text-[#64748B]">{viewMode === 'icon' ? '아이콘 보기' : '리스트 보기'}</span>
             <div className="flex items-center gap-1 bg-white border border-[#E2E8F0] rounded-[10px] p-1">
               <button onClick={() => setViewMode('icon')}
                 className={`w-7 h-7 rounded-[7px] flex items-center justify-center transition-all ${viewMode==='icon'?'bg-[#185FA5] text-white':'text-[#A0AEC0] hover:text-[#185FA5]'}`}>
-                <i className="ti ti-calendar text-[13px]"/>
+                <i className="ti ti-layout-grid text-[13px]"/>
               </button>
               <button onClick={() => setViewMode('list')}
                 className={`w-7 h-7 rounded-[7px] flex items-center justify-center transition-all ${viewMode==='list'?'bg-[#185FA5] text-white':'text-[#A0AEC0] hover:text-[#185FA5]'}`}>
@@ -769,14 +811,15 @@ export default function ProjectsPage() {
           </div>
         ) : (
           <>
-          {nextTab && viewMode === 'icon' ? (
+          {viewMode === 'icon' ? (
             <div className="grid grid-cols-5 gap-2">
               {projects.map(project => {
-                if (nextTab === 'timeline') return <TimelineShapeCard key={project.id} project={project} onClick={() => goToProject(project.id)}/>
-                if (nextTab === 'comms')    return <CommsIconCard     key={project.id} project={project} onClick={() => goToProject(project.id)}/>
-                if (nextTab === 'ptt')      return <PTTIconCard       key={project.id} project={project} onClick={() => goToProject(project.id)}/>
-                if (nextTab === 'my-part')  return <MyPartIconCard    key={project.id} project={project} onClick={() => goToProject(project.id)}/>
-                if (nextTab === 'dashboard')return <DashboardIconCard key={project.id} project={project} onClick={() => goToProject(project.id)}/>
+                if (!nextTab)                return <DefaultIconCard    key={project.id} project={project} onClick={() => goToProject(project.id)}/>
+                if (nextTab === 'timeline') return <TimelineShapeCard  key={project.id} project={project} onClick={() => goToProject(project.id)}/>
+                if (nextTab === 'comms')    return <CommsIconCard      key={project.id} project={project} onClick={() => goToProject(project.id)}/>
+                if (nextTab === 'ptt')      return <PTTIconCard        key={project.id} project={project} onClick={() => goToProject(project.id)}/>
+                if (nextTab === 'my-part')  return <MyPartIconCard     key={project.id} project={project} onClick={() => goToProject(project.id)}/>
+                if (nextTab === 'dashboard')return <DashboardIconCard  key={project.id} project={project} onClick={() => goToProject(project.id)}/>
                 return null
               })}
             </div>
