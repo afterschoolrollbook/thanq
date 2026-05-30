@@ -128,7 +128,7 @@ export function BottomTabBar() {
           }`}>
           {location.pathname === '/dashboard' && <div className="absolute top-0 left-0 right-0 h-0.5 bg-[#185FA5] rounded-b"/>}
           <i className="ti ti-home text-[20px]" />
-          <span>홈</span>
+          <span>홈(전체)</span>
         </button>
         {/* 프로젝트 */}
         <button onClick={() => navigate('/projects')}
