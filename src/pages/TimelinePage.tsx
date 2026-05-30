@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams } from 'react-router-dom'
+import { useAuthStore } from '@/store/authStore'
 import { ref as dbRef, onValue } from 'firebase/database'
 import { db } from '@/lib/firebase'
 import { timeToMinutes, minutesToTime } from '@/utils/joinCode'
@@ -343,7 +344,7 @@ export default function TimelinePage() {
 
       <BottomTabBar/>
       {activeCue && projectId && (
-        <CueModal cue={activeCue} projectId={projectId} onClose={() => setActiveCue(null)}/>
+        <CueModal cue={activeCue} projectId={projectId} onClose={() => setActiveCue(null)} isReadOnly={false}/>
       )}
     </div>
   )

@@ -85,65 +85,81 @@ function AddCueModal({ onClose, onSave, partId, projectId, order }: {
 export default function MyPartPage() {
   const { projectId } = useParams()
   const user = useAuthStore((s) => s.user)
+  const [allParts, setAllParts] = useState<Part[]>([])
   const [myPart, setMyPart] = useState<Part | null>(null)
+  const [selectedPartId, setSelectedPartId] = useState<string | null>(null)
   const [cues, setCues] = useState<CueItem[]>([])
   const [checks, setChecks] = useState<CheckItem[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddCue, setShowAddCue] = useState(false)
   const [activeCue, setActiveCue] = useState<CueWithPart | null>(null)
+  const [readOnlyToast, setReadOnlyToast] = useState(false)
+
+  const selectedPart = allParts.find(p => p.id === selectedPartId) ?? null
+  const isMyPart = selectedPart?.id === myPart?.id
 
   useEffect(() => {
     if (!projectId || !user) return
     const u = onValue(ref(db, `parts/${projectId}`), (s) => {
       if (s.exists()) {
         const list: Part[] = Object.values(s.val())
+        list.sort((a, b) => a.order - b.order)
         const mine = list.find((p) => p.managerId === user.uid) ?? list[0]
+        setAllParts(list)
         setMyPart(mine ?? null)
+        if (!selectedPartId) setSelectedPartId(mine?.id ?? list[0]?.id ?? null)
         setLoading(false)
-        if (mine) {
-          onValue(ref(db, `cueItems/${projectId}/${mine.id}`), (cs) => {
-            if (cs.exists()) {
-              const l: CueItem[] = Object.values(cs.val())
-              l.sort((a, b) => {
-                // 날짜 먼저 정렬, 같은 날짜면 시간순
-                if (a.date && b.date && a.date !== b.date) return a.date.localeCompare(b.date)
-                return a.startTime.localeCompare(b.startTime)
-              })
-              setCues(l)
-            } else setCues([])
-          })
-          onValue(ref(db, `checkItems/${projectId}/${mine.id}`), (ck) => {
-            if (ck.exists()) setChecks(Object.values(ck.val()))
-            else setChecks([])
-          })
-        }
       } else setLoading(false)
     })
     return () => u()
   }, [projectId, user])
 
+  useEffect(() => {
+    if (!projectId || !selectedPartId) return
+    const u1 = onValue(ref(db, `cueItems/${projectId}/${selectedPartId}`), (cs) => {
+      if (cs.exists()) {
+        const l: CueItem[] = Object.values(cs.val())
+        l.sort((a, b) => {
+          if (a.date && b.date && a.date !== b.date) return a.date.localeCompare(b.date)
+          return a.startTime.localeCompare(b.startTime)
+        })
+        setCues(l)
+      } else setCues([])
+    })
+    const u2 = onValue(ref(db, `checkItems/${projectId}/${selectedPartId}`), (ck) => {
+      if (ck.exists()) setChecks(Object.values(ck.val()))
+      else setChecks([])
+    })
+    return () => { u1(); u2() }
+  }, [projectId, selectedPartId])
+
+  function showReadOnly() {
+    setReadOnlyToast(true)
+    setTimeout(() => setReadOnlyToast(false), 2500)
+  }
+
   async function setCueStatus(item: CueItem, status: CueItem['status']) {
-    if (!projectId || !myPart) return
-    await update(ref(db, `cueItems/${projectId}/${myPart.id}/${item.id}`), {
+    if (!projectId || !selectedPartId || !isMyPart) { showReadOnly(); return }
+    await update(ref(db, `cueItems/${projectId}/${selectedPartId}/${item.id}`), {
       status, updatedAt: new Date().toISOString(),
     })
   }
 
   async function addCue(data: Omit<CueItem, 'id' | 'createdAt' | 'updatedAt'>) {
-    if (!projectId || !myPart) return
-    const newRef = push(ref(db, `cueItems/${projectId}/${myPart.id}`))
+    if (!projectId || !selectedPartId || !isMyPart) return
+    const newRef = push(ref(db, `cueItems/${projectId}/${selectedPartId}`))
     const now = new Date().toISOString()
     await set(newRef, { ...data, id: newRef.key!, createdAt: now, updatedAt: now })
     setShowAddCue(false)
   }
 
   function openCueModal(cue: CueItem) {
-    if (!myPart) return
+    if (!selectedPart) return
     setActiveCue({
       ...cue,
-      partName: myPart.name,
-      partColor: myPart.color,
-      partId: myPart.id,
+      partName: selectedPart.name,
+      partColor: selectedPart.color,
+      partId: selectedPart.id,
     })
   }
 
@@ -154,8 +170,32 @@ export default function MyPartPage() {
   return (
     <div className="min-h-screen bg-[#F4F6F9]">
       <Topbar />
+
+      {/* 파트 탭 */}
+      {allParts.length > 1 && (
+        <div className="bg-white border-b border-[#E2E8F0] sticky top-0 z-20">
+          <div className="max-w-2xl mx-auto px-5 overflow-x-auto">
+            <div className="flex gap-1 py-2 min-w-max">
+              {allParts.map(part => (
+                <button key={part.id} onClick={() => setSelectedPartId(part.id)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap transition-colors ${
+                    selectedPartId === part.id
+                      ? 'text-white'
+                      : 'bg-[#F4F6F9] text-[#64748B] hover:bg-[#E2E8F0]'
+                  }`}
+                  style={selectedPartId === part.id ? { background: part.color } : {}}>
+                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: selectedPartId === part.id ? 'rgba(255,255,255,0.6)' : part.color }} />
+                  {part.name}
+                  {part.id === myPart?.id && <span className="text-[9px] opacity-70">내팀</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-2xl mx-auto px-5 pt-5 pb-24">
-        {!myPart ? (
+        {!selectedPart ? (
           <div className="text-center py-20 text-[#64748B] text-[13px]">배정된 파트가 없어요</div>
         ) : (
           <>
@@ -163,37 +203,44 @@ export default function MyPartPage() {
             <div className="flex items-start justify-between mb-4 flex-wrap gap-2">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: myPart.color }} />
-                  <span className="text-[18px] font-semibold text-[#1A1A2E]">{myPart.name}</span>
+                  <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: selectedPart.color }} />
+                  <span className="text-[18px] font-semibold text-[#1A1A2E]">{selectedPart.name}</span>
+                  {!isMyPart && (
+                    <span className="text-[10px] bg-[#F4F6F9] text-[#A0AEC0] px-2 py-0.5 rounded-full">열람 전용</span>
+                  )}
                 </div>
-                <div className="text-[12px] text-[#64748B] mt-0.5">내 파트</div>
+                <div className="text-[12px] text-[#64748B] mt-0.5">{isMyPart ? '내 파트' : '다른 팀 현황'}</div>
               </div>
-              <div className="flex gap-2">
-                <button className="h-8 px-3 border border-[#F09595] bg-[#FCEBEB] rounded-[10px] text-[12px] text-[#A32D2D] flex items-center gap-1.5">
-                  <i className="ti ti-alert-triangle text-[14px]" /> 긴급 연락
-                </button>
-                <button className="h-8 px-3 border border-[#E2E8F0] rounded-[10px] text-[12px] text-[#64748B] flex items-center gap-1.5">
-                  <i className="ti ti-message-circle text-[14px]" /> 본부 메시지
-                </button>
-              </div>
+              {isMyPart && (
+                <div className="flex gap-2">
+                  <button className="h-8 px-3 border border-[#F09595] bg-[#FCEBEB] rounded-[10px] text-[12px] text-[#A32D2D] flex items-center gap-1.5">
+                    <i className="ti ti-alert-triangle text-[14px]" /> 긴급 연락
+                  </button>
+                  <button className="h-8 px-3 border border-[#E2E8F0] rounded-[10px] text-[12px] text-[#64748B] flex items-center gap-1.5">
+                    <i className="ti ti-message-circle text-[14px]" /> 본부 메시지
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* 진행률 */}
             <div className="flex items-center gap-2.5 mb-5">
               <span className="text-[12px] text-[#64748B]">파트 진행률</span>
               <div className="flex-1 h-1.5 bg-[#F4F6F9] rounded-full overflow-hidden">
-                <div className="h-1.5 bg-[#185FA5] rounded-full" style={{ width: `${myPart.progress}%` }} />
+                <div className="h-1.5 bg-[#185FA5] rounded-full" style={{ width: `${selectedPart.progress}%` }} />
               </div>
-              <span className="text-[12px] text-[#64748B] whitespace-nowrap">{myPart.progress}%</span>
+              <span className="text-[12px] text-[#64748B] whitespace-nowrap">{selectedPart.progress}%</span>
             </div>
 
             {/* 큐시트 헤더 */}
             <div className="flex items-center justify-between mb-3">
               <span className="text-[14px] font-bold text-[#1A1A2E]">큐시트 ({cues.length})</span>
-              <button onClick={() => setShowAddCue(true)}
-                className="h-8 px-3 bg-[#185FA5] text-white rounded-[10px] text-[12px] font-semibold flex items-center gap-1.5">
-                <i className="ti ti-plus text-[13px]" /> 추가
-              </button>
+              {isMyPart && (
+                <button onClick={() => setShowAddCue(true)}
+                  className="h-8 px-3 bg-[#185FA5] text-white rounded-[10px] text-[12px] font-semibold flex items-center gap-1.5">
+                  <i className="ti ti-plus text-[13px]" /> 추가
+                </button>
+              )}
             </div>
 
             {/* 큐시트 카드 목록 */}
@@ -273,19 +320,19 @@ export default function MyPartPage() {
                         {cue.status === 'pending' && (
                           <button onClick={() => setCueStatus(cue, 'ongoing')}
                             className="flex-1 py-2 text-[12px] font-semibold text-[#185FA5] hover:bg-[#E6F1FB] transition-colors">
-                            시작
+                            {isMyPart ? '시작' : '👀 보기'}
                           </button>
                         )}
                         {cue.status === 'ongoing' && (
                           <button onClick={() => setCueStatus(cue, 'done')}
                             className="flex-1 py-2 text-[12px] font-semibold text-[#3B6D11] hover:bg-[#EAF3DE] transition-colors">
-                            완료
+                            {isMyPart ? '완료' : '진행 중'}
                           </button>
                         )}
                         {cue.status === 'done' && (
-                          <button onClick={() => setCueStatus(cue, 'pending')}
+                          <button onClick={() => isMyPart ? setCueStatus(cue, 'pending') : showReadOnly()}
                             className="flex-1 py-2 text-[12px] text-[#A0AEC0] hover:bg-[#F4F6F9] transition-colors">
-                            되돌리기
+                            {isMyPart ? '되돌리기' : '완료됨'}
                           </button>
                         )}
                         <div className="w-px bg-[#F4F6F9]" />
@@ -311,7 +358,7 @@ export default function MyPartPage() {
                       {checks.filter((c: CheckItem) => !c.cueId).map((item: CheckItem) => (
                         <div key={item.id} className="flex items-center gap-3">
                           <button
-                            onClick={() => update(ref(db, `checkItems/${projectId}/${myPart.id}/${item.id}`), { isDone: !item.isDone })}
+                            onClick={() => { if(!isMyPart){showReadOnly();return} update(ref(db, `checkItems/${projectId}/${selectedPart!.id}/${item.id}`), { isDone: !item.isDone }) }}
                             className={`w-5 h-5 rounded flex items-center justify-center border-2 flex-shrink-0 ${item.isDone ? 'bg-[#3B6D11] border-[#3B6D11]' : 'border-[#E2E8F0]'}`}>
                             {item.isDone && <i className="ti ti-check text-white text-[11px]" />}
                           </button>
@@ -326,13 +373,18 @@ export default function MyPartPage() {
           </>
         )}
       </div>
+      {readOnlyToast && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-[#1A1A2E] text-white text-[12px] font-semibold px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2">
+          <i className="ti ti-lock text-[13px]"/> 해당 팀에 요청해주세요!
+        </div>
+      )}
       <BottomTabBar />
 
-      {showAddCue && myPart && (
+      {showAddCue && selectedPartId && isMyPart && (
         <AddCueModal
           onClose={() => setShowAddCue(false)}
           onSave={addCue}
-          partId={myPart.id}
+          partId={selectedPartId}
           projectId={projectId!}
           order={cues.length}
         />
@@ -343,6 +395,7 @@ export default function MyPartPage() {
           cue={activeCue}
           projectId={projectId!}
           onClose={() => setActiveCue(null)}
+          isReadOnly={!isMyPart}
         />
       )}
     </div>
