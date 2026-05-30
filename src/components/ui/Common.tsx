@@ -111,6 +111,9 @@ export function BottomTabBar() {
   function handleTab(key: string) {
     if (projectId) {
       navigate(`/p/${projectId}/${key}`)
+    } else if (location.pathname === '/projects') {
+      // 이미 프로젝트 선택 페이지 → next 파라미터만 변경
+      navigate(`/projects?next=${key}`, { replace: true })
     } else {
       navigate(`/projects?next=${key}`)
     }
