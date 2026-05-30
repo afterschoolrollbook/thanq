@@ -104,10 +104,10 @@ export default function MyPartPage() {
       if (s.exists()) {
         const list: Part[] = Object.values(s.val())
         list.sort((a, b) => a.order - b.order)
-        const mine = list.find((p) => p.managerId === user.uid) ?? list[0]
+        const mine = list.find((p) => p.managerId === user.uid) ?? null
         setAllParts(list)
         setMyPart(mine ?? null)
-        if (!selectedPartId) setSelectedPartId(mine?.id ?? list[0]?.id ?? null)
+        if (!selectedPartId) setSelectedPartId(mine?.id ?? list[0]?.id ?? null)  // 탭 초기 선택은 내 파트, 없으면 첫번째
         setLoading(false)
       } else setLoading(false)
     })

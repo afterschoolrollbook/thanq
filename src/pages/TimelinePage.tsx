@@ -6,6 +6,7 @@ import { timeToMinutes, minutesToTime } from '@/utils/joinCode'
 import { Topbar, StatusBadge, BottomTabBar } from '@/components/ui/Common'
 import type { Part, CueItem, CheckItem, Project, Notice } from '@/types'
 import { CueModal, type CueWithPart } from '@/components/cue/CueModal'
+import { useAuthStore } from '@/store/authStore'
 
 
 // ── 달력 ──────────────────────────────────────────────────
@@ -55,6 +56,7 @@ function MiniCalendar({ selectedDate, onChange, eventDates, prepDates, onClose }
 export default function TimelinePage() {
   const { projectId } = useParams()
   const [project, setProject] = useState<Project | null>(null)
+  const user = useAuthStore((s) => s.user)
   const [parts, setParts] = useState<Part[]>([])
   const [allCues, setAllCues] = useState<CueWithPart[]>([])
   const [allChecks, setAllChecks] = useState<CheckItem[]>([])
@@ -343,7 +345,15 @@ export default function TimelinePage() {
 
       <BottomTabBar/>
       {activeCue && projectId && (
-        <CueModal cue={activeCue} projectId={projectId} onClose={() => setActiveCue(null)} isReadOnly={false}/>
+        <CueModal
+          cue={activeCue}
+          projectId={projectId}
+          onClose={() => setActiveCue(null)}
+          isReadOnly={(() => {
+            const part = parts.find(p => p.id === activeCue.partId)
+            return !user || part?.managerId !== user.uid
+          })()}
+        />
       )}
     </div>
   )
