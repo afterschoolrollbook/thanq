@@ -90,6 +90,8 @@ async function buildProjectMeta(projectId: string): Promise<{
   eventDate?: string
   eventDateEnd?: string
   location?: string
+  contact?: string
+  fieldLabel?: string
 }> {
   const projectSnap = await get(ref(db, `projects/${projectId}`))
   if (!projectSnap.exists()) return {}
