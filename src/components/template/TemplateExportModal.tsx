@@ -13,13 +13,11 @@ export default function TemplateExportModal({ project, onClose }: Props) {
   const [name, setName] = useState(project.name + ' 템플릿')
   const [description, setDescription] = useState('')
 
-  // 비밀번호
   const [usePassword, setUsePassword] = useState(false)
   const [password, setPassword] = useState('')
   const [passwordConfirm, setPasswordConfirm] = useState('')
   const [showPw, setShowPw] = useState(false)
 
-  // 이메일 제한
   const [useEmail, setUseEmail] = useState(false)
   const [allowedEmail, setAllowedEmail] = useState('')
 
@@ -34,7 +32,7 @@ export default function TemplateExportModal({ project, onClose }: Props) {
       if (password.length < 4) { setError('비밀번호는 4자 이상이어야 해요'); return }
       if (password !== passwordConfirm) { setError('비밀번호가 일치하지 않아요'); return }
     }
-    if (useEmail && !allowedEmail.trim()) { setError('허용할 이메일을 입력해주세요'); return }
+    if (useEmail && !allowedEmail.trim()) { setError('이메일을 입력해주세요'); return }
     if (useEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(allowedEmail.trim())) {
       setError('올바른 이메일 형식을 입력해주세요'); return
     }
@@ -50,7 +48,6 @@ export default function TemplateExportModal({ project, onClose }: Props) {
         usePassword ? password : undefined,
         useEmail ? allowedEmail.trim() : undefined,
       )
-      // 파일 다운로드
       const blob = new Blob([exportedJson], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -64,7 +61,6 @@ export default function TemplateExportModal({ project, onClose }: Props) {
     }
   }
 
-  // 토글 공통 컴포넌트
   function Toggle({ on }: { on: boolean }) {
     return (
       <div className={`w-10 h-6 rounded-full transition-colors flex items-center px-0.5 ${on ? 'bg-[#185FA5]' : 'bg-[#E2E8F0]'}`}>
@@ -93,29 +89,22 @@ export default function TemplateExportModal({ project, onClose }: Props) {
               <i className="ti ti-check text-[#0F6E56] text-[28px]" />
             </div>
             <div className="text-[15px] font-bold text-[#1A1A2E] mb-1">내보내기 완료!</div>
-            <div className="text-[13px] text-[#64748B] mb-3">{name}.thanq 파일이 다운로드됐어요</div>
-            {/* 설정된 보호 표시 */}
-            <div className="flex flex-col items-center gap-1.5 mb-4">
+            <div className="text-[13px] text-[#64748B] mb-4">{name}.thanq 파일이 다운로드됐어요</div>
+            <div className="flex flex-col items-center gap-1.5 mb-5">
               {useEmail && (
                 <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#E6F1FB] rounded-full">
                   <i className="ti ti-mail text-[#185FA5] text-[12px]" />
-                  <span className="text-[12px] text-[#185FA5] font-semibold">{allowedEmail} 전용</span>
+                  <span className="text-[12px] text-[#185FA5] font-semibold">{allowedEmail} 전용 파일</span>
                 </div>
               )}
               {usePassword && (
                 <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#FFF8E1] rounded-full">
                   <i className="ti ti-lock text-[#B45309] text-[12px]" />
-                  <span className="text-[12px] text-[#B45309] font-semibold">비밀번호 보호</span>
-                </div>
-              )}
-              {!useEmail && !usePassword && (
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#E1F5EE] rounded-full">
-                  <i className="ti ti-world text-[#0F6E56] text-[12px]" />
-                  <span className="text-[12px] text-[#0F6E56] font-semibold">누구나 열 수 있는 파일</span>
+                  <span className="text-[12px] text-[#B45309] font-semibold">비밀번호 보호 설정됨</span>
                 </div>
               )}
             </div>
-            <div className="flex flex-col gap-2 mt-2">
+            <div className="flex flex-col gap-2">
               <button onClick={() => window.open('/blog/write', '_blank')}
                 className="w-full h-[44px] bg-[#185FA5] text-white rounded-[10px] text-[13px] font-semibold flex items-center justify-center gap-2">
                 <i className="ti ti-edit text-[15px]" /> 블로그에 공유하기
@@ -128,13 +117,20 @@ export default function TemplateExportModal({ project, onClose }: Props) {
           </div>
         ) : (
           <>
+            {/* 자동 제외 안내 */}
+            <div className="flex items-start gap-2.5 bg-[#F0FDF4] border border-[#BBF7D0] rounded-[12px] px-3 py-2.5 mb-4">
+              <i className="ti ti-shield-check text-[#16A34A] text-[15px] mt-0.5 flex-shrink-0" />
+              <p className="text-[12px] text-[#166534]">
+                담당자 배정·연락처 정보는 <strong>자동으로 제외</strong>돼요. 메모·체크리스트에 직접 입력한 연락처는 포함될 수 있으니 확인해주세요.
+              </p>
+            </div>
+
             <div className="flex flex-col gap-3 mb-4">
 
               {/* 이름 */}
               <div>
                 <label className={lbl}>템플릿 이름</label>
-                <input value={name} onChange={(e) => setName(e.target.value)}
-                  className={inp} />
+                <input value={name} onChange={(e) => setName(e.target.value)} className={inp} />
               </div>
 
               {/* 설명 */}
@@ -146,7 +142,7 @@ export default function TemplateExportModal({ project, onClose }: Props) {
                   className="w-full border border-[#E2E8F0] rounded-[10px] px-3 py-2.5 text-[13px] focus:outline-none focus:border-[#185FA5] resize-none" />
               </div>
 
-              {/* ── 이메일 제한 ── */}
+              {/* 이메일 제한 */}
               <div className="border border-[#E2E8F0] rounded-[12px] overflow-hidden">
                 <button
                   onClick={() => { setUseEmail(!useEmail); setAllowedEmail('') }}
@@ -157,29 +153,29 @@ export default function TemplateExportModal({ project, onClose }: Props) {
                     </div>
                     <div className="text-left">
                       <div className="text-[13px] font-semibold text-[#1A1A2E]">이메일 제한</div>
-                      <div className="text-[11px] text-[#A0AEC0]">지정한 이메일로 로그인한 사람만 열 수 있어요</div>
+                      <div className="text-[11px] text-[#A0AEC0]">지정한 ThanQ 계정만 파일을 열 수 있어요</div>
                     </div>
                   </div>
                   <Toggle on={useEmail} />
                 </button>
                 {useEmail && (
                   <div className="px-4 pb-4 pt-2 border-t border-[#F4F6F9]">
-                    <label className="text-[11px] font-semibold text-[#64748B] mb-1 block">허용할 이메일</label>
-                    <input
-                      type="email"
-                      value={allowedEmail}
+                    <label className="text-[11px] font-semibold text-[#64748B] mb-1 block">
+                      파일을 전달받을 사람의 ThanQ 로그인 이메일
+                    </label>
+                    <input type="email" value={allowedEmail}
                       onChange={(e) => setAllowedEmail(e.target.value)}
-                      placeholder="buyer@example.com"
+                      placeholder="받는 사람의 ThanQ 이메일 입력"
                       className="w-full h-[38px] border border-[#E2E8F0] rounded-[8px] px-3 text-[13px] focus:outline-none focus:border-[#185FA5]" />
                     <div className="flex items-start gap-1.5 text-[11px] text-[#185FA5] bg-[#E6F1FB] rounded-[8px] px-3 py-2 mt-2">
                       <i className="ti ti-info-circle text-[12px] mt-0.5 flex-shrink-0" />
-                      이 이메일로 가입한 Pro 회원만 파일을 열 수 있어요
+                      파일을 열 때 ThanQ에 로그인한 이메일과 비교해요. 이메일이 다르면 파일을 열 수 없으니 정확히 입력해주세요.
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* ── 비밀번호 설정 ── */}
+              {/* 비밀번호 설정 */}
               <div className="border border-[#E2E8F0] rounded-[12px] overflow-hidden">
                 <button
                   onClick={() => { setUsePassword(!usePassword); setPassword(''); setPasswordConfirm('') }}
@@ -190,7 +186,7 @@ export default function TemplateExportModal({ project, onClose }: Props) {
                     </div>
                     <div className="text-left">
                       <div className="text-[13px] font-semibold text-[#1A1A2E]">비밀번호 설정</div>
-                      <div className="text-[11px] text-[#A0AEC0]">파일을 열 때 비밀번호가 필요해요</div>
+                      <div className="text-[11px] text-[#A0AEC0]">파일을 열 때 비밀번호를 입력해야 해요</div>
                     </div>
                   </div>
                   <Toggle on={usePassword} />
@@ -200,11 +196,8 @@ export default function TemplateExportModal({ project, onClose }: Props) {
                     <div>
                       <label className="text-[11px] font-semibold text-[#64748B] mb-1 block">비밀번호</label>
                       <div className="relative">
-                        <input
-                          type={showPw ? 'text' : 'password'}
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          placeholder="4자 이상 입력"
+                        <input type={showPw ? 'text' : 'password'} value={password}
+                          onChange={(e) => setPassword(e.target.value)} placeholder="4자 이상 입력"
                           className="w-full h-[38px] border border-[#E2E8F0] rounded-[8px] px-3 pr-9 text-[13px] focus:outline-none focus:border-[#B45309]" />
                         <button onClick={() => setShowPw(!showPw)}
                           className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#A0AEC0]">
@@ -215,11 +208,8 @@ export default function TemplateExportModal({ project, onClose }: Props) {
                     <div>
                       <label className="text-[11px] font-semibold text-[#64748B] mb-1 block">비밀번호 확인</label>
                       <div className="relative">
-                        <input
-                          type={showPw ? 'text' : 'password'}
-                          value={passwordConfirm}
-                          onChange={(e) => setPasswordConfirm(e.target.value)}
-                          placeholder="동일하게 입력"
+                        <input type={showPw ? 'text' : 'password'} value={passwordConfirm}
+                          onChange={(e) => setPasswordConfirm(e.target.value)} placeholder="동일하게 입력"
                           className={`w-full h-[38px] border rounded-[8px] px-3 pr-9 text-[13px] focus:outline-none ${
                             passwordConfirm && password !== passwordConfirm
                               ? 'border-[#E24B4A]'
@@ -234,23 +224,10 @@ export default function TemplateExportModal({ project, onClose }: Props) {
                     </div>
                     <div className="flex items-start gap-1.5 text-[11px] text-[#B45309] bg-[#FFF8E1] rounded-[8px] px-3 py-2">
                       <i className="ti ti-alert-triangle text-[12px] mt-0.5 flex-shrink-0" />
-                      비밀번호를 잊으면 복구할 수 없어요. 반드시 따로 기록해두세요.
+                      비밀번호를 잊으면 복구할 수 없어요. 파일 전달 시 받는 사람에게 비밀번호를 따로 알려주세요.
                     </div>
                   </div>
                 )}
-              </div>
-            </div>
-
-            {/* 포함 내용 안내 */}
-            <div className="bg-[#F4F6F9] rounded-[10px] p-3 mb-4 text-[12px] text-[#64748B]">
-              <div className="font-semibold text-[#1A1A2E] mb-1.5 flex items-center gap-1.5">
-                <i className="ti ti-info-circle text-[14px] text-[#185FA5]" /> 포함되는 내용
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="flex items-center gap-1.5"><i className="ti ti-check text-[#0F6E56]" /> 파트 구성 및 색상</span>
-                <span className="flex items-center gap-1.5"><i className="ti ti-check text-[#0F6E56]" /> 큐시트 항목 (시간 포함)</span>
-                <span className="flex items-center gap-1.5"><i className="ti ti-check text-[#0F6E56]" /> 체크리스트 항목</span>
-                <span className="flex items-center gap-1.5 text-[#A0AEC0]"><i className="ti ti-x text-[#E24B4A]" /> 개인정보 (담당자 이름, 연락처) 제외</span>
               </div>
             </div>
 
