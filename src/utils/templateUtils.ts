@@ -48,20 +48,6 @@ export async function exportProjectAsTemplate(
   const parts: Part[] = partsSnap.exists() ? Object.values(partsSnap.val()) : []
   parts.sort((a, b) => a.order - b.order)
 
-  // 행사일 가져오기 (date → dDay 역산용)
-  const projectSnap = await get(ref(db, `projects/${projectId}`))
-  const eventDateStr: string | null = projectSnap.exists()
-    ? (projectSnap.val().date ?? null)
-    : null
-
-  function calcDDay(cueDateStr?: string): number | undefined {
-    if (!cueDateStr || !eventDateStr) return undefined
-    const cueDate = new Date(cueDateStr)
-    const eventDate = new Date(eventDateStr)
-    const diffMs = cueDate.getTime() - eventDate.getTime()
-    return Math.round(diffMs / (1000 * 60 * 60 * 24))
-  }
-
   const templateParts: TemplatePartDraft[] = []
 
   for (const part of parts) {
@@ -78,10 +64,8 @@ export async function exportProjectAsTemplate(
       order: part.order,
       cueItems: cueItems.map((c) => {
         const cueLinkedChecks = checkItems.filter((ch) => ch.cueId === c.id)
-        const dDay = calcDDay(c.date)
         return {
           title: c.title,
-          ...(dDay !== undefined ? { dDay } : {}),  // date → dDay 역산
           startTime: c.startTime,
           durationMin: c.durationMin,
           memo: c.memo,
@@ -138,17 +122,6 @@ export async function exportProjectAsTemplateJson(
   const parts: Part[] = partsSnap.exists() ? Object.values(partsSnap.val()) : []
   parts.sort((a, b) => a.order - b.order)
 
-  const projectSnap = await get(ref(db, `projects/${projectId}`))
-  const eventDateStr: string | null = projectSnap.exists()
-    ? (projectSnap.val().date ?? null)
-    : null
-
-  function calcDDay(cueDateStr?: string): number | undefined {
-    if (!cueDateStr || !eventDateStr) return undefined
-    const diffMs = new Date(cueDateStr).getTime() - new Date(eventDateStr).getTime()
-    return Math.round(diffMs / (1000 * 60 * 60 * 24))
-  }
-
   const templateParts: TemplatePartDraft[] = []
 
   for (const part of parts) {
@@ -165,10 +138,8 @@ export async function exportProjectAsTemplateJson(
       order: part.order,
       cueItems: cueItems.map((c) => {
         const cueLinkedChecks = checkItems.filter((ch) => ch.cueId === c.id)
-        const dDay = calcDDay(c.date)
         return {
           title: c.title,
-          ...(dDay !== undefined ? { dDay } : {}),
           startTime: c.startTime,
           durationMin: c.durationMin,
           memo: c.memo,
@@ -211,20 +182,6 @@ export async function applyTemplateToProject(
   replaceMode: boolean = false
 ): Promise<void> {
 
-  // 행사일 가져오기 (dDay 계산 기준)
-  const projectSnap = await get(ref(db, `projects/${projectId}`))
-  const eventDateStr: string | null = projectSnap.exists()
-    ? (projectSnap.val().date ?? null)
-    : null
-
-  // dDay → 실제 날짜 계산 헬퍼
-  function resolveCueDate(dDay?: number): string | null {
-    if (dDay === undefined || dDay === null || !eventDateStr) return null
-    const base = new Date(eventDateStr)
-    base.setDate(base.getDate() + dDay)
-    return base.toISOString().split('T')[0]  // YYYY-MM-DD
-  }
-
   // 덮어쓰기 모드: 기존 파트·큐·체크리스트 전체 삭제
   if (replaceMode) {
     const existingPartsSnap = await get(ref(db, `parts/${projectId}`))
@@ -256,14 +213,12 @@ export async function applyTemplateToProject(
     for (const [j, cue] of tPart.cueItems.entries()) {
       const cueRef = push(ref(db, `cueItems/${projectId}/${partId}`))
       const cueId = cueRef.key!
-      const cueDate = resolveCueDate(cue.dDay)   // dDay → 실제 날짜
       await set(cueRef, {
         id: cueId,
         partId,
         projectId,
         order: j,
         title: cue.title,
-        ...(cueDate ? { date: cueDate } : {}),   // 날짜 있을 때만 저장
         startTime: cue.startTime,
         durationMin: cue.durationMin,
         memo: cue.memo ?? null,
