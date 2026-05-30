@@ -79,6 +79,7 @@ export interface CueItem {
   projectId: string
   order: number
   title: string
+  dDay?: number          // 행사일 기준 상대 일수 (0=당일, -1=D-1, -7=D-7 등)
   date?: string          // ISO date string (YYYY-MM-DD) — 미설정 시 행사 당일
   startTime: string      // HH:mm
   durationMin: number
@@ -174,6 +175,7 @@ export interface TemplatePartDraft {
   cueItems: Array<{
     title: string
     dDay?: number          // 행사일 기준 상대 일수 (0=당일, -1=D-1, -7=D-7 등)
+    date?: string          // ISO date string (YYYY-MM-DD)
     startTime: string
     durationMin: number
     memo?: string
