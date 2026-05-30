@@ -205,13 +205,14 @@ function TimelineShapeCard({ project, onClick }: { project: Project; onClick: ()
           <span className="text-[#185FA5] font-bold text-[9px]">{d.getMonth()+1}월</span>
           <span className={`text-[8px] font-black ${dday==='D-DAY'?'text-[#E24B4A]':'text-[#185FA5]'}`}>{dday}</span>
         </div>
-        {/* 날짜 */}
-        <div className="px-2 py-1.5 text-center">
-          <div className="text-[24px] font-black text-[#185FA5] leading-none">{d.getDate()}</div>
+        {/* 날짜 - 높이 키움 */}
+        <div className="px-2 py-4 text-center">
+          <div className="text-[28px] font-black text-[#185FA5] leading-none">{d.getDate()}</div>
+          <div className="text-[8px] text-[#A0AEC0] mt-1">{d.getFullYear()}</div>
         </div>
         <div className="mx-2 border-t border-dashed border-[#E2E8F0]"/>
         {/* 프로젝트명 */}
-        <div className="px-2 py-1.5">
+        <div className="px-2 py-2">
           <div className="text-[9px] font-bold text-[#1A1A2E] truncate">{project.name}</div>
           <div className="text-[8px] text-[#185FA5] mt-0.5">열기 →</div>
         </div>
@@ -376,12 +377,44 @@ function DashboardShapeCard({ project, onClick }: { project: Project; onClick: (
 function ProjectSelectCard({ project, nextTab, onClick }: {
   project: Project; nextTab: string | null; onClick: () => void
 }) {
-  if (nextTab === 'timeline')  return <DefaultCard    project={project} onClick={onClick}/>
   if (nextTab === 'comms')     return <CommsShapeCard     project={project} onClick={onClick}/>
   if (nextTab === 'ptt')       return <PTTShapeCard       project={project} onClick={onClick}/>
   if (nextTab === 'my-part')   return <MyPartShapeCard    project={project} onClick={onClick}/>
   if (nextTab === 'dashboard') return <DashboardShapeCard project={project} onClick={onClick}/>
-  return null
+
+  // 타임라인 리스트 뷰 + 기본 = 슬림 달력형
+  const dday = getDday(project.date)
+  const d = new Date(project.date)
+  return (
+    <button onClick={onClick} className="w-full hover:scale-[1.01] transition-transform">
+      <div className="relative bg-white rounded-[14px] overflow-hidden border border-[#B5D4F4] hover:shadow-md transition-shadow">
+        {/* 달력 고리 2개 */}
+        <div className="absolute top-0 left-0 right-0 flex justify-around px-10">
+          <div className="w-3.5 h-2.5 rounded-b-full border-x border-b border-[#B5D4F4] bg-[#F4F6F9]"/>
+          <div className="w-3.5 h-2.5 rounded-b-full border-x border-b border-[#B5D4F4] bg-[#F4F6F9]"/>
+        </div>
+        {/* 헤더 */}
+        <div className="bg-[#E6F1FB] pt-2.5 pb-1.5 px-4 flex items-center justify-between">
+          <span className="text-[#64748B] text-[10px]">{d.getFullYear()}년 <span className="font-bold text-[#185FA5]">{d.getMonth()+1}월</span></span>
+          <span className={`text-[11px] font-black ${dday==='D-DAY'?'text-[#E24B4A]':'text-[#185FA5]'}`}>{dday}</span>
+        </div>
+        {/* 날짜 + 내용 한 줄 */}
+        <div className="px-4 py-2 flex items-center gap-3">
+          <div className="text-[32px] font-black text-[#185FA5] leading-none flex-shrink-0">{d.getDate()}</div>
+          <div className="flex-1 min-w-0 text-left">
+            <div className="text-[13px] font-bold text-[#1A1A2E] truncate">{project.name}</div>
+            {project.venue && <div className="text-[11px] text-[#64748B] flex items-center gap-1"><i className="ti ti-map-pin text-[10px]"/>{project.venue}</div>}
+          </div>
+        </div>
+        {/* 하단 */}
+        <div className="mx-4 border-t border-dashed border-[#E2E8F0]"/>
+        <div className="px-4 py-1.5 flex items-center justify-between">
+          <span className="text-[10px] font-mono text-[#A0AEC0]">{project.joinCode}</span>
+          <span className="text-[11px] font-bold text-[#185FA5]">일정표 열기 →</span>
+        </div>
+      </div>
+    </button>
+  )
 }
 
 // 기본 카드 (프로젝트 직접 진입)
