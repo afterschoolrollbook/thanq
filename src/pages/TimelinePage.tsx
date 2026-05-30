@@ -449,7 +449,11 @@ export default function TimelinePage() {
   function onTE() { lpd.current=null }
 
   const visibleParts = selectedPartId ? parts.filter(p=>p.id===selectedPartId) : parts
-  const filteredCues = allCues.filter(c=>!selectedPartId||c.partId===selectedPartId)
+  // date 필드 있는 큐는 selectedDate와 일치할 때만 표시, 없으면 항상 표시
+  const filteredCues = allCues.filter(c=>
+    (!selectedPartId || c.partId===selectedPartId) &&
+    (!c.date || c.date === selectedDate)
+  )
 
   const timeSlots: string[] = []
   if (filteredCues.length > 0) {
