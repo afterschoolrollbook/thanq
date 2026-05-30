@@ -173,8 +173,12 @@ export interface TemplatePartDraft {
     startTime: string
     durationMin: number
     memo?: string
+    checkItems?: Array<{   // 큐 항목에 직접 연결된 체크리스트
+      title: string
+      category: string
+    }>
   }>
-  checkItems: Array<{
+  checkItems: Array<{      // 파트 레벨 체크리스트 (큐에 미연결)
     title: string
     category: string
   }>
