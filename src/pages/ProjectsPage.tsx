@@ -349,6 +349,7 @@ function MyPartIconCard({ project, onClick }: { project: Project; onClick: () =>
         <div className="px-2 pt-2 pb-1 text-center">
           <div className="text-[26px] font-black text-[#3B6D11] leading-none">{d.getDate()}</div>
           <div className="text-[9px] font-black text-[#1A1A2E] mt-0.5 truncate leading-tight">{project.name}</div>
+        </div>
         <div className="px-2 pb-1 flex flex-col gap-1">
           <div className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-[2px] bg-[#3B6D11] flex-shrink-0"/>
