@@ -22,6 +22,7 @@ export default function TemplateImportModal({ projectId, onClose, onSuccess }: P
   const [preview, setPreview] = useState<TemplateFile | null>(null)
   const [error, setError] = useState('')
   const [applying, setApplying] = useState(false)
+  const [replaceMode, setReplaceMode] = useState(false)
   const [dragOver, setDragOver] = useState(false)
 
   // 잠금 해제 단계
@@ -101,7 +102,7 @@ export default function TemplateImportModal({ projectId, onClose, onSuccess }: P
     if (!preview) return
     setApplying(true)
     try {
-      await applyTemplateToProject(projectId, preview)
+      await applyTemplateToProject(projectId, preview, replaceMode)
       onSuccess()
     } catch {
       setError('템플릿 적용 중 오류가 발생했어요')
@@ -255,11 +256,49 @@ export default function TemplateImportModal({ projectId, onClose, onSuccess }: P
         {error && <p className="text-[12px] text-[#A32D2D] mb-3">{error}</p>}
 
         {preview && !isLocked && (
-          <button onClick={handleApply} disabled={applying}
-            className="w-full h-[46px] bg-[#185FA5] text-white rounded-[12px] text-[14px] font-bold flex items-center justify-center gap-2 disabled:opacity-50">
-            <i className="ti ti-check text-[16px]" />
-            {applying ? '적용 중...' : '이 템플릿으로 파트 세팅하기'}
-          </button>
+          <div>
+            {/* 적용 방식 선택 토글 */}
+            <div className="flex gap-2 mb-3">
+              <button
+                onClick={() => setReplaceMode(false)}
+                className={`flex-1 h-[38px] rounded-[10px] text-[12px] font-semibold border transition-colors ${
+                  !replaceMode
+                    ? 'bg-[#185FA5] text-white border-[#185FA5]'
+                    : 'bg-white text-[#64748B] border-[#E2E8F0] hover:border-[#185FA5]'
+                }`}>
+                <i className="ti ti-plus text-[13px] mr-1" />
+                기존에 추가
+              </button>
+              <button
+                onClick={() => setReplaceMode(true)}
+                className={`flex-1 h-[38px] rounded-[10px] text-[12px] font-semibold border transition-colors ${
+                  replaceMode
+                    ? 'bg-[#DC2626] text-white border-[#DC2626]'
+                    : 'bg-white text-[#64748B] border-[#E2E8F0] hover:border-[#DC2626]'
+                }`}>
+                <i className="ti ti-refresh text-[13px] mr-1" />
+                기존 삭제 후 덮어쓰기
+              </button>
+            </div>
+            {/* 덮어쓰기 경고 */}
+            {replaceMode && (
+              <div className="flex items-start gap-2 bg-[#FEF2F2] border border-[#FECACA] rounded-[10px] px-3 py-2 mb-3">
+                <i className="ti ti-alert-triangle text-[#DC2626] text-[14px] mt-0.5 flex-shrink-0" />
+                <p className="text-[11px] text-[#DC2626]">
+                  기존 파트·큐시트·체크리스트가 <strong>전부 삭제</strong>되고 템플릿으로 교체됩니다.
+                </p>
+              </div>
+            )}
+            <button onClick={handleApply} disabled={applying}
+              className={`w-full h-[46px] text-white rounded-[12px] text-[14px] font-bold flex items-center justify-center gap-2 disabled:opacity-50 ${
+                replaceMode ? 'bg-[#DC2626]' : 'bg-[#185FA5]'
+              }`}>
+              <i className={`ti ${replaceMode ? 'ti-refresh' : 'ti-check'} text-[16px]`} />
+              {applying
+                ? (replaceMode ? '교체 중...' : '적용 중...')
+                : (replaceMode ? '기존 삭제 후 이 템플릿으로 교체' : '이 템플릿으로 파트 세팅하기')}
+            </button>
+          </div>
         )}
       </div>
     </div>
