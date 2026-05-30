@@ -134,13 +134,10 @@ export function BottomTabBar() {
         {/* 나머지 탭 */}
         {tabs.map(({ key, icon, label }) => {
           const isActive = !!projectId && location.pathname.includes(`/${key}`)
-          const isPTT = key === 'ptt'
           return (
             <button key={key} onClick={() => handleTab(key)}
               className={`flex-1 flex flex-col items-center py-2.5 gap-0.5 text-[11px] font-medium transition-colors ${
-                isPTT
-                  ? isActive ? 'text-white bg-[#185FA5]' : 'text-[#185FA5] bg-[#E6F1FB]'
-                  : isActive ? 'text-[#185FA5]' : 'text-[#A0AEC0] hover:text-[#185FA5]'
+                isActive ? 'text-[#185FA5]' : 'text-[#A0AEC0] hover:text-[#185FA5]'
               }`}>
               <i className={`ti ${icon} text-[20px]`} />
               <span>{label}</span>
