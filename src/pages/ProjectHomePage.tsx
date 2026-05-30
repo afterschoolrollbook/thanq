@@ -54,8 +54,11 @@ export default function ProjectHomePage() {
   const [editOverview, setEditOverview] = useState('')
   const [saving, setSaving] = useState(false)
 
-  // 파트 편집 상태
-  const [editingParts, setEditingParts] = useState(false)
+  // 파트 편집 상태 - 파트별현황(상단)과 파트구성(하단) 분리
+  const [editingPartsTop, setEditingPartsTop] = useState(false)
+  const [editingPartsBottom, setEditingPartsBottom] = useState(false)
+  const [showMyRoleModal, setShowMyRoleModal] = useState(false)
+  const [myNewPartId, setMyNewPartId] = useState('')
   const [showParts, setShowParts] = useState(true)
   const [partManagers, setPartManagers] = useState<Record<string, any>>({})
   const [editPartId, setEditPartId] = useState<string|null>(null)
@@ -164,6 +167,19 @@ export default function ProjectHomePage() {
     await navigator.clipboard.writeText(getInviteLink(part, role))
     setInviteCopied(true)
     setTimeout(() => setInviteCopied(false), 2000)
+  }
+
+  async function saveMyRole(partId: string) {
+    if (!projectId || !user) return
+    const selectedPart = parts.find(p => p.id === partId)
+    await update(ref(db, `projectMembers/${projectId}/${user.uid}`), {
+      partId,
+      partName: selectedPart?.name ?? '',
+      role: isOwner ? 'planner' : 'staff',
+    })
+    setMyPartId(partId)
+    setMyPartName(selectedPart?.name ?? '')
+    setShowMyRoleModal(false)
   }
 
   async function saveMemberRole(part: Part, role: string) {
@@ -426,6 +442,10 @@ export default function ProjectHomePage() {
           <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#E2E8F0] rounded-full text-[12px] font-semibold text-[#1A1A2E]">
             <i className="ti ti-puzzle text-[#64748B] text-[13px]" />
             {myPartName || (isOwner ? '전체 파트 관리' : '파트 미배정')}
+            <button onClick={() => setShowMyRoleModal(true)}
+              className="ml-1 text-[#A0AEC0] hover:text-[#185FA5]">
+              <i className="ti ti-pencil text-[11px]"/>
+            </button>
           </span>
         </div>
 
@@ -471,9 +491,9 @@ export default function ProjectHomePage() {
               </div>
               <div className="flex items-center gap-2">
                 {isOwner && (
-                  <button onClick={() => setEditingParts(v => !v)}
-                    className={`text-[12px] font-semibold px-2 py-0.5 rounded-[6px] transition-colors ${editingParts ? 'bg-[#185FA5] text-white' : 'text-[#185FA5]'}`}>
-                    {editingParts ? '완료' : '편집'}
+                  <button onClick={() => setEditingPartsTop(v => !v)}
+                    className={`text-[12px] font-semibold px-2 py-0.5 rounded-[6px] transition-colors ${editingPartsTop ? 'bg-[#185FA5] text-white' : 'text-[#185FA5]'}`}>
+                    {editingPartsTop ? '완료' : '편집'}
                   </button>
                 )}
                 <button onClick={() => navigate(`/p/${projectId}/dashboard`)} className="text-[12px] text-[#185FA5]">대시보드</button>
@@ -483,7 +503,7 @@ export default function ProjectHomePage() {
               {parts.map((part) => (
                 <div key={part.id} className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: part.color }} />
-                  {editingParts && editPartId === part.id ? (
+                  {editingPartsTop && editPartId === part.id ? (
                     <input
                       className="flex-1 text-[12px] border-b border-[#185FA5] outline-none bg-transparent"
                       value={editPartName}
@@ -493,13 +513,9 @@ export default function ProjectHomePage() {
                       onKeyDown={e => { if (e.key === 'Enter') savePartName(part.id); if (e.key === 'Escape') setEditPartId(null) }}
                     />
                   ) : (
-                    <span
-                      className="text-[12px] flex-1 truncate"
-                      onDoubleClick={() => { setEditPartId(part.id); setEditPartName(part.name) }}>
-                      {part.name}
-                    </span>
+                    <span className="text-[12px] flex-1 truncate">{part.name}</span>
                   )}
-                  {editingParts ? (
+                  {editingPartsTop ? (
                     <div className="flex items-center gap-1.5">
                       <button onClick={() => { setEditPartId(part.id); setEditPartName(part.name) }}
                         className="text-[#A0AEC0] hover:text-[#185FA5]">
@@ -518,16 +534,16 @@ export default function ProjectHomePage() {
                   )}
                 </div>
               ))}
-              {editingParts && (
+              {editingPartsTop && (
                 <button onClick={addPart}
                   className="mt-1 h-[30px] w-full border border-dashed border-[#E2E8F0] rounded-[8px] text-[12px] text-[#A0AEC0] flex items-center justify-center gap-1 hover:border-[#185FA5] hover:text-[#185FA5] transition-colors">
                   <i className="ti ti-plus text-[12px]" /> 파트 추가
                 </button>
               )}
-              {parts.length === 0 && !editingParts && (
+              {parts.length === 0 && !editingPartsTop && (
                 <div className="text-center py-3">
                   <p className="text-[12px] text-[#64748B] mb-2.5">파트가 없어요</p>
-                  <button onClick={() => setEditingParts(true)}
+                  <button onClick={() => setEditingPartsTop(true)}
                     className="h-[32px] px-3 bg-[#185FA5] text-white rounded-[8px] text-[12px] font-semibold flex items-center gap-1 mx-auto">
                     <i className="ti ti-plus text-[12px]" /> 파트 추가
                   </button>
@@ -541,7 +557,7 @@ export default function ProjectHomePage() {
         <div className="bg-white border border-[#E2E8F0] rounded-[14px] mb-4 overflow-hidden">
           <button
             className="w-full flex items-center justify-between px-4 py-3"
-            onClick={() => { setShowParts(v => !v); if (showParts) setEditingParts(false) }}>
+            onClick={() => { setShowParts(v => !v); if (showParts) setEditingPartsBottom(false) }}>
             <div className="flex items-center gap-2">
               <i className="ti ti-puzzle text-[#185FA5] text-[15px]" />
               <span className="text-[13px] font-semibold text-[#1A1A2E]">파트 구성</span>
@@ -563,7 +579,7 @@ export default function ProjectHomePage() {
                     {parts.filter(p => !(p as any).isParticipant).map(part => (
                       <div key={part.id} className="flex items-center gap-2 py-1">
                         <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: part.color }} />
-                        {editingParts && editPartId === part.id ? (
+                        {editingPartsBottom && editPartId === part.id ? (
                           <input
                             className="flex-1 text-[13px] border-b border-[#185FA5] outline-none bg-transparent"
                             value={editPartName} autoFocus
@@ -580,7 +596,7 @@ export default function ProjectHomePage() {
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#E6F1FB] text-[#185FA5]">나</span>
                         )}
                         {/* 초대 버튼 - 기획자 또는 내 파트 팀장 */}
-                        {(isOwner || part.id === myPartId) && !editingParts && (
+                        {(isOwner || part.id === myPartId) && !editingPartsBottom && (
                           <button onClick={() => setShowInviteModal(part)}
                             className="text-[#A0AEC0] hover:text-[#185FA5] transition-colors">
                             <i className="ti ti-user-plus text-[13px]"/>
@@ -593,10 +609,10 @@ export default function ProjectHomePage() {
                             {ROLE_LABEL[(part as any).memberRole] ?? (part as any).memberRole}
                           </span>
                         )}
-                        {editingParts && (
+                        {editingPartsBottom && (
                           <div className="flex gap-1.5">
                             {isOwner && <button onClick={() => { setRoleChangeTarget(part); setRoleChangeRole((part as any).memberRole ?? 'staff') }} className="text-[#A0AEC0] hover:text-[#E8820C]"><i className="ti ti-shield text-[13px]"/></button>}
-                            <button onClick={() => { setEditPartId(part.id); setEditPartName(part.name) }} className="text-[#A0AEC0] hover:text-[#185FA5]"><i className="ti ti-pencil text-[13px]"/></button>
+                            <button onClick={(e) => { e.stopPropagation(); setEditPartId(part.id); setEditPartName(part.name) }} className="text-[#A0AEC0] hover:text-[#185FA5]"><i className="ti ti-pencil text-[13px]"/></button>
                             <button onClick={() => deletePart(part.id)} className="text-[#A0AEC0] hover:text-[#E24B4A]"><i className="ti ti-trash text-[13px]"/></button>
                           </div>
                         )}
@@ -617,7 +633,7 @@ export default function ProjectHomePage() {
                     {parts.filter(p => (p as any).isParticipant).map(part => (
                       <div key={part.id} className="flex items-center gap-2 py-1">
                         <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: part.color }} />
-                        {editingParts && editPartId === part.id ? (
+                        {editingPartsBottom && editPartId === part.id ? (
                           <input
                             className="flex-1 text-[13px] border-b border-[#185FA5] outline-none bg-transparent"
                             value={editPartName} autoFocus
@@ -632,7 +648,7 @@ export default function ProjectHomePage() {
                         {part.id === myPartId && (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FFF8F0] text-[#854F0B]">나</span>
                         )}
-                        {editingParts && (
+                        {editingPartsBottom && (
                           <div className="flex gap-1.5">
                             {isOwner && <button onClick={() => { setRoleChangeTarget(part); setRoleChangeRole((part as any).memberRole ?? 'participant') }} className="text-[#A0AEC0] hover:text-[#E8820C]"><i className="ti ti-shield text-[13px]"/></button>}
                             <button onClick={() => { setEditPartId(part.id); setEditPartName(part.name) }} className="text-[#A0AEC0] hover:text-[#185FA5]"><i className="ti ti-pencil text-[13px]"/></button>
@@ -651,11 +667,11 @@ export default function ProjectHomePage() {
 
               {isOwner && (
                 <div className="flex items-center gap-2 mt-2 pt-3 border-t border-[#F4F6F9]">
-                  <button onClick={() => setEditingParts(v => !v)}
-                    className={`flex-1 h-[32px] rounded-[8px] text-[12px] font-semibold border transition-colors ${editingParts ? 'bg-[#185FA5] text-white border-[#185FA5]' : 'border-[#E2E8F0] text-[#64748B]'}`}>
-                    {editingParts ? '편집 완료' : '파트 편집'}
+                  <button onClick={() => setEditingPartsBottom(v => !v)}
+                    className={`flex-1 h-[32px] rounded-[8px] text-[12px] font-semibold border transition-colors ${editingPartsBottom ? 'bg-[#185FA5] text-white border-[#185FA5]' : 'border-[#E2E8F0] text-[#64748B]'}`}>
+                    {editingPartsBottom ? '편집 완료' : '파트 편집'}
                   </button>
-                  {editingParts && (
+                  {editingPartsBottom && (
                     <button onClick={addPart}
                       className="flex-1 h-[32px] rounded-[8px] text-[12px] font-semibold border border-dashed border-[#E2E8F0] text-[#A0AEC0] hover:border-[#185FA5] hover:text-[#185FA5] transition-colors flex items-center justify-center gap-1">
                       <i className="ti ti-plus text-[12px]" /> 파트 추가
@@ -719,6 +735,52 @@ export default function ProjectHomePage() {
           </div>
         )}
       </div>
+
+      {/* 내 역할/파트 변경 모달 */}
+      {showMyRoleModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-5" onClick={() => setShowMyRoleModal(false)}>
+          <div className="bg-white rounded-[20px] p-5 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-[16px] font-semibold">내 파트 변경</div>
+              <button onClick={() => setShowMyRoleModal(false)}><i className="ti ti-x text-[18px] text-[#A0AEC0]"/></button>
+            </div>
+            <p className="text-[12px] text-[#64748B] mb-4">어느 파트로 보고 싶으신가요? 선택한 파트의 시각으로 확인할 수 있어요.</p>
+            <div className="flex flex-col gap-2 mb-4 max-h-[300px] overflow-y-auto">
+              {parts.filter(p => !(p as any).isParticipant).length > 0 && (
+                <div className="text-[11px] font-bold text-[#185FA5] mb-1 flex items-center gap-1">
+                  <i className="ti ti-users text-[10px]"/> 행사진행
+                </div>
+              )}
+              {parts.filter(p => !(p as any).isParticipant).map(part => (
+                <button key={part.id} onClick={() => setMyNewPartId(part.id)}
+                  className={`flex items-center gap-3 p-3 rounded-[10px] border-2 text-left transition-colors ${myNewPartId === part.id || (!myNewPartId && part.id === myPartId) ? 'border-[#185FA5] bg-[#E6F1FB]' : 'border-[#E2E8F0]'}`}>
+                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: part.color }}/>
+                  <span className="text-[13px] font-semibold flex-1">{part.name}</span>
+                  {(myNewPartId === part.id || (!myNewPartId && part.id === myPartId)) && <i className="ti ti-check text-[#185FA5] text-[16px]"/>}
+                </button>
+              ))}
+              {parts.filter(p => (p as any).isParticipant).length > 0 && (
+                <div className="text-[11px] font-bold text-[#854F0B] mt-2 mb-1 flex items-center gap-1">
+                  <i className="ti ti-run text-[10px]"/> 참가자
+                </div>
+              )}
+              {parts.filter(p => (p as any).isParticipant).map(part => (
+                <button key={part.id} onClick={() => setMyNewPartId(part.id)}
+                  className={`flex items-center gap-3 p-3 rounded-[10px] border-2 text-left transition-colors ${myNewPartId === part.id || (!myNewPartId && part.id === myPartId) ? 'border-[#854F0B] bg-[#FFF8F0]' : 'border-[#E2E8F0]'}`}>
+                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: part.color }}/>
+                  <span className="text-[13px] font-semibold flex-1">{part.name}</span>
+                  {(myNewPartId === part.id || (!myNewPartId && part.id === myPartId)) && <i className="ti ti-check text-[#854F0B] text-[16px]"/>}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setShowMyRoleModal(false)} className="flex-1 h-[42px] border border-[#E2E8F0] rounded-[12px] text-[13px] text-[#64748B]">취소</button>
+              <button onClick={() => saveMyRole(myNewPartId || myPartId)}
+                className="flex-1 h-[42px] bg-[#185FA5] text-white rounded-[12px] text-[13px] font-semibold">저장</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 팀원 초대 모달 */}
       {showInviteModal && (
