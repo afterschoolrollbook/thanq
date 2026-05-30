@@ -206,6 +206,8 @@ export interface TemplateFile {
   prepDate?: string        // 준비 시작일 예시 (ISO date)
   eventDate?: string       // 행사 시작일 예시 (ISO date)
   eventDateEnd?: string    // 행사 종료일 예시 (여러 날)
+  startTime?: string       // 행사 시작 시간 (HH:mm)
+  endTime?: string         // 행사 종료 시간 (HH:mm)
   location?: string        // 장소 예시
   contact?: string         // 연락처 예시
 }
