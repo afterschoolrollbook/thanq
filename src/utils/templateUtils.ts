@@ -1,6 +1,6 @@
 import { ref, get, push, set, remove, update } from 'firebase/database'
 import { db } from '@/lib/firebase'
-import { PART_COLORS } from '@/utils/fieldTerms'
+import { PART_COLORS, FIELD_LABELS } from '@/utils/fieldTerms'
 import type { TemplateFile, TemplatePartDraft, Part, CueItem, CheckItem, FieldType, Project } from '@/types'
 
 // ─── 비밀번호 해시 / 검증 ─────────────────────────────────────
@@ -97,11 +97,13 @@ async function buildProjectMeta(projectId: string): Promise<{
   const project = projectSnap.val() as Project
 
   return {
-    ...(project.name      ? { projectName:   project.name }     : {}),
-    ...(project.prepDate  ? { prepDate:       project.prepDate } : {}),
-    ...(project.date      ? { eventDate:      project.date }     : {}),
-    ...(project.dateEnd   ? { eventDateEnd:   project.dateEnd }  : {}),
-    ...(project.venue     ? { location:       project.venue }    : {}),
+    ...(project.name       ? { projectName:   project.name }      : {}),
+    ...(project.prepDate   ? { prepDate:       project.prepDate }  : {}),
+    ...(project.date       ? { eventDate:      project.date }      : {}),
+    ...(project.dateEnd    ? { eventDateEnd:   project.dateEnd }   : {}),
+    ...(project.venue      ? { location:       project.venue }     : {}),
+    ...(project.overview   ? { contact:        project.overview }  : {}),
+    fieldLabel: FIELD_LABELS[project.fieldType]?.label ?? project.fieldType,
   }
 }
 
