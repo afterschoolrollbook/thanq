@@ -4,21 +4,20 @@ import { ref, onValue, update, push, set } from 'firebase/database'
 import { db } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
 import { Topbar, StatusBadge, BottomTabBar } from '@/components/ui/Common'
+import { CueModal, type CueWithPart } from '@/components/cue/CueModal'
 import type { Part, CueItem, CheckItem } from '@/types'
 
 // ─── 큐시트 추가 모달 ──────────────────────────────────────
-interface AddCueModalProps {
+function AddCueModal({ onClose, onSave, partId, projectId, order }: {
   onClose: () => void
   onSave: (item: Omit<CueItem, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>
-  partId: string
-  projectId: string
-  order: number
-}
-function AddCueModal({ onClose, onSave, partId, projectId, order }: AddCueModalProps) {
+  partId: string; projectId: string; order: number
+}) {
   const [title, setTitle] = useState('')
   const [startTime, setStartTime] = useState('')
   const [durationMin, setDurationMin] = useState('')
   const [memo, setMemo] = useState('')
+  const [date, setDate] = useState('')
   const [saving, setSaving] = useState(false)
 
   async function handleSave() {
@@ -30,6 +29,7 @@ function AddCueModal({ onClose, onSave, partId, projectId, order }: AddCueModalP
       startTime: startTime || '--:--',
       durationMin: Number(durationMin) || 0,
       memo: memo.trim() || undefined,
+      ...(date ? { date } : {}),
       status: 'pending',
     })
     setSaving(false)
@@ -47,6 +47,10 @@ function AddCueModal({ onClose, onSave, partId, projectId, order }: AddCueModalP
             <label className={lbl}>항목명 <span className="text-[#A32D2D]">*</span></label>
             <input className={inp} placeholder="예: 오프닝 영상 재생" value={title}
               onChange={(e) => setTitle(e.target.value)} autoFocus />
+          </div>
+          <div>
+            <label className={lbl}>날짜 <span className="text-[#A0AEC0] font-normal">(준비일 등, 비워두면 행사 당일)</span></label>
+            <input className={inp} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -77,84 +81,6 @@ function AddCueModal({ onClose, onSave, partId, projectId, order }: AddCueModalP
   )
 }
 
-// ─── 체크리스트 추가 모달 ─────────────────────────────────
-interface AddCheckModalProps {
-  onClose: () => void
-  onSave: (item: Omit<CheckItem, 'id' | 'createdAt'>) => Promise<void>
-  partId: string
-  projectId: string
-}
-function AddCheckModal({ onClose, onSave, partId, projectId }: AddCheckModalProps) {
-  const [title, setTitle] = useState('')
-  const [category, setCategory] = useState<CheckItem['category']>('prep')
-  const [dueDate, setDueDate] = useState('')
-  const [saving, setSaving] = useState(false)
-
-  const categories: { value: CheckItem['category']; label: string }[] = [
-    { value: 'prep',    label: '준비' },
-    { value: 'contact', label: '연락' },
-    { value: 'setup',   label: '설치' },
-    { value: 'custom',  label: '기타' },
-  ]
-
-  async function handleSave() {
-    if (!title.trim()) return
-    setSaving(true)
-    await onSave({
-      partId, projectId, category,
-      title: title.trim(),
-      isDone: false,
-      dueDate: dueDate || undefined,
-      assignee: undefined,
-    })
-    setSaving(false)
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center" onClick={onClose}>
-      <div className="bg-white w-full max-w-2xl rounded-t-[20px] p-5 pb-8" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
-          <div className="text-[16px] font-semibold">체크리스트 추가</div>
-          <button onClick={onClose}><i className="ti ti-x text-[18px] text-[#A0AEC0]" /></button>
-        </div>
-        <div className="flex flex-col gap-3 mb-5">
-          <div>
-            <label className={lbl}>항목명 <span className="text-[#A32D2D]">*</span></label>
-            <input className={inp} placeholder="예: 음향 장비 점검" value={title}
-              onChange={(e) => setTitle(e.target.value)} autoFocus />
-          </div>
-          <div>
-            <label className={lbl}>카테고리</label>
-            <div className="flex gap-2 flex-wrap">
-              {categories.map((c) => (
-                <button key={c.value} onClick={() => setCategory(c.value)}
-                  className={`px-3 py-1.5 rounded-full text-[12px] border transition-colors ${
-                    category === c.value
-                      ? 'bg-[#185FA5] text-white border-[#185FA5]'
-                      : 'border-[#E2E8F0] text-[#64748B] hover:border-[#185FA5]'
-                  }`}>
-                  {c.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <label className={lbl}>기한 (선택)</label>
-            <input className={inp} type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={onClose} className="flex-1 h-[42px] border border-[#E2E8F0] rounded-[10px] text-[13px] text-[#64748B]">취소</button>
-          <button onClick={handleSave} disabled={!title.trim() || saving}
-            className="flex-1 h-[42px] bg-[#185FA5] text-white rounded-[10px] text-[13px] font-semibold disabled:opacity-40">
-            {saving ? '저장 중...' : '추가'}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 // ─── 메인 페이지 ───────────────────────────────────────────
 export default function MyPartPage() {
   const { projectId } = useParams()
@@ -162,10 +88,9 @@ export default function MyPartPage() {
   const [myPart, setMyPart] = useState<Part | null>(null)
   const [cues, setCues] = useState<CueItem[]>([])
   const [checks, setChecks] = useState<CheckItem[]>([])
-  const [tab, setTab] = useState<'cue' | 'check' | 'issue'>('cue')
   const [loading, setLoading] = useState(true)
   const [showAddCue, setShowAddCue] = useState(false)
-  const [showAddCheck, setShowAddCheck] = useState(false)
+  const [activeCue, setActiveCue] = useState<CueWithPart | null>(null)
 
   useEffect(() => {
     if (!projectId || !user) return
@@ -179,7 +104,11 @@ export default function MyPartPage() {
           onValue(ref(db, `cueItems/${projectId}/${mine.id}`), (cs) => {
             if (cs.exists()) {
               const l: CueItem[] = Object.values(cs.val())
-              l.sort((a, b) => a.order - b.order)
+              l.sort((a, b) => {
+                // 날짜 먼저 정렬, 같은 날짜면 시간순
+                if (a.date && b.date && a.date !== b.date) return a.date.localeCompare(b.date)
+                return a.startTime.localeCompare(b.startTime)
+              })
               setCues(l)
             } else setCues([])
           })
@@ -193,16 +122,10 @@ export default function MyPartPage() {
     return () => u()
   }, [projectId, user])
 
-  async function toggleCheck(item: CheckItem) {
-    if (!projectId || !myPart) return
-    await update(ref(db, `checkItems/${projectId}/${myPart.id}/${item.id}`), { isDone: !item.isDone })
-  }
-
   async function setCueStatus(item: CueItem, status: CueItem['status']) {
     if (!projectId || !myPart) return
     await update(ref(db, `cueItems/${projectId}/${myPart.id}/${item.id}`), {
-      status,
-      updatedAt: new Date().toISOString(),
+      status, updatedAt: new Date().toISOString(),
     })
   }
 
@@ -214,21 +137,14 @@ export default function MyPartPage() {
     setShowAddCue(false)
   }
 
-  async function addCheck(data: Omit<CheckItem, 'id' | 'createdAt'>) {
-    if (!projectId || !myPart) return
-    const newRef = push(ref(db, `checkItems/${projectId}/${myPart.id}`))
-    await set(newRef, { ...data, id: newRef.key!, createdAt: new Date().toISOString() })
-    setShowAddCheck(false)
-  }
-
-  async function deleteCue(cue: CueItem) {
-    if (!projectId || !myPart) return
-    await set(ref(db, `cueItems/${projectId}/${myPart.id}/${cue.id}`), null)
-  }
-
-  async function deleteCheck(item: CheckItem) {
-    if (!projectId || !myPart) return
-    await set(ref(db, `checkItems/${projectId}/${myPart.id}/${item.id}`), null)
+  function openCueModal(cue: CueItem) {
+    if (!myPart) return
+    setActiveCue({
+      ...cue,
+      partName: myPart.name,
+      partColor: myPart.color,
+      partId: myPart.id,
+    })
   }
 
   if (loading) return (
@@ -244,7 +160,7 @@ export default function MyPartPage() {
         ) : (
           <>
             {/* 파트 헤더 */}
-            <div className="flex items-flex-start justify-between mb-4 flex-wrap gap-2">
+            <div className="flex items-start justify-between mb-4 flex-wrap gap-2">
               <div>
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: myPart.color }} />
@@ -263,7 +179,7 @@ export default function MyPartPage() {
             </div>
 
             {/* 진행률 */}
-            <div className="flex items-center gap-2.5 mb-4">
+            <div className="flex items-center gap-2.5 mb-5">
               <span className="text-[12px] text-[#64748B]">파트 진행률</span>
               <div className="flex-1 h-1.5 bg-[#F4F6F9] rounded-full overflow-hidden">
                 <div className="h-1.5 bg-[#185FA5] rounded-full" style={{ width: `${myPart.progress}%` }} />
@@ -271,98 +187,143 @@ export default function MyPartPage() {
               <span className="text-[12px] text-[#64748B] whitespace-nowrap">{myPart.progress}%</span>
             </div>
 
-            {/* 탭 + 추가 버튼 */}
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex gap-1.5">
-                {(['cue', 'check', 'issue'] as const).map((t) => {
-                  const labels = { cue: '큐시트', check: '체크리스트', issue: '이슈' }
-                  return (
-                    <button key={t} onClick={() => setTab(t)}
-                      className={`px-3.5 py-1.5 rounded-full text-[12px] font-semibold border transition-colors ${
-                        tab === t ? 'bg-[#185FA5] text-white border-[#185FA5]' : 'border-[#E2E8F0] text-[#64748B]'
-                      }`}>
-                      {labels[t]}
-                      {t === 'cue'   && cues.length   > 0 && <span className="ml-1 opacity-70">({cues.length})</span>}
-                      {t === 'check' && checks.length > 0 && <span className="ml-1 opacity-70">({checks.filter(c => !c.isDone).length}/{checks.length})</span>}
-                    </button>
-                  )
-                })}
-              </div>
-              {tab === 'cue' && (
-                <button onClick={() => setShowAddCue(true)}
-                  className="h-8 px-3 bg-[#185FA5] text-white rounded-[10px] text-[12px] font-semibold flex items-center gap-1.5">
-                  <i className="ti ti-plus text-[13px]" /> 추가
-                </button>
-              )}
-              {tab === 'check' && (
-                <button onClick={() => setShowAddCheck(true)}
-                  className="h-8 px-3 bg-[#185FA5] text-white rounded-[10px] text-[12px] font-semibold flex items-center gap-1.5">
-                  <i className="ti ti-plus text-[13px]" /> 추가
-                </button>
-              )}
+            {/* 큐시트 헤더 */}
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[14px] font-bold text-[#1A1A2E]">큐시트 ({cues.length})</span>
+              <button onClick={() => setShowAddCue(true)}
+                className="h-8 px-3 bg-[#185FA5] text-white rounded-[10px] text-[12px] font-semibold flex items-center gap-1.5">
+                <i className="ti ti-plus text-[13px]" /> 추가
+              </button>
             </div>
 
-            {/* 큐시트 */}
-            {tab === 'cue' && (
-              cues.length === 0
-                ? <Empty icon="ti-list" text="큐시트 항목이 없어요" onAdd={() => setShowAddCue(true)} addLabel="큐시트 추가" />
-                : <div className="flex flex-col gap-2">
-                    {cues.map((cue) => (
-                      <div key={cue.id} className={`p-3 rounded-[10px] border ${cue.status === 'ongoing' ? 'border-[#185FA5] bg-[#E6F1FB]' : 'border-[#E2E8F0] bg-white'}`}>
+            {/* 큐시트 카드 목록 */}
+            {cues.length === 0 ? (
+              <div className="text-center py-12 text-[#A0AEC0]">
+                <i className="ti ti-list text-[36px] block mb-2 opacity-30" />
+                <p className="text-[13px] mb-4">큐시트 항목이 없어요</p>
+                <button onClick={() => setShowAddCue(true)}
+                  className="h-[34px] px-4 bg-[#185FA5] text-white rounded-[10px] text-[12px] font-semibold flex items-center gap-1.5 mx-auto">
+                  <i className="ti ti-plus text-[13px]" /> 큐시트 추가
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {cues.map((cue) => {
+                  const cueChecks = checks.filter(c => c.cueId === cue.id)
+                  const doneChecks = cueChecks.filter(c => c.isDone).length
+                  const partChecks = checks.filter(c => !c.cueId)
+
+                  return (
+                    <div key={cue.id}
+                      className={`rounded-[12px] border bg-white overflow-hidden ${cue.status === 'ongoing' ? 'border-[#185FA5]' : 'border-[#E2E8F0]'}`}>
+
+                      {/* 카드 상단 - 클릭 시 모달 */}
+                      <button className="w-full text-left p-4" onClick={() => openCueModal(cue)}>
                         <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <div className="flex items-center gap-2 mb-1">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                              {cue.date && (
+                                <span className="text-[10px] bg-[#FFF8F0] text-[#E8820C] border border-[#F4D7A8] px-2 py-0.5 rounded-full font-semibold">
+                                  {cue.date.replace(/-/g, '.')}
+                                </span>
+                              )}
                               <span className="text-[12px] font-bold text-[#185FA5]">{cue.startTime}</span>
-                              {cue.durationMin > 0 && <span className="text-[11px] text-[#A0AEC0]">{cue.durationMin}분</span>}
+                              {cue.durationMin > 0 && (
+                                <span className="text-[11px] text-[#A0AEC0]">{cue.durationMin}분</span>
+                              )}
                             </div>
-                            <div className="text-[13px] font-semibold text-[#1A1A2E]">{cue.title}</div>
-                            {cue.memo && <div className="text-[11px] text-[#64748B] mt-0.5">{cue.memo}</div>}
+                            <div className="text-[14px] font-semibold text-[#1A1A2E]">{cue.title}</div>
+                            {cue.memo && <div className="text-[11px] text-[#64748B] mt-1 line-clamp-2">{cue.memo}</div>}
                           </div>
-                          <div className="flex flex-col items-end gap-1.5">
+                          <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
                             <StatusBadge status={cue.status} />
-                            {cue.status === 'pending'  && <button onClick={() => setCueStatus(cue, 'ongoing')} className="text-[11px] text-[#185FA5] font-semibold">시작</button>}
-                            {cue.status === 'ongoing'  && <button onClick={() => setCueStatus(cue, 'done')}    className="text-[11px] text-[#3B6D11] font-semibold">완료</button>}
-                            <button onClick={() => deleteCue(cue)} className="text-[11px] text-[#A0AEC0] hover:text-[#A32D2D]">삭제</button>
+                            <i className="ti ti-chevron-right text-[#A0AEC0] text-[13px]" />
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-            )}
 
-            {/* 체크리스트 */}
-            {tab === 'check' && (
-              checks.length === 0
-                ? <Empty icon="ti-checklist" text="체크리스트가 없어요" onAdd={() => setShowAddCheck(true)} addLabel="항목 추가" />
-                : <div className="flex flex-col gap-2">
-                    {checks.map((item) => (
-                      <div key={item.id} className={`flex items-center gap-3 p-3 rounded-[10px] border border-[#E2E8F0] bg-white ${item.isDone ? 'opacity-60' : ''}`}>
-                        <button onClick={() => toggleCheck(item)}
-                          className={`w-5 h-5 rounded flex items-center justify-center border-2 flex-shrink-0 transition-colors ${item.isDone ? 'bg-[#3B6D11] border-[#3B6D11]' : 'border-[#E2E8F0] hover:border-[#185FA5]'}`}>
-                          {item.isDone && <i className="ti ti-check text-white text-[11px]" />}
-                        </button>
-                        <span className={`text-[13px] flex-1 ${item.isDone ? 'line-through text-[#A0AEC0]' : 'text-[#1A1A2E]'}`}>{item.title}</span>
-                        {item.dueDate && <span className="text-[11px] text-[#A0AEC0]">{item.dueDate}</span>}
-                        <button onClick={() => deleteCheck(item)} className="text-[#A0AEC0] hover:text-[#A32D2D] p-1">
-                          <i className="ti ti-x text-[13px]" />
+                        {/* 체크리스트 미리보기 */}
+                        {cueChecks.length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-[#F4F6F9]">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-[11px] text-[#64748B]">체크리스트</span>
+                              <span className="text-[11px] font-semibold text-[#185FA5]">{doneChecks}/{cueChecks.length}</span>
+                            </div>
+                            <div className="w-full h-1 bg-[#F4F6F9] rounded-full overflow-hidden mb-2">
+                              <div className="h-1 rounded-full transition-all"
+                                style={{ width: `${(doneChecks / cueChecks.length) * 100}%`, background: doneChecks === cueChecks.length ? '#3B6D11' : '#185FA5' }} />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              {cueChecks.slice(0, 3).map(c => (
+                                <div key={c.id} className="flex items-center gap-2">
+                                  <div className={`w-3.5 h-3.5 rounded flex items-center justify-center border flex-shrink-0 ${c.isDone ? 'bg-[#3B6D11] border-[#3B6D11]' : 'border-[#E2E8F0]'}`}>
+                                    {c.isDone && <i className="ti ti-check text-white text-[8px]" />}
+                                  </div>
+                                  <span className={`text-[11px] truncate ${c.isDone ? 'line-through text-[#A0AEC0]' : 'text-[#64748B]'}`}>{c.title}</span>
+                                </div>
+                              ))}
+                              {cueChecks.length > 3 && (
+                                <span className="text-[10px] text-[#A0AEC0] ml-5">+{cueChecks.length - 3}개 더보기</span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </button>
+
+                      {/* 상태 버튼 */}
+                      <div className="flex border-t border-[#F4F6F9]">
+                        {cue.status === 'pending' && (
+                          <button onClick={() => setCueStatus(cue, 'ongoing')}
+                            className="flex-1 py-2 text-[12px] font-semibold text-[#185FA5] hover:bg-[#E6F1FB] transition-colors">
+                            시작
+                          </button>
+                        )}
+                        {cue.status === 'ongoing' && (
+                          <button onClick={() => setCueStatus(cue, 'done')}
+                            className="flex-1 py-2 text-[12px] font-semibold text-[#3B6D11] hover:bg-[#EAF3DE] transition-colors">
+                            완료
+                          </button>
+                        )}
+                        {cue.status === 'done' && (
+                          <button onClick={() => setCueStatus(cue, 'pending')}
+                            className="flex-1 py-2 text-[12px] text-[#A0AEC0] hover:bg-[#F4F6F9] transition-colors">
+                            되돌리기
+                          </button>
+                        )}
+                        <div className="w-px bg-[#F4F6F9]" />
+                        <button onClick={() => openCueModal(cue)}
+                          className="flex items-center gap-1 px-4 py-2 text-[12px] text-[#185FA5] font-semibold hover:bg-[#E6F1FB] transition-colors">
+                          <i className="ti ti-antenna text-[13px]" /> 무전
                         </button>
                       </div>
-                    ))}
-                    {/* 완료 현황 요약 */}
-                    <div className="flex items-center gap-2 pt-1">
-                      <div className="flex-1 h-1 bg-[#F4F6F9] rounded-full overflow-hidden">
-                        <div className="h-1 bg-[#3B6D11] rounded-full transition-all"
-                          style={{ width: `${checks.length ? (checks.filter(c => c.isDone).length / checks.length) * 100 : 0}%` }} />
-                      </div>
-                      <span className="text-[11px] text-[#64748B] whitespace-nowrap">
-                        {checks.filter(c => c.isDone).length}/{checks.length} 완료
+                    </div>
+                  )
+                })}
+
+                {/* 파트 레벨 체크리스트 (큐 미연결) */}
+                {partChecks.length > 0 && (
+                  <div className="bg-white border border-[#E2E8F0] rounded-[12px] p-4 mt-2">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-[13px] font-bold text-[#1A1A2E]">파트 체크리스트</span>
+                      <span className="text-[12px] text-[#185FA5] font-semibold">
+                        {partChecks.filter(c => c.isDone).length}/{partChecks.length}
                       </span>
                     </div>
+                    <div className="flex flex-col gap-2">
+                      {partChecks.map(item => (
+                        <div key={item.id} className="flex items-center gap-3">
+                          <button
+                            onClick={() => update(ref(db, `checkItems/${projectId}/${myPart.id}/${item.id}`), { isDone: !item.isDone })}
+                            className={`w-5 h-5 rounded flex items-center justify-center border-2 flex-shrink-0 ${item.isDone ? 'bg-[#3B6D11] border-[#3B6D11]' : 'border-[#E2E8F0]'}`}>
+                            {item.isDone && <i className="ti ti-check text-white text-[11px]" />}
+                          </button>
+                          <span className={`text-[13px] flex-1 ${item.isDone ? 'line-through text-[#A0AEC0]' : 'text-[#1A1A2E]'}`}>{item.title}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
+                )}
+              </div>
             )}
-
-            {/* 이슈 */}
-            {tab === 'issue' && <Empty icon="ti-alert-circle" text="등록된 이슈가 없어요" />}
           </>
         )}
       </div>
@@ -377,28 +338,13 @@ export default function MyPartPage() {
           order={cues.length}
         />
       )}
-      {showAddCheck && myPart && (
-        <AddCheckModal
-          onClose={() => setShowAddCheck(false)}
-          onSave={addCheck}
-          partId={myPart.id}
-          projectId={projectId!}
-        />
-      )}
-    </div>
-  )
-}
 
-function Empty({ icon, text, onAdd, addLabel }: { icon: string; text: string; onAdd?: () => void; addLabel?: string }) {
-  return (
-    <div className="text-center py-12 text-[#A0AEC0]">
-      <i className={`ti ${icon} text-[36px] block mb-2 opacity-30`} />
-      <p className="text-[13px] mb-4">{text}</p>
-      {onAdd && addLabel && (
-        <button onClick={onAdd}
-          className="h-[34px] px-4 bg-[#185FA5] text-white rounded-[10px] text-[12px] font-semibold flex items-center gap-1.5 mx-auto">
-          <i className="ti ti-plus text-[13px]" /> {addLabel}
-        </button>
+      {activeCue && (
+        <CueModal
+          cue={activeCue}
+          projectId={projectId!}
+          onClose={() => setActiveCue(null)}
+        />
       )}
     </div>
   )
