@@ -317,12 +317,16 @@ export function CueModal({ cue, projectId, onClose, isReadOnly = false }: {
                 className="w-full h-[180px] border border-[#E2E8F0] rounded-[10px] p-3 text-[13px] text-[#1A1A2E] resize-none focus:outline-none focus:border-[#185FA5]"
                 placeholder="메모를 입력하세요..."
                 value={memo}
-                onChange={e=>setMemo(e.target.value)}
+                readOnly={isReadOnly}
+                onChange={e => setMemo(e.target.value)}
+                onClick={() => { if (isReadOnly) showReadOnlyToast() }}
               />
-              <button onClick={saveMemo} disabled={savingMemo}
-                className="h-[40px] bg-[#185FA5] text-white rounded-[10px] text-[13px] font-semibold disabled:opacity-40">
-                {savingMemo ? '저장 중...' : '저장'}
-              </button>
+              {!isReadOnly && (
+                <button onClick={saveMemo} disabled={savingMemo}
+                  className="h-[40px] bg-[#185FA5] text-white rounded-[10px] text-[13px] font-semibold disabled:opacity-40">
+                  {savingMemo ? '저장 중...' : '저장'}
+                </button>
+              )}
             </div>
           )}
 
@@ -358,10 +362,22 @@ export function CueModal({ cue, projectId, onClose, isReadOnly = false }: {
           )}
         </div>
 
-        {/* 읽기전용 토스트 */}
+        {/* 읽기전용 경고 모달 */}
         {toast && (
-          <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[60] bg-[#1A1A2E] text-white text-[12px] font-semibold px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2">
-            <i className="ti ti-lock text-[13px]"/> {toast}
+          <div className="fixed inset-0 bg-black/50 z-[70] flex items-center justify-center px-6" onClick={() => setToast('')}>
+            <div className="bg-white rounded-[20px] p-6 w-full max-w-sm flex flex-col items-center text-center gap-4" onClick={e => e.stopPropagation()}>
+              <div className="w-16 h-16 rounded-full bg-[#FEF2F2] flex items-center justify-center">
+                <i className="ti ti-lock text-[#DC2626] text-[32px]"/>
+              </div>
+              <div>
+                <div className="text-[17px] font-bold text-[#1A1A2E] mb-1">수정 권한이 없어요</div>
+                <div className="text-[13px] text-[#64748B]">해당 팀에 요청해주세요!</div>
+              </div>
+              <button onClick={() => setToast('')}
+                className="w-full h-[44px] bg-[#185FA5] text-white rounded-[12px] text-[14px] font-semibold">
+                확인
+              </button>
+            </div>
           </div>
         )}
 
