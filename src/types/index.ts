@@ -67,6 +67,7 @@ export interface Part {
   status: PartStatus
   progress: number       // 0~100
   order: number
+  isParticipant?: boolean  // true = 참가자 그룹, false/undefined = 행사진행 파트
   createdAt: string
 }
 
@@ -172,6 +173,7 @@ export interface TemplatePartDraft {
   name: string
   color: string
   order: number
+  isParticipant?: boolean  // true = 참가자 그룹
   cueItems: Array<{
     title: string
     dDay?: number          // 행사일 기준 상대 일수 (0=당일, -1=D-1, -7=D-7 등)
