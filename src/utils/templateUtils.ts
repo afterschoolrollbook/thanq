@@ -1,7 +1,7 @@
 import { ref, get, push, set, remove } from 'firebase/database'
 import { db } from '@/lib/firebase'
 import { PART_COLORS } from '@/utils/fieldTerms'
-import type { TemplateFile, TemplatePartDraft, Part, CueItem, CheckItem, FieldType } from '@/types'
+import type { TemplateFile, TemplatePartDraft, Part, CueItem, CheckItem, FieldType, Project } from '@/types'
 
 // ─── 비밀번호 해시 / 검증 ─────────────────────────────────────
 export async function hashPassword(password: string): Promise<string> {
@@ -34,16 +34,8 @@ export function getTemplateLockType(tmpl: TemplateFile): 'email' | 'password' | 
   return null
 }
 
-// ─── 현재 프로젝트 → .thanq 파일로 내보내기 ──────────────────
-export async function exportProjectAsTemplate(
-  projectId: string,
-  templateName: string,
-  description: string,
-  authorName: string,
-  fieldType: FieldType,
-  password?: string,      // 비밀번호 (선택)
-  allowedEmail?: string   // 허용 이메일 (선택)
-): Promise<void> {
+// ─── 내부 헬퍼: 파트 목록 빌드 ────────────────────────────────
+async function buildTemplateParts(projectId: string): Promise<TemplatePartDraft[]> {
   const partsSnap = await get(ref(db, `parts/${projectId}`))
   const parts: Part[] = partsSnap.exists() ? Object.values(partsSnap.val()) : []
   parts.sort((a, b) => a.order - b.order)
@@ -86,6 +78,46 @@ export async function exportProjectAsTemplate(
     })
   }
 
+  return templateParts
+}
+
+// ─── 내부 헬퍼: 프로젝트 기본 정보 → 템플릿 메타 필드 ────────────
+async function buildProjectMeta(projectId: string): Promise<{
+  projectName?: string
+  prepDate?: string
+  eventDate?: string
+  eventDateEnd?: string
+  location?: string
+}> {
+  const projectSnap = await get(ref(db, `projects/${projectId}`))
+  if (!projectSnap.exists()) return {}
+
+  const project = projectSnap.val() as Project
+
+  return {
+    ...(project.name      ? { projectName:   project.name }     : {}),
+    ...(project.prepDate  ? { prepDate:       project.prepDate } : {}),
+    ...(project.date      ? { eventDate:      project.date }     : {}),
+    ...(project.dateEnd   ? { eventDateEnd:   project.dateEnd }  : {}),
+    ...(project.venue     ? { location:       project.venue }    : {}),
+  }
+}
+
+
+export async function exportProjectAsTemplate(
+  projectId: string,
+  templateName: string,
+  description: string,
+  authorName: string,
+  fieldType: FieldType,
+  password?: string,      // 비밀번호 (선택)
+  allowedEmail?: string   // 허용 이메일 (선택)
+): Promise<void> {
+  const [templateParts, projectMeta] = await Promise.all([
+    buildTemplateParts(projectId),
+    buildProjectMeta(projectId),
+  ])
+
   const templateFile: TemplateFile = {
     version: '1.0',
     name: templateName,
@@ -94,6 +126,7 @@ export async function exportProjectAsTemplate(
     authorName,
     createdAt: new Date().toISOString(),
     parts: templateParts,
+    ...projectMeta,
     ...(password ? { passwordHash: await hashPassword(password) } : {}),
     ...(allowedEmail ? { allowedEmail: allowedEmail.trim().toLowerCase() } : {}),
   }
@@ -118,47 +151,10 @@ export async function exportProjectAsTemplateJson(
   password?: string,
   allowedEmail?: string
 ): Promise<string> {
-  const partsSnap = await get(ref(db, `parts/${projectId}`))
-  const parts: Part[] = partsSnap.exists() ? Object.values(partsSnap.val()) : []
-  parts.sort((a, b) => a.order - b.order)
-
-  const templateParts: TemplatePartDraft[] = []
-
-  for (const part of parts) {
-    const cueSnap = await get(ref(db, `cueItems/${projectId}/${part.id}`))
-    const cueItems: CueItem[] = cueSnap.exists() ? Object.values(cueSnap.val()) : []
-    cueItems.sort((a, b) => a.order - b.order)
-
-    const checkSnap = await get(ref(db, `checkItems/${projectId}/${part.id}`))
-    const checkItems: CheckItem[] = checkSnap.exists() ? Object.values(checkSnap.val()) : []
-
-    templateParts.push({
-      name: part.name,
-      color: part.color,
-      order: part.order,
-      cueItems: cueItems.map((c) => {
-        const cueLinkedChecks = checkItems.filter((ch) => ch.cueId === c.id)
-        return {
-          title: c.title,
-          startTime: c.startTime,
-          durationMin: c.durationMin,
-          memo: c.memo,
-          ...(cueLinkedChecks.length > 0 ? {
-            checkItems: cueLinkedChecks.map((ch) => ({
-              title: ch.title,
-              category: ch.category,
-            }))
-          } : {}),
-        }
-      }),
-      checkItems: checkItems
-        .filter((c) => !c.cueId)
-        .map((c) => ({
-          title: c.title,
-          category: c.category,
-        })),
-    })
-  }
+  const [templateParts, projectMeta] = await Promise.all([
+    buildTemplateParts(projectId),
+    buildProjectMeta(projectId),
+  ])
 
   const templateFile: TemplateFile = {
     version: '1.0',
@@ -168,6 +164,7 @@ export async function exportProjectAsTemplateJson(
     authorName,
     createdAt: new Date().toISOString(),
     parts: templateParts,
+    ...projectMeta,
     ...(password ? { passwordHash: await hashPassword(password) } : {}),
     ...(allowedEmail ? { allowedEmail: allowedEmail.trim().toLowerCase() } : {}),
   }
