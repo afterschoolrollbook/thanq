@@ -728,8 +728,8 @@ function DefaultIconCard({ project, onClick }: { project: Project; onClick: () =
           <div className="text-[7px] text-[#94A3B8] mt-0.5">{d.getMonth()+1}월</div>
           <div className="text-[8px] font-bold text-[#1A1A2E] mt-1 truncate">{project.name}</div>
           {/* 도장 */}
-          <div className="absolute top-1 right-1 w-[22px] h-[22px] rounded-full border-[1.5px] border-[#E8820C] flex items-center justify-center opacity-20 rotate-[-12deg]">
-            <span className="text-[5px] font-black text-[#E8820C] leading-tight">PRJ</span>
+          <div className="absolute top-1 right-1 w-[26px] h-[26px] rounded-full border-2 border-[#E8820C] flex items-center justify-center opacity-40 rotate-[-12deg]">
+            <span className="text-[6px] font-black text-[#E8820C] leading-tight text-center">PRJ<br/>26</span>
           </div>
         </div>
         {/* 절취선 */}
