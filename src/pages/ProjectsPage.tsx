@@ -10,21 +10,21 @@ import type { Project } from '@/types'
 // ── 탭별 헤더 (임팩트 있게) ──────────────────────────────
 function TimelineHeader() {
   return (
-    <div className="mb-6 rounded-[20px] overflow-hidden shadow-md">
-      <div className="bg-[#185FA5] px-5 pt-5 pb-4">
+    <div className="mb-5 rounded-[16px] overflow-hidden border border-[#B5D4F4]">
+      <div className="bg-[#E6F1FB] px-5 pt-4 pb-3">
         <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 rounded-[12px] bg-white/20 flex items-center justify-center">
-            <i className="ti ti-timeline text-white text-[20px]"/>
+          <div className="w-9 h-9 rounded-[10px] bg-[#185FA5] flex items-center justify-center">
+            <i className="ti ti-timeline text-white text-[17px]"/>
           </div>
           <div>
-            <div className="text-white text-[17px] font-black">일정표</div>
-            <div className="text-[#B5D4F4] text-[11px]">팀별 · 시간대별 운영 일정</div>
+            <div className="text-[#1A1A2E] text-[15px] font-bold">일정표</div>
+            <div className="text-[#185FA5] text-[11px]">팀별 · 시간대별 운영 일정</div>
           </div>
         </div>
-        <div className="flex gap-1 mt-3 overflow-hidden rounded-[10px] bg-white/10 p-2">
+        <div className="flex gap-1 mt-2 overflow-hidden rounded-[10px] bg-white p-2 border border-[#D1E8F8]">
           <div className="flex flex-col gap-1 flex-shrink-0 mr-1">
             {['07:00','07:30','08:00','08:30'].map(t => (
-              <div key={t} className="h-6 flex items-center"><span className="text-[9px] font-bold text-white/60">{t}</span></div>
+              <div key={t} className="h-6 flex items-center"><span className="text-[9px] font-bold text-[#94A3B8]">{t}</span></div>
             ))}
           </div>
           {[
@@ -45,9 +45,9 @@ function TimelineHeader() {
           ))}
         </div>
       </div>
-      <div className="bg-[#0C447C] px-5 py-2.5 flex items-center gap-1.5">
-        <i className="ti ti-hand-click text-white/70 text-[12px]"/>
-        <span className="text-white text-[11px] font-semibold">아래 프로젝트를 선택하면 일정표가 열려요</span>
+      <div className="bg-[#185FA5] px-5 py-2 flex items-center gap-1.5">
+        <i className="ti ti-hand-click text-white/80 text-[12px]"/>
+        <span className="text-white text-[11px]">아래 프로젝트를 선택하면 일정표가 열려요</span>
       </div>
     </div>
   )
@@ -194,19 +194,19 @@ function TimelineShapeCard({ project, onClick }: { project: Project; onClick: ()
   const d = new Date(project.date)
   return (
     <button onClick={onClick} className="w-full hover:scale-[1.02] transition-transform">
-      <div className="relative bg-white rounded-[16px] overflow-hidden shadow-sm border border-[#E2E8F0] hover:shadow-md transition-shadow">
+      <div className="relative bg-white rounded-[16px] overflow-hidden shadow-sm border border-[#B5D4F4] hover:shadow-md transition-shadow">
         {/* 달력 상단 탭 구멍 2개 */}
         <div className="absolute top-0 left-0 right-0 flex justify-around px-8">
-          <div className="w-4 h-3 bg-[#F4F6F9] rounded-b-full border-x border-b border-[#E2E8F0]"/>
-          <div className="w-4 h-3 bg-[#F4F6F9] rounded-b-full border-x border-b border-[#E2E8F0]"/>
+          <div className="w-4 h-3 bg-[#F4F6F9] rounded-b-full border-x border-b border-[#B5D4F4]"/>
+          <div className="w-4 h-3 bg-[#F4F6F9] rounded-b-full border-x border-b border-[#B5D4F4]"/>
         </div>
-        {/* 달력 헤더 */}
-        <div className="bg-[#185FA5] pt-3 pb-2 px-4 flex items-center justify-between mt-0">
+        {/* 달력 헤더 - 연한 파란색 */}
+        <div className="bg-[#E6F1FB] pt-3 pb-2 px-4 flex items-center justify-between mt-0">
           <div className="flex items-center gap-1.5">
-            <span className="text-white/70 text-[10px]">{d.getFullYear()}년</span>
-            <span className="text-white font-black text-[13px]">{d.getMonth()+1}월</span>
+            <span className="text-[#185FA5]/60 text-[10px]">{d.getFullYear()}년</span>
+            <span className="text-[#185FA5] font-black text-[13px]">{d.getMonth()+1}월</span>
           </div>
-          <span className={`text-[12px] font-black ${dday==='D-DAY'?'text-[#FFD700]':'text-white/80'}`}>{dday}</span>
+          <span className={`text-[12px] font-black ${dday==='D-DAY'?'text-[#E24B4A]':'text-[#185FA5]'}`}>{dday}</span>
         </div>
         {/* 날짜 크게 */}
         <div className="px-4 pt-2 pb-1 flex items-center gap-3">
@@ -436,6 +436,7 @@ export default function ProjectsPage() {
   const [joinCode, setJoinCode] = useState('')
 
   const nextTab = new URLSearchParams(location.search).get('next')
+  const [viewMode, setViewMode] = useState<'icon'|'list'>('icon')
 
   function goToProject(projectId: string) {
     navigate(`/p/${projectId}/${nextTab ?? 'home'}`)
@@ -504,6 +505,23 @@ export default function ProjectsPage() {
           </>
         )}
 
+        {/* 타임라인 뷰 전환 버튼 */}
+        {nextTab === 'timeline' && projects.length > 0 && (
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[12px] text-[#64748B]">{viewMode === 'icon' ? '아이콘 보기' : '리스트 보기'}</span>
+            <div className="flex items-center gap-1 bg-white border border-[#E2E8F0] rounded-[10px] p-1">
+              <button onClick={() => setViewMode('icon')}
+                className={`w-7 h-7 rounded-[7px] flex items-center justify-center transition-all ${viewMode==='icon'?'bg-[#185FA5] text-white':'text-[#A0AEC0] hover:text-[#185FA5]'}`}>
+                <i className="ti ti-calendar text-[13px]"/>
+              </button>
+              <button onClick={() => setViewMode('list')}
+                className={`w-7 h-7 rounded-[7px] flex items-center justify-center transition-all ${viewMode==='list'?'bg-[#185FA5] text-white':'text-[#A0AEC0] hover:text-[#185FA5]'}`}>
+                <i className="ti ti-list text-[13px]"/>
+              </button>
+            </div>
+          </div>
+        )}
+
         {loading ? (
           <div className="text-center py-10 text-[#64748B] text-[13px]">불러오는 중...</div>
         ) : projects.length === 0 ? (
@@ -517,10 +535,14 @@ export default function ProjectsPage() {
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {projects.map(project => nextTab
-              ? <ProjectSelectCard key={project.id} project={project} nextTab={nextTab} onClick={() => goToProject(project.id)}/>
-              : <DefaultCard key={project.id} project={project} onClick={() => goToProject(project.id)}/>
-            )}
+            {projects.map(project => {
+              if (nextTab === 'timeline' && viewMode === 'icon') {
+                return <TimelineShapeCard key={project.id} project={project} onClick={() => goToProject(project.id)}/>
+              }
+              return nextTab
+                ? <ProjectSelectCard key={project.id} project={project} nextTab={nextTab} onClick={() => goToProject(project.id)}/>
+                : <DefaultCard key={project.id} project={project} onClick={() => goToProject(project.id)}/>
+            })}
           </div>
         )}
       </div>
