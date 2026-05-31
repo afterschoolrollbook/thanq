@@ -157,8 +157,7 @@ export function CueModal({ cue, projectId, onClose, isReadOnly = false }: {
     setNewCheckTitle('')
   }
   function showReadOnlyToast() {
-    setToast('해당 팀에 요청해주세요!')
-    setTimeout(() => setToast(''), 2500)
+    setToast(cue.partName || '해당 팀')
   }
 
   async function updateCheckTitle(item: CheckItem, title: string) {
@@ -364,14 +363,17 @@ export function CueModal({ cue, projectId, onClose, isReadOnly = false }: {
 
         {/* 읽기전용 경고 모달 */}
         {toast && (
-          <div className="fixed inset-0 bg-black/50 z-[70] flex items-center justify-center px-6" onClick={() => setToast('')}>
-            <div className="bg-white rounded-[20px] p-6 w-full max-w-sm flex flex-col items-center text-center gap-4" onClick={e => e.stopPropagation()}>
+          <div className="fixed inset-0 bg-black/50 z-[70] flex items-center justify-center px-6">
+            <div className="bg-white rounded-[20px] p-6 w-full max-w-sm flex flex-col items-center text-center gap-4">
               <div className="w-16 h-16 rounded-full bg-[#FEF2F2] flex items-center justify-center">
                 <i className="ti ti-lock text-[#DC2626] text-[32px]"/>
               </div>
               <div>
+                <div className="text-[13px] text-[#64748B] mb-1">
+                  <span className="font-bold text-[#1A1A2E]">{toast}</span> 팀이십니다.
+                </div>
                 <div className="text-[17px] font-bold text-[#1A1A2E] mb-1">수정 권한이 없어요</div>
-                <div className="text-[13px] text-[#64748B]">해당 팀에 요청해주세요!</div>
+                <div className="text-[13px] text-[#64748B]">해당 팀에 문의해 주시길 바랍니다.</div>
               </div>
               <button onClick={() => setToast('')}
                 className="w-full h-[44px] bg-[#185FA5] text-white rounded-[12px] text-[14px] font-semibold">
