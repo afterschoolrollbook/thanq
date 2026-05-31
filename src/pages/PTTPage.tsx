@@ -528,14 +528,38 @@ export default function PTTPage() {
           </div>
         )}
 
-        {/* PTT 버튼 */}
+        {/* PTT 버튼 — 무전기 형태 */}
         <div className={`bg-white border border-[#E2E8F0] rounded-[14px] p-6 mb-4 flex flex-col items-center transition-opacity ${micPermission !== 'granted' ? 'opacity-50 pointer-events-none' : ''}`}>
+          {/* 무전기 일러스트 + PTT 버튼 통합 */}
           <button onPointerDown={startPTT} onPointerUp={stopPTT} onPointerLeave={stopPTT} disabled={micPermission !== 'granted'}
-            className={`w-32 h-32 rounded-full flex flex-col items-center justify-center gap-2 transition-all select-none touch-none ${pressing ? 'bg-[#E24B4A] shadow-[0_0_0_20px_rgba(226,75,74,0.2)]' : 'bg-[#185FA5] shadow-[0_0_0_16px_#E6F1FB]'}`}>
-            <i className={`ti ti-microphone text-[36px] text-white ${pressing ? 'animate-pulse' : ''}`} />
-            <span className="text-white text-[12px] font-semibold">{pressing ? '전송 중...' : '누르고 말하기'}</span>
+            className="select-none touch-none outline-none focus:outline-none active:scale-95 transition-transform">
+            <svg width="120" height="160" viewBox="0 0 120 160" xmlns="http://www.w3.org/2000/svg">
+              {/* 안테나 */}
+              <rect x="82" y="4" width="5" height="28" rx="2.5" fill={pressing ? '#E24B4A' : '#A0AEC0'}/>
+              {/* 몸체 */}
+              <rect x="18" y="18" width="84" height="124" rx="14" fill={pressing ? '#E24B4A' : '#C8E6C9'}/>
+              {/* 몸체 하이라이트 */}
+              <rect x="24" y="24" width="72" height="112" rx="10" fill={pressing ? '#F28B8A' : '#E8F5E9'}/>
+              {/* 스피커 그릴 */}
+              {[0,1,2,3,4].map(i => (
+                <rect key={i} x="36" y={34 + i*7} width="48" height="3" rx="1.5" fill={pressing ? '#C0392B' : '#A5D6A7'}/>
+              ))}
+              {/* PTT 빨간 버튼 */}
+              <circle cx="60" cy="108" r="22" fill={pressing ? '#C0392B' : '#E53935'}/>
+              <circle cx="60" cy="108" r="17" fill={pressing ? '#E53935' : '#EF5350'}/>
+              {/* 마이크 아이콘 */}
+              <rect x="55" y="98" width="10" height="14" rx="5" fill="white"/>
+              <path d="M50 110 Q50 120 60 120 Q70 120 70 110" stroke="white" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+              <line x1="60" y1="120" x2="60" y2="125" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
+              <line x1="54" y1="125" x2="66" y2="125" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
+              {/* 하단 채널 표시 */}
+              <rect x="36" y="132" width="48" height="6" rx="3" fill={pressing ? '#C0392B' : '#A5D6A7'}/>
+            </svg>
           </button>
-          <div className="mt-4 flex items-center gap-2 px-3 py-1.5 bg-[#F4F6F9] rounded-full">
+          <span className={`mt-1 text-[13px] font-bold ${pressing ? 'text-[#E24B4A]' : 'text-[#185FA5]'}`}>
+            {pressing ? '전송 중...' : '누르고 말하기'}
+          </span>
+          <div className="mt-3 flex items-center gap-2 px-3 py-1.5 bg-[#F4F6F9] rounded-full">
             <i className="ti ti-send text-[12px] text-[#64748B]" />
             <span className="text-[12px] text-[#64748B]">수신:</span>
             <div className="flex items-center gap-1.5">
