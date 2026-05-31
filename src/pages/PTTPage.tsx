@@ -530,21 +530,20 @@ export default function PTTPage() {
 
         {/* PTT 버튼 — 무전기 형태 */}
         <div className={`bg-white border border-[#E2E8F0] rounded-[14px] p-6 mb-4 flex flex-col items-center transition-opacity ${micPermission !== 'granted' ? 'opacity-50 pointer-events-none' : ''}`}>
-          {/* 무전기 일러스트 + PTT 버튼 통합 */}
-          <button onPointerDown={startPTT} onPointerUp={stopPTT} onPointerLeave={stopPTT} disabled={micPermission !== 'granted'}
-            className="select-none touch-none outline-none focus:outline-none active:scale-95 transition-transform">
-            <svg width="280" height="373" viewBox="0 0 120 160" xmlns="http://www.w3.org/2000/svg">
+          {/* 무전기 일러스트 (클릭 안됨) + 빨간 버튼만 PTT */}
+          <div className="relative select-none">
+            <svg width="280" height="373" viewBox="0 0 120 160" xmlns="http://www.w3.org/2000/svg" style={{pointerEvents:'none'}}>
               {/* 안테나 */}
-              <rect x="82" y="4" width="5" height="28" rx="2.5" fill={pressing ? '#E24B4A' : '#A0AEC0'}/>
+              <rect x="82" y="4" width="5" height="28" rx="2.5" fill="#A0AEC0"/>
               {/* 몸체 */}
-              <rect x="18" y="18" width="84" height="124" rx="14" fill={pressing ? '#E24B4A' : '#C8E6C9'}/>
+              <rect x="18" y="18" width="84" height="124" rx="14" fill="#C8E6C9"/>
               {/* 몸체 하이라이트 */}
-              <rect x="24" y="24" width="72" height="112" rx="10" fill={pressing ? '#F28B8A' : '#E8F5E9'}/>
+              <rect x="24" y="24" width="72" height="112" rx="10" fill="#E8F5E9"/>
               {/* 스피커 그릴 */}
               {[0,1,2,3,4].map(i => (
-                <rect key={i} x="36" y={34 + i*7} width="48" height="3" rx="1.5" fill={pressing ? '#C0392B' : '#A5D6A7'}/>
+                <rect key={i} x="36" y={34 + i*7} width="48" height="3" rx="1.5" fill="#A5D6A7"/>
               ))}
-              {/* PTT 빨간 버튼 */}
+              {/* PTT 빨간 버튼 배경 */}
               <circle cx="60" cy="108" r="22" fill={pressing ? '#C0392B' : '#E53935'}/>
               <circle cx="60" cy="108" r="17" fill={pressing ? '#E53935' : '#EF5350'}/>
               {/* 마이크 아이콘 */}
@@ -553,9 +552,21 @@ export default function PTTPage() {
               <line x1="60" y1="120" x2="60" y2="125" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
               <line x1="54" y1="125" x2="66" y2="125" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
               {/* 하단 채널 표시 */}
-              <rect x="36" y="132" width="48" height="6" rx="3" fill={pressing ? '#C0392B' : '#A5D6A7'}/>
+              <rect x="36" y="132" width="48" height="6" rx="3" fill="#A5D6A7"/>
             </svg>
-          </button>
+            {/* 빨간 버튼 위에만 올라가는 투명 PTT 버튼 */}
+            <button
+              onPointerDown={startPTT} onPointerUp={stopPTT} onPointerLeave={stopPTT}
+              disabled={micPermission !== 'granted'}
+              className={`absolute touch-none outline-none rounded-full transition-transform ${pressing ? 'scale-95' : 'active:scale-95'}`}
+              style={{
+                left: '50%', top: '67%',
+                transform: `translateX(-50%) translateY(-50%) ${pressing ? 'scale(0.95)' : ''}`,
+                width: `${Math.round(280 * 44/120)}px`, height: `${Math.round(280 * 44/120)}px`,
+                background: 'transparent',
+              }}
+            />
+          </div>
           <span className={`mt-1 text-[13px] font-bold ${pressing ? 'text-[#E24B4A]' : 'text-[#185FA5]'}`}>
             {pressing ? '전송 중...' : '누르고 말하기'}
           </span>
