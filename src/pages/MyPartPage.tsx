@@ -7,7 +7,7 @@ import { Topbar, StatusBadge, BottomTabBar } from '@/components/ui/Common'
 import { CueModal, type CueWithPart } from '@/components/cue/CueModal'
 import type { Part, CueItem, CheckItem } from '@/types'
 
-// ─── 가로 드럼롤 날짜 피커 ────────────────────────────────
+// ─── 가로 드래그 롤링 날짜 피커 ───────────────────────────
 function DateRoller({ dates, selected, cues, onSelect }: {
   dates: string[]
   selected: string
@@ -15,76 +15,107 @@ function DateRoller({ dates, selected, cues, onSelect }: {
   onSelect: (date: string) => void
 }) {
   const ITEM_W = 88
-  const containerRef = useRef<HTMLDivElement>(null)
-  const snapTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const [centerIdx, setCenterIdx] = useState(() => Math.max(0, dates.indexOf(selected)))
+  const [offsetX, setOffsetX] = useState(0)
+  const [isDragging, setIsDragging] = useState(false)
+  const startX = useRef(0)
+  const startOffset = useRef(0)
+  const animRef = useRef<number | null>(null)
+  const currentOffset = useRef(0)
 
-  useEffect(() => {
-    const el = containerRef.current
-    if (!el) return
-    const idx = dates.indexOf(selected)
-    if (idx >= 0) {
-      el.scrollTo({ left: idx * ITEM_W, behavior: 'smooth' })
-      setCenterIdx(idx)
+  const selIdx = dates.indexOf(selected)
+  const baseOffset = -selIdx * ITEM_W
+
+  // 현재 표시 offset (드래그 중이면 offsetX, 아니면 기준값)
+  const displayOffset = isDragging ? offsetX : baseOffset
+
+  // 어떤 인덱스가 가운데인지
+  const centerIdx = Math.max(0, Math.min(dates.length - 1, Math.round(-displayOffset / ITEM_W)))
+
+  function snapTo(idx: number) {
+    const target = -idx * ITEM_W
+    const start = currentOffset.current
+    const duration = 250
+    const startTime = performance.now()
+    function animate(now: number) {
+      const t = Math.min((now - startTime) / duration, 1)
+      const ease = 1 - Math.pow(1 - t, 3)
+      const cur = start + (target - start) * ease
+      currentOffset.current = cur
+      setOffsetX(cur)
+      if (t < 1) animRef.current = requestAnimationFrame(animate)
+      else {
+        setIsDragging(false)
+        onSelect(dates[idx])
+      }
     }
-  }, [selected, dates])
+    animRef.current = requestAnimationFrame(animate)
+  }
 
-  function handleScroll() {
-    const el = containerRef.current
-    if (!el) return
-    const rawIdx = el.scrollLeft / ITEM_W
-    const cur = Math.max(0, Math.min(dates.length - 1, Math.round(rawIdx)))
-    setCenterIdx(cur)
-    if (snapTimer.current) clearTimeout(snapTimer.current)
-    snapTimer.current = setTimeout(() => {
-      const idx = Math.max(0, Math.min(dates.length - 1, Math.round(el.scrollLeft / ITEM_W)))
-      el.scrollTo({ left: idx * ITEM_W, behavior: 'smooth' })
-      setCenterIdx(idx)
-      onSelect(dates[idx])
-    }, 100)
+  function onPointerDown(e: React.PointerEvent) {
+    if (animRef.current) cancelAnimationFrame(animRef.current)
+    setIsDragging(true)
+    startX.current = e.clientX
+    startOffset.current = isDragging ? offsetX : baseOffset
+    currentOffset.current = startOffset.current
+    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+  }
+
+  function onPointerMove(e: React.PointerEvent) {
+    if (!isDragging) return
+    const delta = e.clientX - startX.current
+    const newOffset = startOffset.current + delta
+    const clamped = Math.max(-(dates.length - 1) * ITEM_W, Math.min(0, newOffset))
+    currentOffset.current = clamped
+    setOffsetX(clamped)
+  }
+
+  function onPointerUp() {
+    if (!isDragging) return
+    const idx = Math.max(0, Math.min(dates.length - 1, Math.round(-currentOffset.current / ITEM_W)))
+    snapTo(idx)
   }
 
   return (
-    <div className="relative flex-shrink-0" style={{ height: 76 }}>
-      <div
-        className="pointer-events-none absolute inset-y-0 z-10"
-        style={{ left: `calc(50% - ${ITEM_W / 2}px)`, width: ITEM_W }}
-      >
-        <div className="w-full h-full border-l-2 border-r-2 border-[#185FA5] rounded-[12px]" style={{ background: 'rgba(24,95,165,0.08)' }}></div>
+    <div
+      className="relative flex-shrink-0 overflow-hidden cursor-grab active:cursor-grabbing select-none"
+      style={{ height: 76 }}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+    >
+      {/* 가운데 하이라이트 */}
+      <div className="pointer-events-none absolute inset-y-0 z-10 flex items-center justify-center" style={{ left: '50%', transform: `translateX(-50%)`, width: ITEM_W }}>
+        <div className="w-full h-[56px] border-l-2 border-r-2 border-[#185FA5] rounded-[12px]" style={{ background: 'rgba(24,95,165,0.08)' }}></div>
       </div>
-      <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-20" style={{ background: 'linear-gradient(to right, #F4F6F9, transparent)' }}></div>
-      <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-20" style={{ background: 'linear-gradient(to left, #F4F6F9, transparent)' }}></div>
+      {/* 좌 페이드 */}
+      <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16" style={{ background: 'linear-gradient(to right, #F4F6F9 60%, transparent)' }}></div>
+      {/* 우 페이드 */}
+      <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16" style={{ background: 'linear-gradient(to left, #F4F6F9 60%, transparent)' }}></div>
+
+      {/* 아이템들 */}
       <div
-        ref={containerRef}
-        onScroll={handleScroll}
-        className="absolute inset-0 flex overflow-x-auto"
-        style={{ scrollSnapType: 'x mandatory', scrollbarWidth: 'none' }}
+        className="absolute inset-y-0 flex items-center"
+        style={{ left: `calc(50% - ${ITEM_W / 2}px)`, transform: `translateX(${displayOffset}px)`, transition: isDragging ? 'none' : undefined }}
       >
-        <div style={{ minWidth: `calc(50% - ${ITEM_W / 2}px)`, flexShrink: 0 }}></div>
         {dates.map((date, i) => {
           const label = date === '__today__' ? '당일' : date.slice(5).replace('-', '.')
           const count = cues.filter((c: CueItem) => (c.date || '__today__') === date).length
           const dist = Math.abs(i - centerIdx)
-          const opacity = dist === 0 ? 1 : dist === 1 ? 0.4 : 0.15
-          const scale = dist === 0 ? 1 : dist === 1 ? 0.82 : 0.65
+          const opacity = dist === 0 ? 1 : dist === 1 ? 0.45 : 0.18
+          const scale = dist === 0 ? 1 : dist === 1 ? 0.82 : 0.64
           const isCenter = i === centerIdx
           return (
             <div
               key={date}
-              onClick={() => {
-                onSelect(date)
-                setCenterIdx(i)
-                containerRef.current?.scrollTo({ left: i * ITEM_W, behavior: 'smooth' })
-              }}
-              style={{ minWidth: ITEM_W, flexShrink: 0, scrollSnapAlign: 'center', opacity, transform: `scale(${scale})`, transition: 'opacity 0.1s, transform 0.1s' }}
-              className="flex flex-col items-center justify-center cursor-pointer select-none gap-0.5"
+              style={{ width: ITEM_W, flexShrink: 0, opacity, transform: `scale(${scale})`, transition: 'opacity 0.08s, transform 0.08s' }}
+              className="flex flex-col items-center justify-center gap-0.5"
             >
               <span className={`text-[16px] font-bold leading-tight ${isCenter ? 'text-[#185FA5]' : 'text-[#1A1A2E]'}`}>{label}</span>
               <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${isCenter ? 'bg-[#185FA5] text-white' : 'bg-[#E2E8F0] text-[#64748B]'}`}>{count}개</span>
             </div>
           )
         })}
-        <div style={{ minWidth: `calc(50% - ${ITEM_W / 2}px)`, flexShrink: 0 }}></div>
       </div>
     </div>
   )
