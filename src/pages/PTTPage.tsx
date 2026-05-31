@@ -184,6 +184,19 @@ export default function PTTPage() {
     if (user && projectId) set(ref(db, `pttShortcuts/${projectId}/${user.uid}`), next)
   }
 
+  async function deleteAllHistory() {
+    if (!projectId) return
+    await remove(ref(db, `pttHistory/${projectId}`))
+    setHistory([])
+    setShowDeleteConfirm(false)
+  }
+
+  async function deleteOneHistory(id: string) {
+    if (!projectId) return
+    await remove(ref(db, `pttHistory/${projectId}/${id}`))
+    setHistory(prev => prev.filter(h => h.id !== id))
+  }
+
   const timeAgo = (d: string) => {
     const m = Math.floor((Date.now() - new Date(d).getTime()) / 60000)
     if (m < 1) return '방금'; if (m < 60) return `${m}분 전`
