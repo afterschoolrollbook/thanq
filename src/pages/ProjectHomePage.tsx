@@ -66,6 +66,9 @@ export default function ProjectHomePage() {
   const [partManagers, setPartManagers] = useState<Record<string, any>>({})
   const [editPartId, setEditPartId] = useState<string|null>(null)
   const [editPartName, setEditPartName] = useState('')
+  const [showMoveDate, setShowMoveDate] = useState(false)
+  const [moveTargetDate, setMoveTargetDate] = useState('')
+  const [moving, setMoving] = useState(false)
 
   useEffect(() => {
     if (!projectId || !user) return
@@ -209,6 +212,55 @@ export default function ProjectHomePage() {
     setShowMyRoleModal(false)
   }
 
+  async function moveEventDate() {
+    if (!projectId || !project || !moveTargetDate) return
+    setMoving(true)
+    const oldDate = project.date
+    const diff = (new Date(moveTargetDate).getTime() - new Date(oldDate).getTime()) / 86400000
+    // 1. 프로젝트 날짜 업데이트
+    const updates: Record<string, any> = {}
+    updates[`projects/${projectId}/date`] = moveTargetDate
+    if ((project as any).dateEnd) {
+      const newEnd = new Date((project as any).dateEnd)
+      newEnd.setDate(newEnd.getDate() + diff)
+      updates[`projects/${projectId}/dateEnd`] = newEnd.toISOString().split('T')[0]
+    }
+    if ((project as any).prepDate) {
+      const newPrep = new Date((project as any).prepDate)
+      newPrep.setDate(newPrep.getDate() + diff)
+      updates[`projects/${projectId}/prepDate`] = newPrep.toISOString().split('T')[0]
+    }
+    // 2. 모든 파트의 모든 큐 날짜 이동
+    await new Promise<void>(resolve => {
+      onValue(ref(db, `parts/${projectId}`), async (snap) => {
+        if (snap.exists()) {
+          const partIds = Object.keys(snap.val())
+          for (const partId of partIds) {
+            await new Promise<void>(res2 => {
+              onValue(ref(db, `cueItems/${projectId}/${partId}`), async (csnap) => {
+                if (csnap.exists()) {
+                  for (const [cueId, cue] of Object.entries(csnap.val() as Record<string, any>)) {
+                    if (cue.date) {
+                      const newD = new Date(cue.date)
+                      newD.setDate(newD.getDate() + diff)
+                      updates[`cueItems/${projectId}/${partId}/${cueId}/date`] = newD.toISOString().split('T')[0]
+                    }
+                  }
+                }
+                res2()
+              }, { onlyOnce: true })
+            })
+          }
+        }
+        resolve()
+      }, { onlyOnce: true })
+    })
+    await update(ref(db), updates)
+    setMoving(false)
+    setShowMoveDate(false)
+    setMoveTargetDate('')
+  }
+
   async function saveMemberRole(part: Part, role: string) {
     if (!projectId || !user) return
     // 해당 파트의 담당자 uid 찾기 - partManagers에서
@@ -349,10 +401,16 @@ export default function ProjectHomePage() {
                     )}
                   </div>
                   {isOwner && (
-                    <button onClick={startEdit}
-                      className="mt-4 w-full h-[36px] border border-[#E2E8F0] rounded-[8px] text-[12px] font-semibold text-[#64748B] hover:border-[#185FA5] hover:text-[#185FA5] flex items-center justify-center gap-1.5 transition-colors">
-                      <i className="ti ti-pencil text-[13px]" /> 수정하기
-                    </button>
+                    <div className="mt-4 flex gap-2">
+                      <button onClick={startEdit}
+                        className="flex-1 h-[36px] border border-[#E2E8F0] rounded-[8px] text-[12px] font-semibold text-[#64748B] hover:border-[#185FA5] hover:text-[#185FA5] flex items-center justify-center gap-1.5 transition-colors">
+                        <i className="ti ti-pencil text-[13px]" /> 수정하기
+                      </button>
+                      <button onClick={()=>{setMoveTargetDate(project.date);setShowMoveDate(true)}}
+                        className="flex-1 h-[36px] border border-[#E2E8F0] rounded-[8px] text-[12px] font-semibold text-[#64748B] hover:border-[#F59E0B] hover:text-[#F59E0B] flex items-center justify-center gap-1.5 transition-colors">
+                        <i className="ti ti-calendar-event text-[13px]" /> 행사일 이동
+                      </button>
+                    </div>
                   )}
                 </>
               ) : (
@@ -942,6 +1000,43 @@ export default function ProjectHomePage() {
             <div className="flex gap-2">
               <button onClick={() => setRoleChangeTarget(null)} className="flex-1 h-[42px] border border-[#E2E8F0] rounded-[12px] text-[13px] text-[#64748B]">취소</button>
               <button onClick={() => saveMemberRole(roleChangeTarget, roleChangeRole)} className="flex-1 h-[42px] bg-[#185FA5] text-white rounded-[12px] text-[13px] font-semibold">저장</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* 행사일 이동 모달 */}
+      {showMoveDate && project && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-5" onClick={()=>setShowMoveDate(false)}>
+          <div className="bg-white rounded-[20px] p-5 w-full max-w-sm" onClick={e=>e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-[16px] font-semibold">행사일 이동</div>
+              <button onClick={()=>setShowMoveDate(false)}><i className="ti ti-x text-[18px] text-[#A0AEC0]"/></button>
+            </div>
+            <p className="text-[12px] text-[#64748B] mb-4">
+              새 행사일을 선택하면 준비 시작일, 종료일, 모든 큐시트 날짜가 같은 일수만큼 자동으로 이동됩니다.
+            </p>
+            <div className="mb-2">
+              <div className="text-[11px] text-[#A0AEC0] mb-1">현재 행사일</div>
+              <div className="text-[14px] font-bold text-[#1A1A2E]">{project.date}</div>
+            </div>
+            <div className="mb-4">
+              <div className="text-[11px] text-[#A0AEC0] mb-1">새 행사일</div>
+              <input type="date" value={moveTargetDate} onChange={e=>setMoveTargetDate(e.target.value)}
+                className="w-full h-[40px] border border-[#E2E8F0] rounded-[10px] px-3 text-[13px] focus:outline-none focus:border-[#185FA5]"/>
+            </div>
+            {moveTargetDate && moveTargetDate !== project.date && (
+              <div className="mb-4 px-3 py-2 bg-[#FFF8E6] border border-[#FAC775] rounded-[10px] text-[12px] text-[#854F0B]">
+                <i className="ti ti-arrow-right text-[12px] mr-1"/>
+                {Math.abs((new Date(moveTargetDate).getTime()-new Date(project.date).getTime())/86400000)}일
+                {new Date(moveTargetDate)>new Date(project.date)?'뒤':'앞'}으로 전체 이동
+              </div>
+            )}
+            <div className="flex gap-2">
+              <button onClick={()=>setShowMoveDate(false)} className="flex-1 h-[42px] border border-[#E2E8F0] rounded-[12px] text-[13px] text-[#64748B]">취소</button>
+              <button onClick={moveEventDate} disabled={!moveTargetDate||moveTargetDate===project.date||moving}
+                className="flex-1 h-[42px] bg-[#185FA5] text-white rounded-[12px] text-[13px] font-semibold disabled:opacity-40">
+                {moving ? '이동 중...' : '이동하기'}
+              </button>
             </div>
           </div>
         </div>
