@@ -559,6 +559,14 @@ export default function TimelinePage() {
       const checkRef = push(dbRef(db, `checkItems/${projectId}/${savePartId}`))
       await set(checkRef, { id: checkRef.key, partId: savePartId, projectId, cueId, category: check.category, title: check.title, isDone: false, createdAt: now })
     }
+    const part = parts.find(p => p.id === savePartId)
+    const ar = push(dbRef(db, `cueAlerts/${projectId}`))
+    await set(ar, {
+      id: ar.key, projectId, partId: savePartId, partName: part?.name ?? '', partColor: part?.color ?? '#185FA5',
+      cueId, cueTitle: data.title, changeType: 'new',
+      detail: `큐 추가: "${data.title}" (${data.startTime})`,
+      isChecked: false, createdAt: now
+    })
     setShowAddCue(false)
   }
 

@@ -485,6 +485,14 @@ export default function MyPartPage() {
         isDone: false, createdAt: now,
       })
     }
+    const part = allParts.find(p => p.id === savePartId)
+    const ar = push(ref(db, `cueAlerts/${projectId}`))
+    await set(ar, {
+      id: ar.key, projectId, partId: savePartId, partName: part?.name ?? '', partColor: part?.color ?? '#185FA5',
+      cueId, cueTitle: data.title, changeType: 'new',
+      detail: `큐 추가: "${data.title}" (${data.startTime})`,
+      isChecked: false, createdAt: now
+    })
     setShowAddCue(false)
   }
 

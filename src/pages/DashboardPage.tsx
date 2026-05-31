@@ -182,6 +182,8 @@ export default function DashboardPage() {
   // 권한 체크: admin/owner만 모든 큐알림, member는 자기 파트만
   const isAdminOrOwner = memberRole === 'owner' || memberRole === 'admin'
   const uncheckedAlerts = cueAlerts.filter(a => !a.isChecked)
+  const checkedAlerts = cueAlerts.filter(a => a.isChecked)
+  const [alertTab, setAlertTab] = useState<'unread'|'history'>('unread')
 
   // ── 큐 알림 확인 처리 ─────────────────────────────────
   function handleCheckAlert(alertId: string) {
@@ -358,40 +360,88 @@ export default function DashboardPage() {
           </div>
 
           {/* 큐시트 변경 알림 */}
-          {uncheckedAlerts.length > 0 && (
+          {cueAlerts.length > 0 && (
             <div className="mb-2">
-              <div className="text-[11px] font-semibold text-[#64748B] mb-1.5 flex items-center gap-1">
-                <i className="ti ti-refresh text-[12px]" /> 큐시트 변경 알림
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-[11px] font-semibold text-[#64748B] flex items-center gap-1">
+                  <i className="ti ti-refresh text-[12px]" /> 큐시트 변경 알림
+                  {uncheckedAlerts.length > 0 && (
+                    <span className="ml-1 px-1.5 py-0.5 bg-[#E24B4A] text-white text-[9px] font-bold rounded-full">{uncheckedAlerts.length}</span>
+                  )}
+                </div>
+                <div className="flex gap-1">
+                  <button onClick={()=>setAlertTab('unread')}
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold transition-colors ${alertTab==='unread'?'bg-[#185FA5] text-white':'bg-[#F4F6F9] text-[#64748B]'}`}>
+                    미확인 {uncheckedAlerts.length}
+                  </button>
+                  <button onClick={()=>setAlertTab('history')}
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold transition-colors ${alertTab==='history'?'bg-[#185FA5] text-white':'bg-[#F4F6F9] text-[#64748B]'}`}>
+                    히스토리 {checkedAlerts.length}
+                  </button>
+                </div>
               </div>
-              <div className="flex flex-col gap-2">
-                {uncheckedAlerts.map((alert) => (
-                  <div key={alert.id} className="bg-[#E6F1FB] border border-[#B5D4F4] rounded-[12px] p-3 flex items-start gap-2.5">
-                    <i className="ti ti-edit text-[#185FA5] text-[15px] mt-0.5 flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 mb-0.5">
-                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: alert.partColor }} />
-                        <span className="text-[11px] font-semibold text-[#185FA5]">{alert.partName}</span>
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                          alert.changeType === 'new' ? 'bg-[#EAF3DE] text-[#3B6D11]' :
-                          alert.changeType === 'deleted' ? 'bg-[#FCEBEB] text-[#A32D2D]' :
-                          'bg-[#FAEEDA] text-[#854F0B]'
-                        }`}>
-                          {alert.changeType === 'new' ? '신규' : alert.changeType === 'deleted' ? '삭제' : '수정'}
-                        </span>
+              {alertTab === 'unread' && (
+                uncheckedAlerts.length === 0 ? (
+                  <div className="text-center py-4 text-[#A0AEC0] text-[12px]">미확인 알림이 없어요 ✓</div>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {uncheckedAlerts.map((alert) => (
+                      <div key={alert.id} className="bg-[#E6F1FB] border border-[#B5D4F4] rounded-[12px] p-3 flex items-start gap-2.5">
+                        <i className={`ti ${alert.changeType==='new'?'ti-plus':alert.changeType==='deleted'?'ti-trash':'ti-edit'} text-[#185FA5] text-[15px] mt-0.5 flex-shrink-0`} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: alert.partColor }} />
+                            <span className="text-[11px] font-semibold text-[#185FA5]">{alert.partName}</span>
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                              alert.changeType === 'new' ? 'bg-[#EAF3DE] text-[#3B6D11]' :
+                              alert.changeType === 'deleted' ? 'bg-[#FCEBEB] text-[#A32D2D]' :
+                              'bg-[#FAEEDA] text-[#854F0B]'
+                            }`}>
+                              {alert.changeType === 'new' ? '신규' : alert.changeType === 'deleted' ? '삭제' : '수정'}
+                            </span>
+                            <span className="text-[10px] text-[#A0AEC0] ml-auto">{new Date(alert.createdAt).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}</span>
+                          </div>
+                          <div className="text-[12px] font-semibold text-[#1A1A2E]">{alert.cueTitle}</div>
+                          <div className="text-[11px] text-[#64748B] mt-0.5">{alert.detail}</div>
+                        </div>
+                        <button onClick={() => handleCheckAlert(alert.id)}
+                          className="flex-shrink-0 w-6 h-6 rounded-full bg-[#185FA5] text-white flex items-center justify-center hover:bg-[#154e8a] transition-colors">
+                          <i className="ti ti-check text-[12px]" />
+                        </button>
                       </div>
-                      <div className="text-[12px] font-semibold text-[#1A1A2E]">{alert.cueTitle}</div>
-                      <div className="text-[11px] text-[#64748B] mt-0.5">{alert.detail}</div>
-                    </div>
-                    <button
-                      onClick={() => handleCheckAlert(alert.id)}
-                      className="flex-shrink-0 w-6 h-6 rounded-full bg-[#185FA5] text-white flex items-center justify-center hover:bg-[#154e8a] transition-colors"
-                      title="확인 완료"
-                    >
-                      <i className="ti ti-check text-[12px]" />
-                    </button>
+                    ))}
                   </div>
-                ))}
-              </div>
+                )
+              )}
+              {alertTab === 'history' && (
+                checkedAlerts.length === 0 ? (
+                  <div className="text-center py-4 text-[#A0AEC0] text-[12px]">확인한 알림 기록이 없어요</div>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {checkedAlerts.map((alert) => (
+                      <div key={alert.id} className="bg-[#F4F6F9] border border-[#E2E8F0] rounded-[12px] p-3 flex items-start gap-2.5 opacity-70">
+                        <i className="ti ti-check text-[#3B6D11] text-[15px] mt-0.5 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: alert.partColor }} />
+                            <span className="text-[11px] font-semibold text-[#64748B]">{alert.partName}</span>
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                              alert.changeType === 'new' ? 'bg-[#EAF3DE] text-[#3B6D11]' :
+                              alert.changeType === 'deleted' ? 'bg-[#FCEBEB] text-[#A32D2D]' :
+                              'bg-[#FAEEDA] text-[#854F0B]'
+                            }`}>
+                              {alert.changeType === 'new' ? '신규' : alert.changeType === 'deleted' ? '삭제' : '수정'}
+                            </span>
+                            <span className="text-[10px] text-[#A0AEC0] ml-auto">{new Date(alert.createdAt).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}</span>
+                          </div>
+                          <div className="text-[12px] font-semibold text-[#1A1A2E]">{alert.cueTitle}</div>
+                          <div className="text-[11px] text-[#64748B] mt-0.5">{alert.detail}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              )}
             </div>
           )}
 
