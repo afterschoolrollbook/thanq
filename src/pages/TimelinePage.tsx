@@ -615,8 +615,8 @@ export default function TimelinePage() {
 
         {/* 상단 컨트롤 — 중앙 정렬 */}
         <div className="bg-white border-b border-[#E2E8F0] pt-3 pb-0">
-          <div className="max-w-2xl mx-auto px-5 overflow-x-auto">
-            <div className="flex items-center justify-between mb-3 flex-nowrap gap-2 min-w-max">
+          <div className="max-w-4xl mx-auto px-5">
+            <div className="flex items-center justify-between mb-3 flex-nowrap gap-2">
               <div className="flex items-center gap-2">
                 <div className="relative" ref={calendarRef}>
                   <button onClick={()=>setShowCalendar(v=>!v)}
