@@ -58,8 +58,8 @@ export default function TimelinePage() {
   const [project, setProject] = useState<Project | null>(null)
   const user = useAuthStore((s) => s.user)
   const [myMember, setMyMember] = useState<{role: string; partId?: string} | null>(null)
-  const myPartName = parts.find(p => p.id === myMember?.partId)?.name ?? ''
   const [parts, setParts] = useState<Part[]>([])
+  const myPartName = parts.find(p => p.id === myMember?.partId)?.name ?? ''
   const [allCues, setAllCues] = useState<CueWithPart[]>([])
   const [allChecks, setAllChecks] = useState<CheckItem[]>([])
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
