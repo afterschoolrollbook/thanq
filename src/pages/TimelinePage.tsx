@@ -646,6 +646,10 @@ export default function TimelinePage() {
         <div className="bg-white border-b border-[#E2E8F0] pt-3 pb-0">
           <div className="max-w-4xl mx-auto px-5">
             <div className="flex items-center justify-between mb-3 flex-nowrap gap-2">
+              <button onClick={()=>window.open(window.location.href,'timeline_'+projectId,'width=1280,height=900')}
+                className="flex-shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-[6px] border border-[#E2E8F0] text-[11px] text-[#64748B] hover:border-[#185FA5] hover:text-[#185FA5] transition-colors">
+                <i className="ti ti-external-link text-[11px]"/> 새 창
+              </button>
               <div className="flex items-center gap-2">
                 <div className="relative" ref={calendarRef}>
                   <button onClick={()=>setShowCalendar(v=>!v)}
