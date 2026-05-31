@@ -426,7 +426,11 @@ export default function MyPartPage() {
           cue={activeCue}
           projectId={projectId!}
           onClose={() => setActiveCue(null)}
-          isReadOnly={!isMyPart}
+          isReadOnly={(() => {
+            if (isParticipant) return true
+            if (isPlanner) return false  // 파트 미배정 기획자 → 모두 수정 가능
+            return activeCue.partId !== myMember?.partId  // 스태프/파트배정기획자 → 내 파트만
+          })()}
           myPartName={myPart?.name ?? ''}
         />
       )}
