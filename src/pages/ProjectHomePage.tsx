@@ -8,7 +8,8 @@ import { Topbar, BottomTabBar, StatusBadge } from '@/components/ui/Common'
 import { PART_COLORS } from '@/utils/fieldTerms'
 import TemplateExportModal from '@/components/template/TemplateExportModal'
 import TemplateImportModal from '@/components/template/TemplateImportModal'
-import type { Project, Part, CheckItem } from '@/types'
+import SimulationModal from '@/components/simulation/SimulationModal'
+import type { Project, Part, CheckItem, CueItem } from '@/types'
 
 const ROLE_LABEL: Record<string, string> = {
   owner: '기획자', planner: '기획자', admin: '관리자', staff: '스태프', member: '팀원', participant: '참가자', viewer: '참관', guest: '게스트'
@@ -37,6 +38,8 @@ export default function ProjectHomePage() {
   const [loading, setLoading] = useState(true)
   const [showExport, setShowExport] = useState(false)
   const [showImport, setShowImport] = useState(false)
+  const [showSimulation, setShowSimulation] = useState(false)
+  const [cuesByPart, setCuesByPart] = useState<Record<string, CueItem[]>>({})
 
   // 기본정보 접기/펼치기 + 수정
   const [showInfo, setShowInfo] = useState(true)
@@ -110,6 +113,21 @@ export default function ProjectHomePage() {
     })
   }, [projectId, parts])
 
+  // 큐 데이터 로드 (시뮬레이션용)
+  useEffect(() => {
+    if (!projectId || parts.length === 0) return
+    const map: Record<string, CueItem[]> = {}
+    let loaded = 0
+    parts.forEach((part) => {
+      onValue(ref(db, `cueItems/${projectId}/${part.id}`), (s) => {
+        loaded++
+        map[part.id] = s.exists() ? Object.values(s.val() as CueItem[]) : []
+        if (loaded === parts.length) setCuesByPart({ ...map })
+      }, { onlyOnce: true })
+    })
+  }, [projectId, parts])
+
+
   function startEdit() {
     if (!project) return
     const p = project as any
@@ -125,6 +143,13 @@ export default function ProjectHomePage() {
     setEditBudget(project.budget ? String(project.budget) : '')
     setEditOverview(project.overview ?? '')
     setEditing(true)
+  }
+
+
+  // 프로젝트 운영 상태 변경
+  async function updateProjectPhase(phase: 'planning' | 'testing' | 'live') {
+    if (!projectId) return
+    await update(ref(db, `projects/${projectId}`), { phase, updatedAt: new Date().toISOString() })
   }
 
   async function saveEdit() {
@@ -723,6 +748,58 @@ export default function ProjectHomePage() {
           </div>
         </div>
 
+
+        {/* ── 프로젝트 운영 단계 + AI 시뮬레이션 ── */}
+        {isOwner && (
+          <div className="bg-white border border-[#E2E8F0] rounded-[14px] mb-4 overflow-hidden">
+            <div className="px-4 pt-3 pb-2 flex items-center gap-2 border-b border-[#F4F6F9]">
+              <i className="ti ti-flag text-[#185FA5] text-[15px]" />
+              <span className="text-[13px] font-semibold text-[#1A1A2E]">운영 단계</span>
+            </div>
+            <div className="px-4 py-3">
+              <div className="flex gap-2 mb-3">
+                {([
+                  { value: 'planning', label: '기획중', icon: 'ti-pencil', color: '#64748B', bg: '#F4F6F9', activeBg: '#1A1A2E', activeText: 'white' },
+                  { value: 'testing', label: '테스트중', icon: 'ti-player-play', color: '#185FA5', bg: '#E6F1FB', activeBg: '#185FA5', activeText: 'white' },
+                  { value: 'live', label: '진행', icon: 'ti-broadcast', color: '#A32D2D', bg: '#FCEBEB', activeBg: '#A32D2D', activeText: 'white' },
+                ] as const).map(ph => {
+                  const current = (project as any).phase ?? 'planning'
+                  const isActive = current === ph.value
+                  return (
+                    <button key={ph.value}
+                      onClick={() => updateProjectPhase(ph.value)}
+                      className="flex-1 flex flex-col items-center gap-1 py-2.5 rounded-[10px] border-2 transition-all"
+                      style={{
+                        background: isActive ? ph.activeBg : ph.bg,
+                        borderColor: isActive ? ph.activeBg : 'transparent',
+                        color: isActive ? ph.activeText : ph.color,
+                      }}>
+                      <i className={`ti ${ph.icon} text-[16px]`} />
+                      <span className="text-[11px] font-semibold">{ph.label}</span>
+                    </button>
+                  )
+                })}
+              </div>
+              {/* 테스트중일 때만 시뮬레이션 버튼 표시 */}
+              {((project as any).phase === 'testing' || !(project as any).phase && false) && (
+                <button
+                  onClick={() => setShowSimulation(true)}
+                  className="w-full h-[42px] bg-[#E6F1FB] border-2 border-[#185FA5] rounded-[12px] text-[13px] font-semibold text-[#185FA5] flex items-center justify-center gap-2 hover:bg-[#185FA5] hover:text-white transition-all group">
+                  <i className="ti ti-player-play text-[15px]" />
+                  AI 시뮬레이션 실행
+                  <span className="text-[10px] bg-[#185FA5] text-white px-1.5 py-0.5 rounded-full group-hover:bg-white group-hover:text-[#185FA5] transition-all">BETA</span>
+                </button>
+              )}
+              {(project as any).phase === 'live' && (
+                <div className="flex items-center gap-2 bg-[#FCEBEB] rounded-[10px] px-3 py-2">
+                  <span className="w-2 h-2 rounded-full bg-[#E24B4A] animate-pulse flex-shrink-0" />
+                  <span className="text-[12px] font-semibold text-[#A32D2D]">현재 진행 중인 행사입니다</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* 템플릿 불러오기 / 저장 */}
         {(isOwner || user?.isPro) && (
           <div className="mt-4 flex gap-2">
@@ -870,6 +947,14 @@ export default function ProjectHomePage() {
         </div>
       )}
       <BottomTabBar />
+      {showSimulation && project && (
+        <SimulationModal
+          project={project}
+          parts={parts}
+          cuesByPart={cuesByPart}
+          onClose={() => setShowSimulation(false)}
+        />
+      )}
       {showExport && project && (
         <TemplateExportModal project={project} onClose={() => setShowExport(false)} />
       )}
