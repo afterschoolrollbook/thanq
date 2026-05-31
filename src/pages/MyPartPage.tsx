@@ -501,6 +501,8 @@ export default function MyPartPage() {
             )}
           </div>
         </div>
+        </div>{/* end flex-1 overflow-y-auto */}
+        </div>{/* end flex-col h-full */}
       )}
 
       {readOnlyToast && (
@@ -545,8 +547,6 @@ export default function MyPartPage() {
           myPartName={myPartName}
         />
       )}
-      </div>{/* end flex-1 */}
-      </div>{/* end selectedPart */}
       </div>{/* end max-w-2xl */}
     </div>{/* end h-screen */}
   )
