@@ -5,6 +5,7 @@ import { db } from '@/lib/firebase'
 import { Topbar, StatusBadge, BottomTabBar } from '@/components/ui/Common'
 import { useAuthStore } from '@/store/authStore'
 import type { Project, Part, CueItem, Issue } from '@/types'
+import { CueModal, type CueWithPart } from '@/components/cue/CueModal'
 
 // ── 날짜/시간 포맷 유틸 ────────────────────────────────────
 function formatKorDate(date: Date) {
@@ -184,6 +185,17 @@ export default function DashboardPage() {
   const uncheckedAlerts = cueAlerts.filter(a => !a.isChecked)
   const checkedAlerts = cueAlerts.filter(a => a.isChecked)
   const [alertTab, setAlertTab] = useState<'unread'|'history'>('unread')
+  const [alertPartFilter, setAlertPartFilter] = useState<string>('all')
+  const [activeCue, setActiveCue] = useState<CueWithPart|null>(null)
+
+  // ── 알림 클릭 → 큐카드 모달 열기 ────────────────────
+  function openAlertCue(alert: CueChangeAlert) {
+    const part = parts.find(p => p.id === alert.partId)
+    const cue = allCues.find(c => c.id === alert.cueId)
+    if (cue && part) {
+      setActiveCue({ ...cue, partName: part.name, partColor: part.color, partId: part.id })
+    }
+  }
 
   // ── 큐 알림 확인 처리 ─────────────────────────────────
   function handleCheckAlert(alertId: string) {
@@ -213,13 +225,7 @@ export default function DashboardPage() {
         {/* ── 헤더 + 날짜/시간 ── */}
         <div className="flex items-start justify-between mb-4">
           <div>
-            <div className="flex items-center gap-2">
-              <div className="text-[18px] font-semibold text-[#1A1A2E]">본부 대시보드</div>
-              <button onClick={()=>window.open(window.location.href,'dashboard_'+projectId,'width=1280,height=900')}
-                className="flex items-center gap-1 px-2 py-0.5 rounded-[6px] border border-[#E2E8F0] text-[11px] text-[#64748B] hover:border-[#185FA5] hover:text-[#185FA5] transition-colors">
-                <i className="ti ti-external-link text-[11px]"/> 새 창
-              </button>
-            </div>
+            <div className="text-[18px] font-semibold text-[#1A1A2E]">본부 대시보드</div>
             <div className="text-[12px] text-[#64748B]">전체 현황 모니터링</div>
           </div>
           {/* 날짜/시간 + D-day */}
@@ -366,8 +372,12 @@ export default function DashboardPage() {
           </div>
 
           {/* 큐시트 변경 알림 */}
-          {cueAlerts.length > 0 && (
+          {cueAlerts.length > 0 && (() => {
+            const alertList = alertTab === 'unread' ? uncheckedAlerts : checkedAlerts
+            const filtered = alertPartFilter === 'all' ? alertList : alertList.filter(a => a.partId === alertPartFilter)
+            return (
             <div className="mb-2">
+              {/* 헤더: 미확인/히스토리 탭 */}
               <div className="flex items-center justify-between mb-2">
                 <div className="text-[11px] font-semibold text-[#64748B] flex items-center gap-1">
                   <i className="ti ti-refresh text-[12px]" /> 큐시트 변경 알림
@@ -386,70 +396,67 @@ export default function DashboardPage() {
                   </button>
                 </div>
               </div>
-              {alertTab === 'unread' && (
-                uncheckedAlerts.length === 0 ? (
-                  <div className="text-center py-4 text-[#A0AEC0] text-[12px]">미확인 알림이 없어요 ✓</div>
-                ) : (
-                  <div className="flex flex-col gap-2">
-                    {uncheckedAlerts.map((alert) => (
-                      <div key={alert.id} className="bg-[#E6F1FB] border border-[#B5D4F4] rounded-[12px] p-3 flex items-start gap-2.5">
-                        <i className={`ti ${alert.changeType==='new'?'ti-plus':alert.changeType==='deleted'?'ti-trash':'ti-edit'} text-[#185FA5] text-[15px] mt-0.5 flex-shrink-0`} />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-                            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: alert.partColor }} />
-                            <span className="text-[11px] font-semibold text-[#185FA5]">{alert.partName}</span>
-                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                              alert.changeType === 'new' ? 'bg-[#EAF3DE] text-[#3B6D11]' :
-                              alert.changeType === 'deleted' ? 'bg-[#FCEBEB] text-[#A32D2D]' :
-                              'bg-[#FAEEDA] text-[#854F0B]'
-                            }`}>
-                              {alert.changeType === 'new' ? '신규' : alert.changeType === 'deleted' ? '삭제' : '수정'}
-                            </span>
-                            <span className="text-[10px] text-[#A0AEC0] ml-auto">{new Date(alert.createdAt).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}</span>
+              {/* 팀별 탭 */}
+              <div className="flex gap-1.5 overflow-x-auto pb-2 mb-2">
+                <button onClick={()=>setAlertPartFilter('all')}
+                  className={`flex-shrink-0 px-2.5 py-0.5 rounded-full text-[10px] font-semibold transition-colors ${alertPartFilter==='all'?'bg-[#185FA5] text-white':'bg-[#F4F6F9] text-[#64748B]'}`}>
+                  전체
+                </button>
+                {parts.map(p => (
+                  <button key={p.id} onClick={()=>setAlertPartFilter(p.id)}
+                    className={`flex-shrink-0 flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold transition-colors ${alertPartFilter===p.id?'text-white':'bg-[#F4F6F9] text-[#64748B]'}`}
+                    style={alertPartFilter===p.id?{background:p.color}:{}}>
+                    <span className="w-1.5 h-1.5 rounded-full" style={{background: alertPartFilter===p.id?'white':p.color}}/>
+                    {p.name}
+                  </button>
+                ))}
+              </div>
+              {/* 알림 목록 */}
+              {filtered.length === 0 ? (
+                <div className="text-center py-4 text-[#A0AEC0] text-[12px]">
+                  {alertTab==='unread' ? '미확인 알림이 없어요 ✓' : '확인한 알림 기록이 없어요'}
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {filtered.map((alert) => {
+                    const isExpanded = expandedAlertId === alert.id
+                    const isDone = alertTab === 'history'
+                    return (
+                      <div key={alert.id} className={`border rounded-[12px] overflow-hidden transition-all ${isDone?'bg-[#F4F6F9] border-[#E2E8F0] opacity-70':'bg-[#E6F1FB] border-[#B5D4F4]'}`}>
+                        {/* 요약 행 — 클릭하면 큐카드 모달 */}
+                        <button className="w-full flex items-center gap-2.5 p-3 text-left" onClick={()=>openAlertCue(alert)}>
+                          <i className={`ti ${isDone?'ti-check text-[#3B6D11]':alert.changeType==='new'?'ti-plus text-[#185FA5]':alert.changeType==='deleted'?'ti-trash text-[#E24B4A]':'ti-edit text-[#185FA5]'} text-[14px] flex-shrink-0`} />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: alert.partColor }} />
+                              <span className={`text-[11px] font-semibold ${isDone?'text-[#64748B]':'text-[#185FA5]'}`}>{alert.partName}</span>
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                                alert.changeType === 'new' ? 'bg-[#EAF3DE] text-[#3B6D11]' :
+                                alert.changeType === 'deleted' ? 'bg-[#FCEBEB] text-[#A32D2D]' :
+                                'bg-[#FAEEDA] text-[#854F0B]'
+                              }`}>
+                                {alert.changeType === 'new' ? '신규' : alert.changeType === 'deleted' ? '삭제' : '수정'}
+                              </span>
+                              <span className="text-[10px] text-[#A0AEC0] ml-auto">{new Date(alert.createdAt).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}</span>
+                            </div>
+                            <div className="text-[12px] font-semibold text-[#1A1A2E] mt-0.5 truncate">{alert.cueTitle}</div>
                           </div>
-                          <div className="text-[12px] font-semibold text-[#1A1A2E]">{alert.cueTitle}</div>
-                          <div className="text-[11px] text-[#64748B] mt-0.5">{alert.detail}</div>
-                        </div>
-                        <button onClick={() => handleCheckAlert(alert.id)}
-                          className="flex-shrink-0 w-6 h-6 rounded-full bg-[#185FA5] text-white flex items-center justify-center hover:bg-[#154e8a] transition-colors">
-                          <i className="ti ti-check text-[12px]" />
+                          {!isDone && (
+                            <button onClick={(e)=>{ e.stopPropagation(); handleCheckAlert(alert.id) }}
+                              className="flex-shrink-0 w-7 h-7 rounded-full bg-[#185FA5] text-white flex items-center justify-center hover:bg-[#154e8a] transition-colors"
+                              title="확인 완료">
+                              <i className="ti ti-check text-[12px]"/>
+                            </button>
+                          )}
                         </button>
                       </div>
-                    ))}
-                  </div>
-                )
-              )}
-              {alertTab === 'history' && (
-                checkedAlerts.length === 0 ? (
-                  <div className="text-center py-4 text-[#A0AEC0] text-[12px]">확인한 알림 기록이 없어요</div>
-                ) : (
-                  <div className="flex flex-col gap-2">
-                    {checkedAlerts.map((alert) => (
-                      <div key={alert.id} className="bg-[#F4F6F9] border border-[#E2E8F0] rounded-[12px] p-3 flex items-start gap-2.5 opacity-70">
-                        <i className="ti ti-check text-[#3B6D11] text-[15px] mt-0.5 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-                            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: alert.partColor }} />
-                            <span className="text-[11px] font-semibold text-[#64748B]">{alert.partName}</span>
-                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                              alert.changeType === 'new' ? 'bg-[#EAF3DE] text-[#3B6D11]' :
-                              alert.changeType === 'deleted' ? 'bg-[#FCEBEB] text-[#A32D2D]' :
-                              'bg-[#FAEEDA] text-[#854F0B]'
-                            }`}>
-                              {alert.changeType === 'new' ? '신규' : alert.changeType === 'deleted' ? '삭제' : '수정'}
-                            </span>
-                            <span className="text-[10px] text-[#A0AEC0] ml-auto">{new Date(alert.createdAt).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}</span>
-                          </div>
-                          <div className="text-[12px] font-semibold text-[#1A1A2E]">{alert.cueTitle}</div>
-                          <div className="text-[11px] text-[#64748B] mt-0.5">{alert.detail}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )
+                    )
+                  })}
+                </div>
               )}
             </div>
-          )}
+            )
+          })()}
 
           {/* 이슈 목록 */}
           {issues.length === 0 && uncheckedAlerts.length === 0 ? (
@@ -615,6 +622,14 @@ export default function DashboardPage() {
           </button>
         </div>
       </div>
+      {activeCue && projectId && (
+        <CueModal
+          cue={activeCue}
+          projectId={projectId}
+          onClose={()=>setActiveCue(null)}
+          isReadOnly={true}
+        />
+      )}
       <BottomTabBar />
     </div>
   )
