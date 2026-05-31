@@ -536,12 +536,12 @@ export default function PTTPage() {
               {/* 안테나 */}
               <rect x="82" y="4" width="5" height="28" rx="2.5" fill="#A0AEC0"/>
               {/* 몸체 */}
-              <rect x="18" y="18" width="84" height="124" rx="14" fill="#C8E6C9"/>
+              <rect x="18" y="18" width="84" height="124" rx="14" fill={pressing ? '#E57373' : '#C8E6C9'}/>
               {/* 몸체 하이라이트 */}
-              <rect x="24" y="24" width="72" height="112" rx="10" fill="#E8F5E9"/>
+              <rect x="24" y="24" width="72" height="112" rx="10" fill={pressing ? '#FFCDD2' : '#E8F5E9'}/>
               {/* 스피커 그릴 */}
               {[0,1,2,3,4].map(i => (
-                <rect key={i} x="36" y={34 + i*7} width="48" height="3" rx="1.5" fill="#A5D6A7"/>
+                <rect key={i} x="36" y={34 + i*7} width="48" height="3" rx="1.5" fill={pressing ? '#EF9A9A' : '#A5D6A7'}/>
               ))}
               {/* PTT 빨간 버튼 배경 */}
               <circle cx="60" cy="108" r="22" fill={pressing ? '#C0392B' : '#E53935'}/>
@@ -552,7 +552,7 @@ export default function PTTPage() {
               <line x1="60" y1="120" x2="60" y2="125" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
               <line x1="54" y1="125" x2="66" y2="125" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
               {/* 하단 채널 표시 */}
-              <rect x="36" y="132" width="48" height="6" rx="3" fill="#A5D6A7"/>
+              <rect x="36" y="132" width="48" height="6" rx="3" fill={pressing ? "#EF9A9A" : "#A5D6A7"}/>
             </svg>
             {/* 빨간 버튼 위에만 올라가는 투명 PTT 버튼 */}
             <button
