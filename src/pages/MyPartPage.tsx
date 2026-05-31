@@ -42,26 +42,16 @@ function DateRoller({ dates, selected, cues, onSelect }: {
   }
 
   return (
-    <div className="relative mb-4 -mx-5">
-      {/* 가운데 선택 하이라이트 */}
-      <div className="pointer-events-none absolute inset-y-0 z-10 flex items-center"
-        style={{ left: '50%', transform: 'translateX(-50%)', width: ITEM_W }}>
-        <div className="w-full h-full rounded-[14px] bg-[#185FA5]/10 border-l-2 border-r-2 border-[#185FA5]"/>
+    <div className="relative flex-shrink-0 mb-2" style={{ height: 72 }}>
+      <div className="pointer-events-none absolute inset-y-0 z-10 flex items-center" style={{ left: '50%', transform: 'translateX(-50%)', width: ITEM_W }}>
+        <div className="w-full h-full rounded-[14px] bg-[#185FA5]/10 border-l-2 border-r-2 border-[#185FA5]" />
       </div>
-      {/* 좌 페이드 */}
-      <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-[#F4F6F9] to-transparent"/>
-      {/* 우 페이드 */}
-      <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-[#F4F6F9] to-transparent"/>
-
-      <div
-        ref={containerRef}
-        onScroll={handleScroll}
-        className="flex overflow-x-auto scrollbar-none"
-        style={{ scrollSnapType: 'x mandatory', height: 72 }}>
-
-        {/* 왼쪽 패딩 - 첫 항목이 가운데 오도록 */}
-        <div style={{ minWidth: `calc(50% - ${ITEM_W/2}px)`, flexShrink: 0 }}/>
-
+      <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-[#F4F6F9] to-transparent" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-[#F4F6F9] to-transparent" />
+      <div ref={containerRef} onScroll={handleScroll}
+        className="flex h-full overflow-x-auto scrollbar-none"
+        style={{ scrollSnapType: 'x mandatory' }}>
+        <div style={{ minWidth: `calc(50% - ${ITEM_W / 2}px)`, flexShrink: 0 }} />
         {dates.map((date, i) => {
           const isToday = date === '__today__'
           const label = isToday ? '당일' : date.slice(5).replace('-', '.')
@@ -70,10 +60,8 @@ function DateRoller({ dates, selected, cues, onSelect }: {
           const dist = Math.abs(i - selectedIdx)
           const opacity = dist === 0 ? 1 : dist === 1 ? 0.45 : 0.18
           const scale = dist === 0 ? 1 : dist === 1 ? 0.85 : 0.72
-
           return (
-            <div key={date}
-              onClick={() => onSelect(date)}
+            <div key={date} onClick={() => onSelect(date)}
               style={{ minWidth: ITEM_W, scrollSnapAlign: 'center', opacity, transform: `scale(${scale})`, transition: 'all 0.15s' }}
               className="flex flex-col items-center justify-center cursor-pointer gap-1">
               <span className={`text-[17px] font-bold ${isSel ? 'text-[#185FA5]' : 'text-[#1A1A2E]'}`}>{label}</span>
@@ -81,9 +69,7 @@ function DateRoller({ dates, selected, cues, onSelect }: {
             </div>
           )
         })}
-
-        {/* 오른쪽 패딩 */}
-        <div style={{ minWidth: `calc(50% - ${ITEM_W/2}px)`, flexShrink: 0 }}/>
+        <div style={{ minWidth: `calc(50% - ${ITEM_W / 2}px)`, flexShrink: 0 }} />
       </div>
     </div>
   )
@@ -303,20 +289,18 @@ export default function MyPartPage() {
     <div className="flex items-center justify-center h-64 text-[#64748B] text-[13px]">불러오는 중...</div>
   )
 
-  return (
+                  return (
     <div className="h-screen flex flex-col bg-[#F4F6F9] overflow-hidden">
       <Topbar />
 
-      {/* 파트 탭 - sticky */}
+      {/* 파트 탭 */}
       {allParts.length > 1 && (
-        <div className="bg-white border-b border-[#E2E8F0] flex-shrink-0 z-20">
+        <div className="bg-white border-b border-[#E2E8F0] flex-shrink-0">
           <div className="max-w-2xl mx-auto px-5 overflow-x-auto">
             <div className="flex gap-1 py-2 min-w-max">
               {allParts.map(part => (
                 <button key={part.id} onClick={() => setSelectedPartId(part.id)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap transition-colors ${
-                    selectedPartId === part.id ? 'text-white' : 'bg-[#F4F6F9] text-[#64748B] hover:bg-[#E2E8F0]'
-                  }`}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap transition-colors ${selectedPartId === part.id ? 'text-white' : 'bg-[#F4F6F9] text-[#64748B] hover:bg-[#E2E8F0]'}`}
                   style={selectedPartId === part.id ? { background: part.color } : {}}>
                   <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: selectedPartId === part.id ? 'rgba(255,255,255,0.6)' : part.color }} />
                   {part.name}
@@ -329,21 +313,19 @@ export default function MyPartPage() {
         </div>
       )}
 
-      <div className="flex-1 flex flex-col overflow-hidden max-w-2xl w-full mx-auto">
-        {!selectedPart ? (
-          <div className="text-center py-20 text-[#64748B] text-[13px]">배정된 파트가 없어요</div>
-        ) : (
-          <div className="flex flex-col h-full overflow-hidden">
-            {/* 파트 헤더 - 고정 */}
-            <div className="flex-shrink-0 px-5 pt-4">
-            <div className="flex items-start justify-between mb-3 flex-wrap gap-2">
+      {!selectedPart ? (
+        <div className="flex-1 flex items-center justify-center text-[#64748B] text-[13px]">배정된 파트가 없어요</div>
+      ) : (
+        <div className="flex-1 flex flex-col overflow-hidden max-w-2xl w-full mx-auto">
+
+          {/* 파트 헤더 고정 */}
+          <div className="flex-shrink-0 px-5 pt-4 pb-2">
+            <div className="flex items-start justify-between flex-wrap gap-2 mb-2">
               <div>
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: selectedPart.color }} />
                   <span className="text-[18px] font-semibold text-[#1A1A2E]">{selectedPart.name}</span>
-                  {!isMyPart && (
-                    <span className="text-[10px] bg-[#F4F6F9] text-[#A0AEC0] px-2 py-0.5 rounded-full">열람 전용</span>
-                  )}
+                  {!isMyPart && <span className="text-[10px] bg-[#F4F6F9] text-[#A0AEC0] px-2 py-0.5 rounded-full">열람 전용</span>}
                 </div>
                 <div className="text-[12px] text-[#64748B] mt-0.5">
                   {isPlanner ? '기획자 · 전체 수정 가능' : isMyPart ? '내 파트' : isParticipant ? '참가자 · 열람만 가능' : isPlannerRole ? '다른 팀 현황 (열람)' : '다른 팀 현황'}
@@ -360,24 +342,19 @@ export default function MyPartPage() {
                 </div>
               )}
             </div>
-
-            {/* 진행률 */}
-            <div className="flex items-center gap-2.5 mb-3">
-              <span className="text-[12px] text-[#64748B]">파트 진행률</span>
+            <div className="flex items-center gap-2.5">
+              <span className="text-[12px] text-[#64748B]">진행률</span>
               <div className="flex-1 h-1.5 bg-[#F4F6F9] rounded-full overflow-hidden">
                 <div className="h-1.5 bg-[#185FA5] rounded-full" style={{ width: `${selectedPart.progress}%` }} />
               </div>
-              <span className="text-[12px] text-[#64748B] whitespace-nowrap">{selectedPart.progress}%</span>
+              <span className="text-[12px] text-[#64748B]">{selectedPart.progress}%</span>
             </div>
-            </div>{/* end 파트 헤더 고정 영역 */}
+          </div>
 
-            {/* 날짜 롤러 + 큐시트 스크롤 영역 */}
-            <div className="flex-1 flex flex-col overflow-hidden">
-
-            {/* 날짜 롤러 헤더 */}
-            <div className="flex-shrink-0 px-5">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[14px] font-bold text-[#1A1A2E]">큐시트 ({cues.length})</span>
+          {/* 날짜 롤러 + 헤더 고정 */}
+          <div className="flex-shrink-0 px-5">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[13px] font-bold text-[#1A1A2E]">큐시트 ({cues.length})</span>
               {isMyPart && (
                 <button onClick={() => setShowAddCue(true)}
                   className="h-8 px-3 bg-[#185FA5] text-white rounded-[10px] text-[12px] font-semibold flex items-center gap-1.5">
@@ -385,41 +362,32 @@ export default function MyPartPage() {
                 </button>
               )}
             </div>
-            </div>{/* end 날짜 헤더 */}
-            </div>{/* end 날짜 헤더 고정 */}
+          </div>
+          {dateList.length > 1 && (
+            <DateRoller dates={dateList} selected={selectedDate} cues={cues} onSelect={selectDate} />
+          )}
 
-            {dateList.length > 1 && (
-              <DateRoller
-                dates={dateList}
-                selected={selectedDate}
-                cues={cues}
-                onSelect={selectDate}
-              />
-            )}
-
-            {/* 큐시트 카드 목록 */}
-            {/* 큐시트 세로 스크롤 영역 */}
-            <div className="flex-1 overflow-y-auto px-5 pb-24">
+          {/* 큐시트 세로 스크롤 */}
+          <div className="flex-1 overflow-y-auto px-5 pb-24">
             {cues.length === 0 ? (
               <div className="text-center py-12 text-[#A0AEC0]">
                 <i className="ti ti-list text-[36px] block mb-2 opacity-30" />
                 <p className="text-[13px] mb-4">큐시트 항목이 없어요</p>
-                <button onClick={() => setShowAddCue(true)}
-                  className="h-[34px] px-4 bg-[#185FA5] text-white rounded-[10px] text-[12px] font-semibold flex items-center gap-1.5 mx-auto">
-                  <i className="ti ti-plus text-[13px]" /> 큐시트 추가
-                </button>
+                {isMyPart && (
+                  <button onClick={() => setShowAddCue(true)}
+                    className="h-[34px] px-4 bg-[#185FA5] text-white rounded-[10px] text-[12px] font-semibold flex items-center gap-1.5 mx-auto">
+                    <i className="ti ti-plus text-[13px]" /> 큐시트 추가
+                  </button>
+                )}
               </div>
             ) : (
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-3 pt-2">
                 {filteredCues.map((cue) => {
-                  const cueChecks = checks.filter(c => c.cueId === cue.id)
-                  const doneChecks = cueChecks.filter(c => c.isDone).length
-
+                  const cueChecks = checks.filter((c: CheckItem) => c.cueId === cue.id)
+                  const doneChecks = cueChecks.filter((c: CheckItem) => c.isDone).length
                   return (
                     <div key={cue.id}
                       className={`rounded-[12px] border bg-white overflow-hidden ${cue.status === 'ongoing' ? 'border-[#185FA5]' : 'border-[#E2E8F0]'}`}>
-
-                      {/* 카드 상단 - 클릭 시 모달 */}
                       <button className="w-full text-left p-4" onClick={() => openCueModal(cue)}>
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
@@ -430,9 +398,7 @@ export default function MyPartPage() {
                                 </span>
                               )}
                               <span className="text-[12px] font-bold text-[#185FA5]">{cue.startTime}</span>
-                              {cue.durationMin > 0 && (
-                                <span className="text-[11px] text-[#A0AEC0]">{cue.durationMin}분</span>
-                              )}
+                              {cue.durationMin > 0 && <span className="text-[11px] text-[#A0AEC0]">{cue.durationMin}분</span>}
                             </div>
                             <div className="text-[14px] font-semibold text-[#1A1A2E]">{cue.title}</div>
                             {cue.memo && <div className="text-[11px] text-[#64748B] mt-1 line-clamp-2">{cue.memo}</div>}
@@ -442,8 +408,6 @@ export default function MyPartPage() {
                             <i className="ti ti-chevron-right text-[#A0AEC0] text-[13px]" />
                           </div>
                         </div>
-
-                        {/* 체크리스트 미리보기 */}
                         {cueChecks.length > 0 && (
                           <div className="mt-3 pt-3 border-t border-[#F4F6F9]">
                             <div className="flex items-center justify-between mb-2">
@@ -455,7 +419,7 @@ export default function MyPartPage() {
                                 style={{ width: `${(doneChecks / cueChecks.length) * 100}%`, background: doneChecks === cueChecks.length ? '#3B6D11' : '#185FA5' }} />
                             </div>
                             <div className="flex flex-col gap-1">
-                              {cueChecks.slice(0, 3).map(c => (
+                              {cueChecks.slice(0, 3).map((c: CheckItem) => (
                                 <div key={c.id} className="flex items-center gap-2">
                                   <div className={`w-3.5 h-3.5 rounded flex items-center justify-center border flex-shrink-0 ${c.isDone ? 'bg-[#3B6D11] border-[#3B6D11]' : 'border-[#E2E8F0]'}`}>
                                     {c.isDone && <i className="ti ti-check text-white text-[8px]" />}
@@ -463,15 +427,11 @@ export default function MyPartPage() {
                                   <span className={`text-[11px] truncate ${c.isDone ? 'line-through text-[#A0AEC0]' : 'text-[#64748B]'}`}>{c.title}</span>
                                 </div>
                               ))}
-                              {cueChecks.length > 3 && (
-                                <span className="text-[10px] text-[#A0AEC0] ml-5">+{cueChecks.length - 3}개 더보기</span>
-                              )}
+                              {cueChecks.length > 3 && <span className="text-[10px] text-[#A0AEC0] ml-5">+{cueChecks.length - 3}개 더보기</span>}
                             </div>
                           </div>
                         )}
                       </button>
-
-                      {/* 상태 버튼 */}
                       <div className="flex border-t border-[#F4F6F9]">
                         {cue.status === 'pending' && (
                           <button onClick={() => setCueStatus(cue, 'ongoing')}
@@ -500,8 +460,6 @@ export default function MyPartPage() {
                     </div>
                   )
                 })}
-
-                {/* 파트 레벨 체크리스트 (큐 미연결) */}
                 {checks.filter((c: CheckItem) => !c.cueId).length > 0 && (
                   <div className="bg-white border border-[#E2E8F0] rounded-[12px] p-4 mt-2">
                     <div className="flex items-center justify-between mb-3">
@@ -514,7 +472,7 @@ export default function MyPartPage() {
                       {checks.filter((c: CheckItem) => !c.cueId).map((item: CheckItem) => (
                         <div key={item.id} className="flex items-center gap-3">
                           <button
-                            onClick={() => { if(!isMyPart){showReadOnly();return} update(ref(db, `checkItems/${projectId}/${selectedPart!.id}/${item.id}`), { isDone: !item.isDone }) }}
+                            onClick={() => { if (!isMyPart) { showReadOnly(); return } update(ref(db, `checkItems/${projectId}/${selectedPart!.id}/${item.id}`), { isDone: !item.isDone }) }}
                             className={`w-5 h-5 rounded flex items-center justify-center border-2 flex-shrink-0 ${item.isDone ? 'bg-[#3B6D11] border-[#3B6D11]' : 'border-[#E2E8F0]'}`}>
                             {item.isDone && <i className="ti ti-check text-white text-[11px]" />}
                           </button>
@@ -526,11 +484,10 @@ export default function MyPartPage() {
                 )}
               </div>
             )}
-            </div>{/* end 큐시트 스크롤 */}
-            </div>{/* end 날짜+큐시트 영역 */}
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
       {readOnlyToast && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-6" onClick={() => setReadOnlyToast(false)}>
           <div className="bg-white rounded-[20px] p-6 w-full max-w-sm flex flex-col items-center text-center gap-4" onClick={e => e.stopPropagation()}>
@@ -567,13 +524,16 @@ export default function MyPartPage() {
           onClose={() => setActiveCue(null)}
           isReadOnly={(() => {
             if (isParticipant) return true
-            if (isPlanner) return false  // 파트 미배정 기획자 → 모두 수정 가능
-            return activeCue.partId !== myMember?.partId  // 스태프/파트배정기획자 → 내 파트만
+            if (isPlanner) return false
+            return activeCue.partId !== myMember?.partId
           })()}
           myPartName={myPartName}
         />
       )}
-    </div>
+      </div>{/* end flex-1 */}
+      </div>{/* end selectedPart */}
+      </div>{/* end max-w-2xl */}
+    </div>{/* end h-screen */}
   )
 }
 
