@@ -107,8 +107,8 @@ export function InlinePTT({ projectId, cue }: { projectId: string; cue: CueWithP
 }
 
 // ── 큐 상세 모달 ──────────────────────────────────────────
-export function CueModal({ cue, projectId, onClose, isReadOnly = false }: {
-  cue: CueWithPart; projectId: string; onClose: () => void; isReadOnly?: boolean
+export function CueModal({ cue, projectId, onClose, isReadOnly = false, myPartName = '' }: {
+  cue: CueWithPart; projectId: string; onClose: () => void; isReadOnly?: boolean; myPartName?: string
 }) {
   const [checks, setChecks] = useState<CheckItem[]>([])
   const [tab, setTab] = useState<'radio'|'check'|'memo'|'photo'>('check')
@@ -369,11 +369,15 @@ export function CueModal({ cue, projectId, onClose, isReadOnly = false }: {
                 <i className="ti ti-lock text-[#DC2626] text-[32px]"/>
               </div>
               <div>
-                <div className="text-[13px] text-[#64748B] mb-1">
-                  <span className="font-bold text-[#1A1A2E]">{toast}</span> 팀이십니다.
-                </div>
+                {myPartName && (
+                  <div className="text-[13px] text-[#64748B] mb-1">
+                    <span className="font-bold text-[#1A1A2E]">{myPartName}</span> 팀이십니다.
+                  </div>
+                )}
                 <div className="text-[17px] font-bold text-[#1A1A2E] mb-1">수정 권한이 없어요</div>
-                <div className="text-[13px] text-[#64748B]">해당 팀에 문의해 주시길 바랍니다.</div>
+                <div className="text-[13px] text-[#64748B]">
+                  <span className="font-bold text-[#1A1A2E]">{cue.partName}</span> 팀에 문의해 주시길 바랍니다.
+                </div>
               </div>
               <button onClick={() => setToast('')}
                 className="w-full h-[44px] bg-[#185FA5] text-white rounded-[12px] text-[14px] font-semibold">
