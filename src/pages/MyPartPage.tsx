@@ -7,7 +7,7 @@ import { Topbar, StatusBadge, BottomTabBar } from '@/components/ui/Common'
 import { CueModal, type CueWithPart } from '@/components/cue/CueModal'
 import type { Part, CueItem, CheckItem } from '@/types'
 
-// ─── 가로 드래그 롤링 날짜 피커 ───────────────────────────
+// ─── 가로 드래그+클릭 롤링 날짜 피커 ──────────────────────
 function DateRoller({ dates, selected, cues, onSelect }: {
   dates: string[]
   selected: string
@@ -21,20 +21,28 @@ function DateRoller({ dates, selected, cues, onSelect }: {
   const startOffset = useRef(0)
   const animRef = useRef<number | null>(null)
   const currentOffset = useRef(0)
+  const hasMoved = useRef(false)  // 실제 드래그 이동 여부
 
   const selIdx = dates.indexOf(selected)
   const baseOffset = -selIdx * ITEM_W
-
-  // 현재 표시 offset (드래그 중이면 offsetX, 아니면 기준값)
   const displayOffset = isDragging ? offsetX : baseOffset
-
-  // 어떤 인덱스가 가운데인지
   const centerIdx = Math.max(0, Math.min(dates.length - 1, Math.round(-displayOffset / ITEM_W)))
 
+  // selected 외부 변경 시 애니메이션으로 이동
+  useEffect(() => {
+    if (isDragging) return
+    const idx = dates.indexOf(selected)
+    if (idx < 0) return
+    const target = -idx * ITEM_W
+    if (Math.abs(currentOffset.current - target) < 1) return
+    snapTo(idx)
+  }, [selected])
+
   function snapTo(idx: number) {
+    if (animRef.current) cancelAnimationFrame(animRef.current)
     const target = -idx * ITEM_W
     const start = currentOffset.current
-    const duration = 250
+    const duration = 220
     const startTime = performance.now()
     function animate(now: number) {
       const t = Math.min((now - startTime) / duration, 1)
@@ -42,8 +50,9 @@ function DateRoller({ dates, selected, cues, onSelect }: {
       const cur = start + (target - start) * ease
       currentOffset.current = cur
       setOffsetX(cur)
-      if (t < 1) animRef.current = requestAnimationFrame(animate)
-      else {
+      if (t < 1) {
+        animRef.current = requestAnimationFrame(animate)
+      } else {
         setIsDragging(false)
         onSelect(dates[idx])
       }
@@ -54,6 +63,7 @@ function DateRoller({ dates, selected, cues, onSelect }: {
   function onPointerDown(e: React.PointerEvent) {
     if (animRef.current) cancelAnimationFrame(animRef.current)
     setIsDragging(true)
+    hasMoved.current = false
     startX.current = e.clientX
     startOffset.current = isDragging ? offsetX : baseOffset
     currentOffset.current = startOffset.current
@@ -63,16 +73,30 @@ function DateRoller({ dates, selected, cues, onSelect }: {
   function onPointerMove(e: React.PointerEvent) {
     if (!isDragging) return
     const delta = e.clientX - startX.current
+    if (Math.abs(delta) > 4) hasMoved.current = true
     const newOffset = startOffset.current + delta
     const clamped = Math.max(-(dates.length - 1) * ITEM_W, Math.min(0, newOffset))
     currentOffset.current = clamped
     setOffsetX(clamped)
   }
 
-  function onPointerUp() {
+  function onPointerUp(e: React.PointerEvent) {
     if (!isDragging) return
-    const idx = Math.max(0, Math.min(dates.length - 1, Math.round(-currentOffset.current / ITEM_W)))
-    snapTo(idx)
+    if (!hasMoved.current) {
+      // 클릭 - 눌린 아이템 인덱스 계산
+      const containerRect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+      const clickX = e.clientX - containerRect.left
+      const centerX = containerRect.width / 2
+      const relativeX = clickX - centerX
+      const clickedIdx = Math.max(0, Math.min(dates.length - 1,
+        selIdx + Math.round(relativeX / ITEM_W)
+      ))
+      snapTo(clickedIdx)
+    } else {
+      // 드래그 종료 - 가장 가까운 항목으로 스냅
+      const idx = Math.max(0, Math.min(dates.length - 1, Math.round(-currentOffset.current / ITEM_W)))
+      snapTo(idx)
+    }
   }
 
   return (
@@ -85,18 +109,34 @@ function DateRoller({ dates, selected, cues, onSelect }: {
       onPointerCancel={onPointerUp}
     >
       {/* 가운데 하이라이트 */}
-      <div className="pointer-events-none absolute inset-y-0 z-10 flex items-center justify-center" style={{ left: '50%', transform: `translateX(-50%)`, width: ITEM_W }}>
-        <div className="w-full h-[56px] border-l-2 border-r-2 border-[#185FA5] rounded-[12px]" style={{ background: 'rgba(24,95,165,0.08)' }}></div>
+      <div
+        className="pointer-events-none absolute inset-y-0 z-10"
+        style={{ left: `calc(50% - ${ITEM_W / 2}px)`, width: ITEM_W }}
+      >
+        <div
+          className="w-full h-[56px] my-auto border-l-2 border-r-2 border-[#185FA5] rounded-[12px]"
+          style={{ marginTop: 10, background: 'rgba(24,95,165,0.08)' }}
+        ></div>
       </div>
       {/* 좌 페이드 */}
-      <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16" style={{ background: 'linear-gradient(to right, #F4F6F9 60%, transparent)' }}></div>
+      <div
+        className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16"
+        style={{ background: 'linear-gradient(to right, #F4F6F9 60%, transparent)' }}
+      ></div>
       {/* 우 페이드 */}
-      <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16" style={{ background: 'linear-gradient(to left, #F4F6F9 60%, transparent)' }}></div>
+      <div
+        className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16"
+        style={{ background: 'linear-gradient(to left, #F4F6F9 60%, transparent)' }}
+      ></div>
 
       {/* 아이템들 */}
       <div
         className="absolute inset-y-0 flex items-center"
-        style={{ left: `calc(50% - ${ITEM_W / 2}px)`, transform: `translateX(${displayOffset}px)`, transition: isDragging ? 'none' : undefined }}
+        style={{
+          left: `calc(50% - ${ITEM_W / 2}px)`,
+          transform: `translateX(${displayOffset}px)`,
+          transition: isDragging ? 'none' : undefined,
+        }}
       >
         {dates.map((date, i) => {
           const label = date === '__today__' ? '당일' : date.slice(5).replace('-', '.')
@@ -108,11 +148,21 @@ function DateRoller({ dates, selected, cues, onSelect }: {
           return (
             <div
               key={date}
-              style={{ width: ITEM_W, flexShrink: 0, opacity, transform: `scale(${scale})`, transition: 'opacity 0.08s, transform 0.08s' }}
+              style={{
+                width: ITEM_W,
+                flexShrink: 0,
+                opacity,
+                transform: `scale(${scale})`,
+                transition: 'opacity 0.08s, transform 0.08s',
+              }}
               className="flex flex-col items-center justify-center gap-0.5"
             >
-              <span className={`text-[16px] font-bold leading-tight ${isCenter ? 'text-[#185FA5]' : 'text-[#1A1A2E]'}`}>{label}</span>
-              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${isCenter ? 'bg-[#185FA5] text-white' : 'bg-[#E2E8F0] text-[#64748B]'}`}>{count}개</span>
+              <span className={`text-[16px] font-bold leading-tight ${isCenter ? 'text-[#185FA5]' : 'text-[#1A1A2E]'}`}>
+                {label}
+              </span>
+              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${isCenter ? 'bg-[#185FA5] text-white' : 'bg-[#E2E8F0] text-[#64748B]'}`}>
+                {count}개
+              </span>
             </div>
           )
         })}
@@ -231,6 +281,7 @@ export default function MyPartPage() {
     setSelectedDate(date)
   }, [])
 
+  // 프로젝트 & 멤버 로딩
   useEffect(() => {
     if (!projectId || !user) return
     onValue(ref(db, `projects/${projectId}`), s => { if (s.exists()) setProject(s.val()) }, { onlyOnce: true })
@@ -246,15 +297,21 @@ export default function MyPartPage() {
     return () => u()
   }, [projectId, user])
 
+  // myMember 또는 allParts 바뀌면 myPart 업데이트
   useEffect(() => {
     if (!allParts.length) return
-    const mine = allParts.find(p => p.id === myMember?.partId) ?? allParts.find(p => p.name === myMember?.partName) ?? null
+    const mine = allParts.find(p => p.id === myMember?.partId)
+      ?? allParts.find(p => p.name === myMember?.partName)
+      ?? null
     setMyPart(mine)
     if (!selectedPartId) setSelectedPartId(mine?.id ?? allParts[0]?.id ?? null)
   }, [myMember, allParts])
 
+  // 선택된 파트의 큐/체크 로딩
   useEffect(() => {
     if (!projectId || !selectedPartId) return
+    // 파트 변경 시 날짜 초기화
+    setSelectedDate('')
     const u1 = onValue(ref(db, `cueItems/${projectId}/${selectedPartId}`), cs => {
       if (cs.exists()) {
         const l: CueItem[] = Object.values(cs.val())
@@ -263,14 +320,6 @@ export default function MyPartPage() {
           return a.startTime.localeCompare(b.startTime)
         })
         setCues(l)
-        if (l.length > 0 && !selectedDate) {
-          const firstDate = Array.from(new Set(l.map(c => c.date || '__today__'))).sort((a, b) => {
-            if (a === '__today__') return 1
-            if (b === '__today__') return -1
-            return a.localeCompare(b)
-          })[0]
-          setSelectedDate(firstDate)
-        }
       } else {
         setCues([])
       }
@@ -282,9 +331,19 @@ export default function MyPartPage() {
     return () => { u1(); u2() }
   }, [projectId, selectedPartId])
 
+  // cues 로드 후 첫 날짜 자동 선택
+  useEffect(() => {
+    if (cues.length === 0 || selectedDate) return
+    const firstDate = Array.from(new Set(cues.map(c => c.date || '__today__'))).sort((a, b) => {
+      if (a === '__today__') return 1
+      if (b === '__today__') return -1
+      return a.localeCompare(b)
+    })[0]
+    setSelectedDate(firstDate)
+  }, [cues])
+
   function showReadOnly() {
     setReadOnlyToast(true)
-    setTimeout(() => setReadOnlyToast(false), 3000)
   }
 
   async function setCueStatus(item: CueItem, status: CueItem['status']) {
@@ -321,7 +380,7 @@ export default function MyPartPage() {
               {allParts.map(part => (
                 <button
                   key={part.id}
-                  onClick={() => { setSelectedPartId(part.id); setSelectedDate('') }}
+                  onClick={() => setSelectedPartId(part.id)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap transition-colors ${selectedPartId === part.id ? 'text-white' : 'bg-[#F4F6F9] text-[#64748B] hover:bg-[#E2E8F0]'}`}
                   style={selectedPartId === part.id ? { background: part.color } : {}}
                 >
@@ -343,7 +402,7 @@ export default function MyPartPage() {
         ) : (
           <div className="flex-1 flex flex-col overflow-hidden">
 
-            {/* 파트 헤더 - 고정 */}
+            {/* 파트 헤더 */}
             <div className="flex-shrink-0 px-5 pt-4 pb-2">
               <div className="flex items-start justify-between flex-wrap gap-2 mb-2">
                 <div>
@@ -376,7 +435,7 @@ export default function MyPartPage() {
               </div>
             </div>
 
-            {/* 큐시트 헤더 - 고정 */}
+            {/* 큐시트 헤더 */}
             <div className="flex-shrink-0 px-5 pb-1">
               <div className="flex items-center justify-between">
                 <span className="text-[13px] font-bold text-[#1A1A2E]">큐시트 ({cues.length})</span>
@@ -388,12 +447,12 @@ export default function MyPartPage() {
               </div>
             </div>
 
-            {/* 날짜 롤러 - 고정 */}
+            {/* 날짜 롤러 */}
             {dateList.length > 1 && (
               <DateRoller dates={dateList} selected={selectedDate} cues={cues} onSelect={selectDate} />
             )}
 
-            {/* 큐시트 목록 - 세로 스크롤 */}
+            {/* 큐시트 목록 */}
             <div className="flex-1 overflow-y-auto px-5 pb-24">
               {cues.length === 0 ? (
                 <div className="text-center py-12 text-[#A0AEC0]">
@@ -478,32 +537,6 @@ export default function MyPartPage() {
                       </div>
                     )
                   })}
-                  {checks.filter((c: CheckItem) => !c.cueId).length > 0 && (
-                    <div className="bg-white border border-[#E2E8F0] rounded-[12px] p-4 mt-2 mb-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-[13px] font-bold text-[#1A1A2E]">파트 체크리스트</span>
-                        <span className="text-[12px] text-[#185FA5] font-semibold">
-                          {checks.filter((c: CheckItem) => !c.cueId && c.isDone).length}/{checks.filter((c: CheckItem) => !c.cueId).length}
-                        </span>
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        {checks.filter((c: CheckItem) => !c.cueId).map((item: CheckItem) => (
-                          <div key={item.id} className="flex items-center gap-3">
-                            <button
-                              onClick={() => {
-                                if (!isMyPart) { showReadOnly(); return }
-                                update(ref(db, `checkItems/${projectId}/${selectedPart!.id}/${item.id}`), { isDone: !item.isDone })
-                              }}
-                              className={`w-5 h-5 rounded flex items-center justify-center border-2 flex-shrink-0 ${item.isDone ? 'bg-[#3B6D11] border-[#3B6D11]' : 'border-[#E2E8F0]'}`}
-                            >
-                              {item.isDone && <i className="ti ti-check text-white text-[11px]"></i>}
-                            </button>
-                            <span className={`text-[13px] flex-1 ${item.isDone ? 'line-through text-[#A0AEC0]' : 'text-[#1A1A2E]'}`}>{item.title}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
             </div>
@@ -512,15 +545,23 @@ export default function MyPartPage() {
         )}
       </div>
 
+      {/* 수정 권한 없음 모달 */}
       {readOnlyToast && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-6" onClick={() => setReadOnlyToast(false)}>
-          <div className="bg-white rounded-[20px] p-6 w-full max-w-sm flex flex-col items-center text-center gap-4" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-6">
+          <div className="bg-white rounded-[20px] p-6 w-full max-w-sm flex flex-col items-center text-center gap-4">
             <div className="w-16 h-16 rounded-full bg-[#FEF2F2] flex items-center justify-center">
               <i className="ti ti-lock text-[#DC2626] text-[32px]"></i>
             </div>
             <div>
+              {myPartName && (
+                <div className="text-[13px] text-[#64748B] mb-1">
+                  <span className="font-bold text-[#1A1A2E]">{myPartName}</span> 팀이십니다.
+                </div>
+              )}
               <div className="text-[17px] font-bold text-[#1A1A2E] mb-1">수정 권한이 없어요</div>
-              <div className="text-[13px] text-[#64748B]">해당 팀에 요청해주세요!</div>
+              <div className="text-[13px] text-[#64748B]">
+                해당 팀에 문의해 주시길 바랍니다.
+              </div>
             </div>
             <button onClick={() => setReadOnlyToast(false)} className="w-full h-[44px] bg-[#185FA5] text-white rounded-[12px] text-[14px] font-semibold">확인</button>
           </div>
