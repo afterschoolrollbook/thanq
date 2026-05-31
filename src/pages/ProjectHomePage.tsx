@@ -1012,9 +1012,12 @@ export default function ProjectHomePage() {
               <div className="text-[16px] font-semibold">행사일 이동</div>
               <button onClick={()=>setShowMoveDate(false)}><i className="ti ti-x text-[18px] text-[#A0AEC0]"/></button>
             </div>
-            <p className="text-[12px] text-[#64748B] mb-4">
-              새 행사일을 선택하면 준비 시작일, 종료일, 모든 큐시트 날짜가 같은 일수만큼 자동으로 이동됩니다.
-            </p>
+            <div className="flex items-start gap-2 mb-4 px-3 py-2.5 bg-[#FCEBEB] border border-[#F7C1C1] rounded-[10px]">
+              <i className="ti ti-alert-triangle text-[#A32D2D] text-[14px] mt-0.5 flex-shrink-0"/>
+              <p className="text-[12px] text-[#A32D2D] font-medium leading-relaxed">
+                새 행사일을 선택하면 준비 시작일, 종료일, 모든 큐시트 날짜가 같은 일수만큼 자동으로 이동됩니다.
+              </p>
+            </div>
             <div className="mb-2">
               <div className="text-[11px] text-[#A0AEC0] mb-1">현재 행사일</div>
               <div className="text-[14px] font-bold text-[#1A1A2E]">{project.date}</div>
