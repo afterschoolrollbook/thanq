@@ -41,6 +41,11 @@ export default function MyPage() {
   const [savingName, setSavingName] = useState(false)
   const [nameSaved, setNameSaved] = useState(false)
 
+  // 전화번호
+  const [phone, setPhone] = useState('')
+  const [savingPhone, setSavingPhone] = useState(false)
+  const [phoneSaved, setPhoneSaved] = useState(false)
+
   // 비밀번호
   const [currentPw, setCurrentPw] = useState('')
   const [newPw, setNewPw] = useState('')
@@ -48,6 +53,9 @@ export default function MyPage() {
   const [pwError, setPwError] = useState('')
   const [pwSaved, setPwSaved] = useState(false)
   const [savingPw, setSavingPw] = useState(false)
+
+  // Pro 플랜 정보
+  const [proExpiresAt, setProExpiresAt] = useState<string|null>(null)
 
   // 통계
   const [projects, setProjects] = useState<Project[]>([])
@@ -66,6 +74,16 @@ export default function MyPage() {
 
   useEffect(() => {
     if (!user) return
+    // 전화번호
+    onValue(ref(db, `users/${user.uid}/phone`), (snap) => {
+      if (snap.exists()) setPhone(snap.val())
+    }, { onlyOnce: true })
+
+    // Pro 만료일
+    onValue(ref(db, `users/${user.uid}/proExpiresAt`), (snap) => {
+      setProExpiresAt(snap.exists() ? snap.val() : null)
+    }, { onlyOnce: true })
+
     // 내 프로젝트
     const unsub1 = onValue(ref(db, 'projects'), (snap) => {
       if (snap.exists()) {
@@ -86,6 +104,16 @@ export default function MyPage() {
     })
     return () => { unsub1(); unsub2() }
   }, [user])
+
+  // ── 전화번호 저장 ──
+  async function handleSavePhone() {
+    if (!user) return
+    setSavingPhone(true)
+    await update(ref(db, `users/${user.uid}`), { phone: phone.trim() })
+    setPhoneSaved(true)
+    setSavingPhone(false)
+    setTimeout(() => setPhoneSaved(false), 2000)
+  }
 
   // ── 이름 저장 ──
   async function handleSaveName() {
@@ -190,6 +218,29 @@ export default function MyPage() {
             <div className="text-white text-[18px] font-bold">{user?.displayName ?? '이름 없음'}</div>
             <div className="text-[#B5D4F4] text-[13px] mt-0.5">{user?.email}</div>
             <div className="text-[#B5D4F4] text-[11px] mt-0.5">가입일 {joinedAt}</div>
+            {/* 등급 배지 */}
+            <div className="mt-2 flex items-center gap-2">
+              {user?.isPro ? (
+                <span className="flex items-center gap-1 px-2.5 py-1 bg-[#F59E0B] text-white rounded-full text-[11px] font-bold">
+                  <i className="ti ti-crown text-[11px]"/> Pro
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 px-2.5 py-1 bg-white/20 text-white rounded-full text-[11px] font-semibold">
+                  <i className="ti ti-user text-[11px]"/> Free
+                </span>
+              )}
+              {user?.isPro && proExpiresAt && (
+                <span className="text-[11px] text-[#FDE68A]">
+                  {(() => {
+                    const diff = Math.ceil((new Date(proExpiresAt).getTime() - Date.now()) / 86400000)
+                    return diff > 0 ? `${diff}일 남음 (${new Date(proExpiresAt).toLocaleDateString('ko-KR')})` : '만료됨'
+                  })()}
+                </span>
+              )}
+              {user?.isPro && !proExpiresAt && (
+                <span className="text-[11px] text-[#FDE68A]">영구 Pro</span>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -228,6 +279,41 @@ export default function MyPage() {
         {tab === 'profile' && (
           <div className="flex flex-col gap-4 pb-10">
 
+            {/* 플랜 / 등급 */}
+            <section className={card}>
+              <div className={sectionTitle}><i className="ti ti-crown text-[#F59E0B]" /> 내 플랜</div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${user?.isPro ? 'bg-[#FEF3C7]' : 'bg-[#F4F6F9]'}`}>
+                    <i className={`ti ti-crown text-[20px] ${user?.isPro ? 'text-[#F59E0B]' : 'text-[#A0AEC0]'}`}/>
+                  </div>
+                  <div>
+                    <div className={`text-[15px] font-bold ${user?.isPro ? 'text-[#F59E0B]' : 'text-[#64748B]'}`}>
+                      {user?.isPro ? 'Pro 플랜' : 'Free 플랜'}
+                    </div>
+                    <div className="text-[12px] text-[#A0AEC0]">
+                      {user?.isPro
+                        ? proExpiresAt
+                          ? (() => {
+                              const diff = Math.ceil((new Date(proExpiresAt).getTime() - Date.now()) / 86400000)
+                              return diff > 0
+                                ? `${new Date(proExpiresAt).toLocaleDateString('ko-KR')} 만료 · ${diff}일 남음`
+                                : '플랜이 만료되었어요'
+                            })()
+                          : '영구 Pro · 제한 없음'
+                        : '템플릿 저장/불러오기 등 제한'}
+                    </div>
+                  </div>
+                </div>
+                {!user?.isPro && (
+                  <button onClick={() => navigate('/upgrade')}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-[#F59E0B] text-white rounded-[8px] text-[12px] font-semibold hover:bg-[#D97706] transition-colors">
+                    <i className="ti ti-crown text-[11px]"/> 업그레이드
+                  </button>
+                )}
+              </div>
+            </section>
+
             {/* 이름 변경 */}
             <section className={card}>
               <div className={sectionTitle}><i className="ti ti-pencil text-[#185FA5]" /> 이름 변경</div>
@@ -237,6 +323,18 @@ export default function MyPage() {
               <button onClick={handleSaveName} disabled={savingName || !displayName.trim()}
                 className={`mt-2 ${btn}`}>
                 {nameSaved ? <><i className="ti ti-check" /> 저장됐어요!</> : savingName ? '저장 중...' : '저장'}
+              </button>
+            </section>
+
+            {/* 전화번호 */}
+            <section className={card}>
+              <div className={sectionTitle}><i className="ti ti-phone text-[#185FA5]" /> 전화번호</div>
+              <input className={inp} type="tel" value={phone}
+                onChange={(e) => { setPhone(e.target.value); setPhoneSaved(false) }}
+                placeholder="010-0000-0000" />
+              <button onClick={handleSavePhone} disabled={savingPhone || !phone.trim()}
+                className={`mt-2 ${btn}`}>
+                {phoneSaved ? <><i className="ti ti-check" /> 저장됐어요!</> : savingPhone ? '저장 중...' : '저장'}
               </button>
             </section>
 

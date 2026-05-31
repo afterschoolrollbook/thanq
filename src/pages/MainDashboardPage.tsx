@@ -113,9 +113,15 @@ export default function MainDashboardPage() {
     <div className="min-h-screen bg-[#F4F6F9]">
       <Topbar />
       <div className="max-w-2xl mx-auto px-5 pt-6 pb-24">
-        <div className="mb-5">
-          <h2 className="text-[20px] font-semibold text-[#1A1A2E]">홈 (전체 대시보드)</h2>
-          <p className="text-[13px] text-[#64748B] mt-0.5">내 모든 프로젝트를 한눈에</p>
+        <div className="flex items-start justify-between mb-5">
+          <div>
+            <h2 className="text-[20px] font-semibold text-[#1A1A2E]">홈 (전체 대시보드)</h2>
+            <p className="text-[13px] text-[#64748B] mt-0.5">내 모든 프로젝트를 한눈에</p>
+          </div>
+          <button onClick={() => navigate('/create-project')}
+            className="flex items-center gap-1.5 h-[36px] px-3 bg-[#185FA5] text-white rounded-[10px] text-[12px] font-semibold flex-shrink-0 hover:bg-[#0C447C] transition-colors">
+            <i className="ti ti-plus text-[14px]"/> 프로젝트 만들기
+          </button>
         </div>
 
         {/* 요약 카드 */}

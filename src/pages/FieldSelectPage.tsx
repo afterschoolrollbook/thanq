@@ -39,12 +39,27 @@ export default function FieldSelectPage() {
   const [tmplError, setTmplError] = useState('')
   const [emailPassed, setEmailPassed] = useState(false)
 
+  // 내 저장 템플릿
+  const [myTemplates, setMyTemplates] = useState<{id:string; name:string; templateFile:string; createdAt:string}[]>([])
+  const [tmplSubTab, setTmplSubTab] = useState<'file'|'mine'>('file')
+
   // 비밀번호
   const [needPw, setNeedPw] = useState(false)
   const [tmplPw, setTmplPw] = useState('')
   const [showPw, setShowPw] = useState(false)
   const [pwError, setPwError] = useState('')
   const [verifying, setVerifying] = useState(false)
+
+  useEffect(() => {
+    if (!user) return
+    onValue(ref(db, `userTemplates/${user.uid}`), (snap) => {
+      if (snap.exists()) {
+        const list = Object.values(snap.val() as Record<string,any>)
+        list.sort((a:any,b:any) => new Date(b.createdAt).getTime()-new Date(a.createdAt).getTime())
+        setMyTemplates(list as any)
+      } else setMyTemplates([])
+    }, { onlyOnce: true })
+  }, [user])
 
   useEffect(() => {
     if (!user) return
@@ -259,16 +274,30 @@ export default function FieldSelectPage() {
           <div className="bg-white w-full max-w-md rounded-t-[20px] sm:rounded-[20px] p-5 pb-8"
             onClick={(e) => e.stopPropagation()}>
 
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center justify-between mb-4">
               <div>
                 <div className="text-[16px] font-bold text-[#1A1A2E]">템플릿으로 시작하기</div>
-                <div className="text-[12px] text-[#64748B] mt-0.5">.thanq 파일을 불러오면 분야·파트가 자동 세팅돼요</div>
+                <div className="text-[12px] text-[#64748B] mt-0.5">Pro 버전 전용 기능</div>
               </div>
               <button onClick={closeTmplModal}><i className="ti ti-x text-[18px] text-[#A0AEC0]" /></button>
             </div>
 
-            {/* 파일 업로드 */}
+            {/* 탭: 파일 불러오기 / 내 템플릿 */}
             {!tmplPreview && !needPw && (
+              <div className="flex gap-1 mb-4">
+                <button onClick={()=>setTmplSubTab('file')}
+                  className={`flex-1 h-[34px] rounded-[8px] text-[12px] font-semibold transition-colors ${tmplSubTab==='file'?'bg-[#185FA5] text-white':'bg-[#F4F6F9] text-[#64748B]'}`}>
+                  <i className="ti ti-file-import text-[12px] mr-1"/>.thanq 파일
+                </button>
+                <button onClick={()=>setTmplSubTab('mine')}
+                  className={`flex-1 h-[34px] rounded-[8px] text-[12px] font-semibold transition-colors ${tmplSubTab==='mine'?'bg-[#185FA5] text-white':'bg-[#F4F6F9] text-[#64748B]'}`}>
+                  <i className="ti ti-bookmark text-[12px] mr-1"/>내 템플릿 {myTemplates.length > 0 ? `(${myTemplates.length})` : ''}
+                </button>
+              </div>
+            )}
+
+            {/* 파일 업로드 */}
+            {!tmplPreview && !needPw && tmplSubTab === 'file' && (
               <div
                 onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
                 onDragLeave={() => setDragOver(false)}
@@ -286,6 +315,42 @@ export default function FieldSelectPage() {
                 </div>
                 <input ref={fileRef} type="file" accept=".thanq" className="hidden"
                   onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
+              </div>
+            )}
+
+            {/* 내 저장 템플릿 */}
+            {!tmplPreview && !needPw && tmplSubTab === 'mine' && (
+              <div className="flex flex-col gap-2 max-h-[280px] overflow-y-auto">
+                {myTemplates.length === 0 ? (
+                  <div className="text-center py-8 text-[#A0AEC0]">
+                    <i className="ti ti-bookmark-off text-[32px] block mb-2 opacity-40"/>
+                    <div className="text-[13px]">저장된 템플릿이 없어요</div>
+                    <div className="text-[11px] mt-1">프로젝트에서 템플릿으로 저장해보세요</div>
+                  </div>
+                ) : myTemplates.map(t => {
+                  const parsed = (() => { try { return JSON.parse(t.templateFile) } catch { return null } })()
+                  return (
+                    <button key={t.id} onClick={() => {
+                      try {
+                        const tmpl = JSON.parse(t.templateFile)
+                        sessionStorage.setItem('oncue_template', t.templateFile)
+                        sessionStorage.setItem('oncue_field', tmpl.fieldType ?? 'event')
+                        sessionStorage.setItem('oncue_terms', JSON.stringify(tmpl.fieldTerms ?? {}))
+                        navigate('/onboarding/create')
+                      } catch {}
+                    }}
+                      className="flex items-center gap-3 p-3 rounded-[12px] border border-[#E2E8F0] hover:border-[#185FA5] hover:bg-[#F0F7FF] text-left transition-colors">
+                      <div className="w-9 h-9 rounded-[8px] bg-[#E6F1FB] flex items-center justify-center flex-shrink-0">
+                        <i className="ti ti-file-description text-[#185FA5] text-[16px]"/>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] font-semibold text-[#1A1A2E] truncate">{parsed?.name ?? t.name ?? '템플릿'}</div>
+                        <div className="text-[11px] text-[#A0AEC0]">파트 {parsed?.parts?.length ?? 0}개 · {new Date(t.createdAt).toLocaleDateString('ko-KR')}</div>
+                      </div>
+                      <i className="ti ti-chevron-right text-[#A0AEC0] text-[14px] flex-shrink-0"/>
+                    </button>
+                  )
+                })}
               </div>
             )}
 
