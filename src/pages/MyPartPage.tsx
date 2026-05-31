@@ -172,10 +172,11 @@ function DateRoller({ dates, selected, cues, onSelect }: {
 }
 
 // ─── 큐시트 추가 모달 ──────────────────────────────────────
-function AddCueModal({ onClose, onSave, partId, projectId, order }: {
+function AddCueModal({ onClose, onSave, partId, projectId, order, allParts, isPlanner, currentPart }: {
   onClose: () => void
   onSave: (item: Omit<CueItem, 'id' | 'createdAt' | 'updatedAt'>, checks: {title: string; category: string}[]) => Promise<void>
   partId: string; projectId: string; order: number
+  allParts: Part[]; isPlanner: boolean; currentPart: Part | null
 }) {
   const [tab, setTab] = useState<'info' | 'check' | 'memo'>('info')
   const [title, setTitle] = useState('')
@@ -186,6 +187,9 @@ function AddCueModal({ onClose, onSave, partId, projectId, order }: {
   const [saving, setSaving] = useState(false)
   const [checks, setChecks] = useState<{title: string; category: string}[]>([])
   const [newCheck, setNewCheck] = useState('')
+  const [targetPartId, setTargetPartId] = useState(partId)
+
+  const targetPart = allParts.find(p => p.id === targetPartId) ?? currentPart
 
   function addCheck() {
     if (!newCheck.trim()) return
@@ -201,7 +205,7 @@ function AddCueModal({ onClose, onSave, partId, projectId, order }: {
     if (!title.trim()) { setTab('info'); return }
     setSaving(true)
     await onSave({
-      partId, projectId, order,
+      partId: targetPartId, projectId, order,
       title: title.trim(),
       startTime: startTime || '--:--',
       durationMin: Number(durationMin) || 0,
@@ -222,9 +226,32 @@ function AddCueModal({ onClose, onSave, partId, projectId, order }: {
     <div className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center" onClick={onClose}>
       <div className="bg-white w-full max-w-2xl rounded-t-[20px] pb-8" style={{ maxHeight: '90vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
         {/* 헤더 */}
-        <div className="flex items-center justify-between px-5 pt-5 pb-3 flex-shrink-0">
+        <div className="flex items-center justify-between px-5 pt-5 pb-2 flex-shrink-0">
           <div className="text-[16px] font-semibold">큐시트 항목 추가</div>
           <button onClick={onClose}><i className="ti ti-x text-[18px] text-[#A0AEC0]"></i></button>
+        </div>
+        {/* 파트 표시 */}
+        <div className="px-5 pb-3 flex-shrink-0">
+          {isPlanner ? (
+            <div className="flex items-center gap-2">
+              <span className="text-[12px] text-[#64748B]">추가할 파트:</span>
+              <select
+                value={targetPartId}
+                onChange={e => setTargetPartId(e.target.value)}
+                className="flex-1 h-[32px] border border-[#E2E8F0] rounded-[8px] px-2 text-[12px] font-semibold text-[#1A1A2E] bg-white focus:outline-none focus:border-[#185FA5]"
+              >
+                {allParts.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: currentPart?.color ?? '#185FA5' }}></span>
+              <span className="text-[12px] font-semibold text-[#1A1A2E]">{currentPart?.name ?? ''}</span>
+              <span className="text-[11px] text-[#A0AEC0]">에 추가</span>
+            </div>
+          )}
         </div>
         {/* 탭 */}
         <div className="flex border-b border-[#E2E8F0] px-5 flex-shrink-0">
@@ -424,16 +451,17 @@ export default function MyPartPage() {
   }
 
   async function addCue(data: Omit<CueItem, 'id' | 'createdAt' | 'updatedAt'>, checks: {title: string; category: string}[] = []) {
-    if (!projectId || !selectedPartId || !isMyPart) return
-    const newRef = push(ref(db, `cueItems/${projectId}/${selectedPartId}`))
+    if (!projectId || !isMyPart) return
+    const savePartId = data.partId || selectedPartId!
+    const newRef = push(ref(db, `cueItems/${projectId}/${savePartId}`))
     const cueId = newRef.key!
     const now = new Date().toISOString()
-    await set(newRef, { ...data, id: cueId, createdAt: now, updatedAt: now })
+    await set(newRef, { ...data, id: cueId, partId: savePartId, createdAt: now, updatedAt: now })
     // 체크리스트 저장
     for (const check of checks) {
-      const checkRef = push(ref(db, `checkItems/${projectId}/${selectedPartId}`))
+      const checkRef = push(ref(db, `checkItems/${projectId}/${savePartId}`))
       await set(checkRef, {
-        id: checkRef.key, partId: selectedPartId, projectId,
+        id: checkRef.key, partId: savePartId, projectId,
         cueId, category: check.category, title: check.title,
         isDone: false, createdAt: now,
       })
@@ -659,6 +687,9 @@ export default function MyPartPage() {
           partId={selectedPartId}
           projectId={projectId!}
           order={cues.length}
+          allParts={allParts}
+          isPlanner={isPlanner}
+          currentPart={selectedPart}
         />
       )}
 
