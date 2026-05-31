@@ -98,9 +98,14 @@ export default function MyPartPage() {
   const [readOnlyToast, setReadOnlyToast] = useState(false)
 
   const selectedPart = allParts.find(p => p.id === selectedPartId) ?? null
-  const isPlanner = myMember?.role === 'planner' || myMember?.role === 'owner' || project?.ownerId === user?.uid
+  const isPlannerRole = myMember?.role === 'planner' || myMember?.role === 'owner' || project?.ownerId === user?.uid
   const isParticipant = myMember?.role === 'participant'
-  // 기획자: 모든 팀 수정 가능 / 스태프: 내 파트만 / 참가자: 읽기만
+  const hasPartAssigned = !!(myMember?.partId)  // 특정 파트에 배정됐는지
+  // 기획자이면서 파트 미배정 → 모든 팀 수정 가능
+  // 기획자이면서 파트 배정됨 → 그 파트만 수정 (스태프처럼)
+  // 스태프 → 내 파트만
+  // 참가자 → 읽기만
+  const isPlanner = isPlannerRole && !hasPartAssigned
   const isMyPart = isPlanner || (!isParticipant && selectedPart?.id === myPart?.id)
 
   useEffect(() => {
@@ -222,7 +227,7 @@ export default function MyPartPage() {
                   )}
                 </div>
                 <div className="text-[12px] text-[#64748B] mt-0.5">
-                  {isPlanner ? '기획자 · 전체 수정 가능' : isMyPart ? '내 파트' : isParticipant ? '참가자 · 열람만 가능' : '다른 팀 현황'}
+                  {isPlanner ? '기획자 · 전체 수정 가능' : isMyPart ? '내 파트' : isParticipant ? '참가자 · 열람만 가능' : isPlannerRole ? '다른 팀 현황 (열람)' : '다른 팀 현황'}
                 </div>
               </div>
               {isMyPart && (

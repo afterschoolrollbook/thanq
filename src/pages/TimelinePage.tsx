@@ -361,12 +361,13 @@ export default function TimelinePage() {
           onClose={() => setActiveCue(null)}
           isReadOnly={(() => {
             if (!user) return true
-            // 기획자/오너 → 모두 수정 가능
-            if (project?.ownerId === user.uid) return false
-            if (myMember?.role === 'planner' || myMember?.role === 'owner') return false
-            // 참가자 → 읽기 전용
+            // 참가자 → 항상 읽기 전용
             if (myMember?.role === 'participant') return true
-            // 스태프 → 내 파트만 수정 가능
+            // 기획자이면서 파트 미배정 → 모두 수정 가능
+            const isPlannerRole = myMember?.role === 'planner' || myMember?.role === 'owner' || project?.ownerId === user.uid
+            const hasPartAssigned = !!(myMember?.partId)
+            if (isPlannerRole && !hasPartAssigned) return false
+            // 기획자 파트 배정됨 or 스태프 → 내 파트만
             return activeCue.partId !== myMember?.partId
           })()}
         />
