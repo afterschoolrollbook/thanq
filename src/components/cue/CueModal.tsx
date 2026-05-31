@@ -146,9 +146,19 @@ export function CueModal({ cue, projectId, onClose, isReadOnly = false, myPartNa
     })
   }, [projectId, cue.partId, cue.id])
 
-  async function toggleCheck(item: CheckItem) {
+  async function writeCueAlert(changeType: 'new'|'edited'|'deleted', detail: string) {
+    const r = push(dbRef(db, `cueAlerts/${projectId}`))
+    await set(r, {
+      id: r.key, projectId, partId: cue.partId, partName: cue.partName, partColor: cue.partColor,
+      cueId: cue.id, cueTitle: cue.title, changeType, detail,
+      isChecked: false, createdAt: new Date().toISOString()
+    })
+  }
+    async function toggleCheck(item: CheckItem) {
     if (isReadOnly) { showReadOnlyToast(); return }
-    await update(dbRef(db, `checkItems/${projectId}/${cue.partId}/${item.id}`), { isDone: !item.isDone })
+    const newDone = !item.isDone
+    await update(dbRef(db, `checkItems/${projectId}/${cue.partId}/${item.id}`), { isDone: newDone })
+    await writeCueAlert('edited', `체크리스트 ${newDone ? '완료' : '취소'}: "${item.title}" — "${cue.title}"`)
   }
   async function addCheck() {
     if (!newCheckTitle.trim()) return
