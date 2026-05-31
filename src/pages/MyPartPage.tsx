@@ -146,6 +146,12 @@ export default function MyPartPage() {
           return a.startTime.localeCompare(b.startTime)
         })
         setCues(l)
+        if (l.length > 0) {
+          const firstDate = [...new Set(l.map((c: CueItem) => c.date || '__today__'))].sort((a: string, b: string) => {
+            if (a==='__today__') return 1; if (b==='__today__') return -1; return a.localeCompare(b)
+          })[0]
+          setSelectedDate((prev: string) => prev || firstDate)
+        }
       } else setCues([])
     })
     const u2 = onValue(ref(db, `checkItems/${projectId}/${selectedPartId}`), (ck) => {
@@ -257,8 +263,8 @@ export default function MyPartPage() {
               <span className="text-[12px] text-[#64748B] whitespace-nowrap">{selectedPart.progress}%</span>
             </div>
 
-            {/* 큐시트 헤더 */}
-            <div className="flex items-center justify-between mb-3">
+            {/* 날짜 가로 스크롤 선택 */}
+            <div className="flex items-center justify-between mb-2">
               <span className="text-[14px] font-bold text-[#1A1A2E]">큐시트 ({cues.length})</span>
               {isMyPart && (
                 <button onClick={() => setShowAddCue(true)}
@@ -267,6 +273,26 @@ export default function MyPartPage() {
                 </button>
               )}
             </div>
+            {dateList.length > 1 && (
+              <div ref={dateScrollRef} className="flex gap-2 overflow-x-auto pb-2 mb-3 scrollbar-none -mx-5 px-5">
+                {dateList.map(date => {
+                  const isToday = date === '__today__'
+                  const label = isToday ? '행사당일' : date.replace(/-/g, '.')
+                  const count = cues.filter(c => (c.date || '__today__') === date).length
+                  const isSel = selectedDate === date
+                  return (
+                    <button
+                      key={date}
+                      ref={el => { dateButtonRefs.current[date] = el }}
+                      onClick={() => selectDate(date)}
+                      className={`flex-shrink-0 flex flex-col items-center px-4 py-2 rounded-[12px] border-2 transition-all ${isSel ? 'bg-[#185FA5] border-[#185FA5] text-white' : 'border-[#E2E8F0] text-[#64748B] hover:border-[#185FA5]'}`}>
+                      <span className="text-[13px] font-bold">{label}</span>
+                      <span className={`text-[10px] mt-0.5 ${isSel ? 'text-white/70' : 'text-[#A0AEC0]'}`}>{count}개</span>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
 
             {/* 큐시트 카드 목록 */}
             {cues.length === 0 ? (
@@ -280,7 +306,7 @@ export default function MyPartPage() {
               </div>
             ) : (
               <div className="flex flex-col gap-3">
-                {cues.map((cue) => {
+                {filteredCues.map((cue) => {
                   const cueChecks = checks.filter(c => c.cueId === cue.id)
                   const doneChecks = cueChecks.filter(c => c.isDone).length
 
