@@ -615,9 +615,9 @@ export default function TimelinePage() {
 
         {/* 상단 컨트롤 — 중앙 정렬 */}
         <div className="bg-white border-b border-[#E2E8F0] pt-3 pb-0">
-          <div className="max-w-2xl mx-auto px-5">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
+          <div className="px-3">
+            <div className="flex items-center gap-2 mb-3 overflow-x-auto flex-nowrap">
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <div className="relative" ref={calendarRef}>
                   <button onClick={()=>setShowCalendar(v=>!v)}
                     className="flex items-center gap-2 px-3 py-1.5 rounded-[10px] border border-[#E2E8F0] bg-white hover:bg-[#F4F6F9]">
@@ -638,7 +638,7 @@ export default function TimelinePage() {
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 flex-shrink-0 ml-auto">
                 {/* 큐 추가 버튼 — 기획자/스태프만 */}
                 {myMember && myMember.role !== 'participant' && (
                   <button onClick={()=>setShowAddCue(true)}
@@ -676,7 +676,7 @@ export default function TimelinePage() {
                 )}
               </div>
             </div>
-            <div className="flex gap-2 overflow-x-auto pb-3 -mx-5 px-5" >
+            <div className="flex gap-2 overflow-x-auto pb-3 -mx-3 px-3" >
               <button onClick={()=>setSelectedPartId(null)} className={`flex-shrink-0 px-3 py-1 rounded-full text-[12px] font-semibold ${!selectedPartId?'bg-[#185FA5] text-white':'border border-[#E2E8F0] text-[#64748B] bg-white'}`}>전체</button>
               {parts.map(p=>(
                 <button key={p.id} onClick={()=>setSelectedPartId(selectedPartId===p.id?null:p.id)}
@@ -858,7 +858,7 @@ export default function TimelinePage() {
           projectId={projectId}
           order={allCues.length}
           allParts={parts}
-          isPlanner={myMember?.role==='owner'||myMember?.role==='planner'}
+          isPlanner={myMember?.role==='planner'}
           currentPart={parts.find(p=>p.id===myMember?.partId)??null}
         />
       )}
