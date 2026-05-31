@@ -171,16 +171,26 @@ export function CueModal({ cue, projectId, onClose, isReadOnly = false, myPartNa
     if (isReadOnly) { showReadOnlyToast(); return }
     await set(dbRef(db, `checkItems/${projectId}/${cue.partId}/${item.id}`), null)
   }
-  async function saveMemo() {
+  async function writeCueAlert(changeType: 'new'|'edited'|'deleted', detail: string) {
+    const r = push(dbRef(db, `cueAlerts/${projectId}`))
+    await set(r, {
+      id: r.key, projectId, partId: cue.partId, partName: cue.partName, partColor: cue.partColor,
+      cueId: cue.id, cueTitle: cue.title, changeType, detail,
+      isChecked: false, createdAt: new Date().toISOString()
+    })
+  }
+    async function saveMemo() {
     if (isReadOnly) { showReadOnlyToast(); return }
     setSavingMemo(true)
     await update(dbRef(db, `cueItems/${projectId}/${cue.partId}/${cue.id}`), { memo, updatedAt: new Date().toISOString() })
+    await writeCueAlert('edited', `메모 수정: "${cue.title}"`) 
     setSavingMemo(false)
   }
   async function saveTitle() {
     if (isReadOnly) { showReadOnlyToast(); return }
     if (!title.trim()) return
     await update(dbRef(db, `cueItems/${projectId}/${cue.partId}/${cue.id}`), { title: title.trim(), updatedAt: new Date().toISOString() })
+    await writeCueAlert('edited', `제목 변경: "${cue.title}" → "${title.trim()}"`)
     setEditingTitle(false)
   }
   async function uploadPhoto(file: File) {
