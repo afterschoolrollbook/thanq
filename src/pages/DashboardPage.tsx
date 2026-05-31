@@ -73,7 +73,7 @@ export default function DashboardPage() {
         setParts(l)
       }
     })
-    onValue(ref(db, `cues/${projectId}`), (s) => {
+    onValue(ref(db, `cueItems/${projectId}`), (s) => {
       if (s.exists()) {
         const all: CueItem[] = []
         Object.values(s.val() as Record<string, Record<string, CueItem>>).forEach((partCues) => {
