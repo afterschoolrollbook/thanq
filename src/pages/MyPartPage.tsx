@@ -15,61 +15,76 @@ function DateRoller({ dates, selected, cues, onSelect }: {
   cues: CueItem[]
   onSelect: (date: string) => void
 }) {
-  const ITEM_W = 90
+  const ITEM_W = 88
   const containerRef = useRef<HTMLDivElement>(null)
-  const isScrolling = useRef(false)
-  const scrollTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const selectedIdx = dates.indexOf(selected)
+  const snapTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [centerIdx, setCenterIdx] = useState(() => dates.indexOf(selected))
 
+  // 외부 selected 변경 시 스크롤
   useEffect(() => {
     const el = containerRef.current
-    if (!el || isScrolling.current) return
-    el.scrollTo({ left: selectedIdx * ITEM_W, behavior: 'smooth' })
-  }, [selected, selectedIdx])
+    if (!el) return
+    const idx = dates.indexOf(selected)
+    el.scrollTo({ left: idx * ITEM_W, behavior: 'smooth' })
+    setCenterIdx(idx)
+  }, [selected])
 
   function handleScroll() {
     const el = containerRef.current
     if (!el) return
-    isScrolling.current = true
-    if (scrollTimer.current) clearTimeout(scrollTimer.current)
-    scrollTimer.current = setTimeout(() => {
+    // 실시간으로 가운데 인덱스 계산 → 즉시 opacity/scale 업데이트
+    const rawIdx = el.scrollLeft / ITEM_W
+    const cur = Math.round(rawIdx)
+    setCenterIdx(Math.max(0, Math.min(dates.length - 1, cur)))
+
+    // 스크롤 멈추면 스냅
+    if (snapTimer.current) clearTimeout(snapTimer.current)
+    snapTimer.current = setTimeout(() => {
       const idx = Math.round(el.scrollLeft / ITEM_W)
       const clamped = Math.max(0, Math.min(dates.length - 1, idx))
       el.scrollTo({ left: clamped * ITEM_W, behavior: 'smooth' })
+      setCenterIdx(clamped)
       onSelect(dates[clamped])
-      isScrolling.current = false
-    }, 120)
+    }, 100)
   }
 
   return (
-    <div className="relative flex-shrink-0 mb-2" style={{ height: 72 }}>
-      <div className="pointer-events-none absolute inset-y-0 z-10 flex items-center" style={{ left: '50%', transform: 'translateX(-50%)', width: ITEM_W }}>
-        <div className="w-full h-full rounded-[14px] bg-[#185FA5]/10 border-l-2 border-r-2 border-[#185FA5]" />
+    <div className="relative flex-shrink-0" style={{ height: 76 }}>
+      {/* 가운데 하이라이트 */}
+      <div className="pointer-events-none absolute inset-y-0 z-10"
+        style={{ left: `calc(50% - ${ITEM_W/2}px)`, width: ITEM_W }}>
+        <div className="w-full h-full border-l-2 border-r-2 border-[#185FA5] bg-[#185FA5]/8 rounded-[12px]" />
       </div>
-      <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-[#F4F6F9] to-transparent" />
-      <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-[#F4F6F9] to-transparent" />
-      <div ref={containerRef} onScroll={handleScroll}
-        className="flex h-full overflow-x-auto scrollbar-none"
-        style={{ scrollSnapType: 'x mandatory' }}>
-        <div style={{ minWidth: `calc(50% - ${ITEM_W / 2}px)`, flexShrink: 0 }} />
+      {/* 좌우 페이드 */}
+      <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-20 bg-gradient-to-r from-[#F4F6F9] to-transparent" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-20 bg-gradient-to-l from-[#F4F6F9] to-transparent" />
+
+      <div
+        ref={containerRef}
+        onScroll={handleScroll}
+        className="absolute inset-0 flex overflow-x-auto"
+        style={{ scrollSnapType: 'x mandatory', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+        {/* 왼쪽 패딩 */}
+        <div style={{ minWidth: `calc(50% - ${ITEM_W/2}px)`, flexShrink: 0 }} />
         {dates.map((date, i) => {
-          const isToday = date === '__today__'
-          const label = isToday ? '당일' : date.slice(5).replace('-', '.')
+          const label = date === '__today__' ? '당일' : date.slice(5).replace('-', '.')
           const count = cues.filter((c: CueItem) => (c.date || '__today__') === date).length
-          const isSel = selected === date
-          const dist = Math.abs(i - selectedIdx)
-          const opacity = dist === 0 ? 1 : dist === 1 ? 0.45 : 0.18
-          const scale = dist === 0 ? 1 : dist === 1 ? 0.85 : 0.72
+          const dist = Math.abs(i - centerIdx)
+          const opacity = dist === 0 ? 1 : dist === 1 ? 0.4 : 0.15
+          const scale = dist === 0 ? 1 : dist === 1 ? 0.82 : 0.65
+          const isCenter = i === centerIdx
           return (
-            <div key={date} onClick={() => onSelect(date)}
-              style={{ minWidth: ITEM_W, scrollSnapAlign: 'center', opacity, transform: `scale(${scale})`, transition: 'all 0.15s' }}
-              className="flex flex-col items-center justify-center cursor-pointer gap-1">
-              <span className={`text-[17px] font-bold ${isSel ? 'text-[#185FA5]' : 'text-[#1A1A2E]'}`}>{label}</span>
-              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${isSel ? 'bg-[#185FA5] text-white' : 'bg-[#E2E8F0] text-[#64748B]'}`}>{count}개</span>
+            <div key={date}
+              onClick={() => { onSelect(date); setCenterIdx(i); containerRef.current?.scrollTo({ left: i * ITEM_W, behavior: 'smooth' }) }}
+              style={{ minWidth: ITEM_W, flexShrink: 0, scrollSnapAlign: 'center', opacity, transform: `scale(${scale})`, transition: 'opacity 0.1s, transform 0.1s' }}
+              className="flex flex-col items-center justify-center cursor-pointer select-none gap-0.5">
+              <span className={`text-[16px] font-bold leading-tight ${isCenter ? 'text-[#185FA5]' : 'text-[#1A1A2E]'}`}>{label}</span>
+              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${isCenter ? 'bg-[#185FA5] text-white' : 'bg-[#E2E8F0] text-[#64748B]'}`}>{count}개</span>
             </div>
           )
         })}
-        <div style={{ minWidth: `calc(50% - ${ITEM_W / 2}px)`, flexShrink: 0 }} />
+        {/* 오른쪽 패딩 */}
+        <div style={{ minWidth: `calc(50% - ${ITEM_W/2}px)`, flexShrink: 0 }} />
       </div>
     </div>
   )
