@@ -186,10 +186,7 @@ export interface TemplatePartDraft {
       category: string
     }>
   }>
-  checkItems: Array<{      // 파트 레벨 체크리스트 (큐에 미연결)
-    title: string
-    category: string
-  }>
+  checkItems: never[]      // 파트 레벨 체크리스트 미사용
 }
 
 export interface TemplateFile {
