@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ref, onValue, set, remove, push } from 'firebase/database'
+import { ref, onValue, set, remove, push, update } from 'firebase/database'
 import { updateProfile, updatePassword, EmailAuthProvider, reauthenticateWithCredential, deleteUser } from 'firebase/auth'
 import { db, auth } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
