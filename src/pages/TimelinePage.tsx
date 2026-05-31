@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 import { ref as dbRef, onValue } from 'firebase/database'
 import { db } from '@/lib/firebase'
@@ -7,6 +7,77 @@ import { Topbar, StatusBadge, BottomTabBar } from '@/components/ui/Common'
 import type { Part, CueItem, CheckItem, Project, Notice } from '@/types'
 import { CueModal, type CueWithPart } from '@/components/cue/CueModal'
 import { useAuthStore } from '@/store/authStore'
+
+// ── 시뮬레이션 타입 ───────────────────────────────────────
+type SimSeverity = 'conflict' | 'warning' | 'info'
+interface SimIssue {
+  id: string
+  severity: SimSeverity
+  time?: string
+  title: string
+  detail: string
+  cueIds: string[]
+}
+
+function runSim(parts: Part[], allCues: CueWithPart[], selectedDate: string, project: Project): SimIssue[] {
+  const issues: SimIssue[] = []
+  let idx = 0
+  const dayCues = allCues.filter(c => !c.date || c.date === selectedDate)
+
+  for (const part of parts) {
+    const pc = dayCues.filter(c => c.partId === part.id).sort((a,b) => timeToMinutes(a.startTime)-timeToMinutes(b.startTime))
+    for (let i = 0; i < pc.length - 1; i++) {
+      const cur = pc[i], next = pc[i+1]
+      const curEnd = timeToMinutes(cur.startTime) + (cur.durationMin||0)
+      const nextStart = timeToMinutes(next.startTime)
+      if (curEnd > nextStart) {
+        issues.push({ id:`i${idx++}`, severity:'conflict', time: cur.startTime,
+          title: `[${part.name}] 시간 겹침: "${cur.title}" ↔ "${next.title}"`,
+          detail: `"${cur.title}" 종료 ${minutesToTime(curEnd)} → "${next.title}" 시작 ${next.startTime} (${curEnd-nextStart}분 충돌)`,
+          cueIds:[cur.id, next.id] })
+      } else if (curEnd === nextStart && (cur.durationMin||0) > 0) {
+        issues.push({ id:`i${idx++}`, severity:'info', time: cur.startTime,
+          title: `[${part.name}] 전환 여유 없음: "${cur.title}" → "${next.title}"`,
+          detail: `두 큐 사이 여유 시간 0분 — 준비/이동 시간이 필요할 수 있어요`,
+          cueIds:[cur.id, next.id] })
+      }
+    }
+    // 과밀
+    const slots: Record<string, CueWithPart[]> = {}
+    for (const c of pc) {
+      const k = minutesToTime(Math.floor(timeToMinutes(c.startTime)/30)*30)
+      if (!slots[k]) slots[k] = []
+      slots[k].push(c)
+    }
+    for (const [t, cs] of Object.entries(slots)) {
+      if (cs.length >= 3) issues.push({ id:`i${idx++}`, severity:'warning', time: t,
+        title: `[${part.name}] ${t} 전후 과밀 배치 (${cs.length}개)`,
+        detail: `30분 내에 큐 ${cs.length}개 집중 — 여유 없이 진행될 수 있어요`,
+        cueIds: cs.map(c=>c.id) })
+    }
+    // 소요시간 미설정
+    for (const c of pc) {
+      if (!c.durationMin || c.durationMin === 0)
+        issues.push({ id:`i${idx++}`, severity:'info', time: c.startTime,
+          title: `[${part.name}] 소요 시간 미설정: "${c.title}"`,
+          detail: `소요 시간이 0분이에요 — 실제 시간을 입력하면 더 정확하게 분석돼요`,
+          cueIds:[c.id] })
+    }
+  }
+  // 행사 범위 초과
+  if (project.startTime && project.endTime) {
+    const evEnd = timeToMinutes(project.endTime)
+    for (const c of dayCues) {
+      const cEnd = timeToMinutes(c.startTime) + (c.durationMin||0)
+      if (cEnd > evEnd + 10)
+        issues.push({ id:`i${idx++}`, severity:'warning', time: c.startTime,
+          title: `[${c.partName}] 행사 종료 후 초과: "${c.title}"`,
+          detail: `큐 종료 예정 ${minutesToTime(cEnd)} — 행사 종료 ${project.endTime} 초과`,
+          cueIds:[c.id] })
+    }
+  }
+  return issues
+}
 
 
 // ── 달력 ──────────────────────────────────────────────────
@@ -69,6 +140,14 @@ export default function TimelinePage() {
   const [activeCue, setActiveCue] = useState<CueWithPart | null>(null)
   const [notices, setNotices] = useState<Notice[]>([])
   const calendarRef = useRef<HTMLDivElement>(null)
+  // ── 시뮬레이션 ──
+  const [simState, setSimState] = useState<'idle'|'scanning'|'done'>('idle')
+  const [simIssues, setSimIssues] = useState<SimIssue[]>([])
+  const [scanY, setScanY] = useState(0)
+  const [highlightIds, setHighlightIds] = useState<Set<string>>(new Set())
+  const [simFilter, setSimFilter] = useState<SimSeverity|'all'>('all')
+  const gridRef = useRef<HTMLDivElement>(null)
+  const scanRef = useRef<ReturnType<typeof setInterval>|null>(null)
 
   useEffect(() => {
     function h(e: MouseEvent) { if (calendarRef.current && !calendarRef.current.contains(e.target as Node)) {} }
@@ -141,6 +220,39 @@ export default function TimelinePage() {
   function onTS(e:React.TouchEvent) { if(e.touches.length===2){const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY;lpd.current=Math.hypot(dx,dy);lz.current=zoom} }
   function onTM(e:React.TouchEvent) { if(e.touches.length===2&&lpd.current){const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY;setZoom(Math.min(2,Math.max(0.5,lz.current*(Math.hypot(dx,dy)/lpd.current))))} }
   function onTE() { lpd.current=null }
+
+  // ── 시뮬레이션 실행 ──────────────────────────────────────
+  const startSimulation = useCallback(() => {
+    if (!project || simState === 'scanning') return
+    setSimState('scanning')
+    setSimIssues([])
+    setHighlightIds(new Set())
+    setScanY(0)
+    const gridEl = gridRef.current
+    const maxH = gridEl ? gridEl.scrollHeight : 600
+    let y = 0
+    const speed = Math.max(2, maxH / 120) // 약 2초에 걸쳐 스캔
+    if (scanRef.current) clearInterval(scanRef.current)
+    scanRef.current = setInterval(() => {
+      y += speed
+      setScanY(y)
+      if (y >= maxH) {
+        clearInterval(scanRef.current!)
+        const issues = runSim(parts, allCues, selectedDate, project)
+        setSimIssues(issues)
+        setHighlightIds(new Set(issues.flatMap(i => i.cueIds)))
+        setSimState('done')
+      }
+    }, 16)
+  }, [project, parts, allCues, selectedDate, simState])
+
+  function resetSim() {
+    if (scanRef.current) clearInterval(scanRef.current)
+    setSimState('idle')
+    setSimIssues([])
+    setHighlightIds(new Set())
+    setScanY(0)
+  }
 
   const visibleParts = selectedPartId ? parts.filter(p=>p.id===selectedPartId) : parts
   // date 필드 있는 큐는 selectedDate와 일치할 때만 표시, 없으면 항상 표시
@@ -232,6 +344,18 @@ export default function TimelinePage() {
                 <span className="text-[11px] text-[#A0AEC0] w-9 text-center">{Math.round(zoom*100)}%</span>
                 <button onClick={()=>setZoom(z=>Math.min(2,+(z+0.15).toFixed(2)))} className="w-7 h-7 rounded-full border border-[#E2E8F0] bg-white flex items-center justify-center text-[#64748B] hover:bg-[#F4F6F9]"><i className="ti ti-plus text-[13px]"/></button>
                 <button onClick={()=>setZoom(1)} className="h-7 px-2 rounded-full border border-[#E2E8F0] bg-white text-[11px] font-semibold text-[#64748B] hover:bg-[#F4F6F9] ml-1">초기화</button>
+                {/* 시뮬레이션 버튼 — 테스트중 상태일 때만 */}
+                {(project as any)?.phase === 'testing' && (
+                  <button onClick={simState==='done' ? resetSim : startSimulation}
+                    className={`ml-1 h-7 px-2.5 rounded-full text-[11px] font-semibold flex items-center gap-1 transition-all ${
+                      simState==='scanning' ? 'bg-[#185FA5] text-white opacity-80 cursor-not-allowed'
+                      : simState==='done' ? 'bg-[#EAF3DE] text-[#3B6D11] border border-[#C0DD97]'
+                      : 'bg-[#185FA5] text-white hover:bg-[#0C447C]'
+                    }`}>
+                    <i className={`ti ${simState==='scanning' ? 'ti-loader-2' : simState==='done' ? 'ti-refresh' : 'ti-player-play'} text-[11px] ${simState==='scanning' ? 'animate-spin' : ''}`}/>
+                    {simState==='scanning' ? '스캔 중' : simState==='done' ? '다시' : 'AI 분석'}
+                  </button>
+                )}
               </div>
             </div>
             <div className="flex gap-2 overflow-x-auto pb-3 -mx-5 px-5" >
@@ -254,7 +378,15 @@ export default function TimelinePage() {
           </div>
         ) : (
           <div className="flex-1 flex justify-center" style={{overflow:'scroll'}} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}>
-            <div style={{minWidth: totalGridW, width: totalGridW}}>
+            <div style={{minWidth: totalGridW, width: totalGridW}} ref={gridRef} className="relative">
+
+              {/* 스캔 라인 오버레이 */}
+              {simState === 'scanning' && (
+                <div className="pointer-events-none absolute inset-0 z-30 overflow-hidden">
+                  <div style={{position:'absolute', top: scanY, left:0, right:0, height:3, background:'linear-gradient(90deg,transparent,#185FA5,#378ADD,#185FA5,transparent)', boxShadow:'0 0 16px 4px #185FA566'}}/>
+                  <div style={{position:'absolute', top: Math.max(0, scanY-60), left:0, right:0, height:60, background:'linear-gradient(to bottom, transparent, #185FA511)'}}/>
+                </div>
+              )}
 
               {/* 파트 헤더 sticky */}
               <div className="sticky top-0 z-20 bg-white border-b-2 border-[#E2E8F0] shadow-sm">
@@ -322,7 +454,11 @@ export default function TimelinePage() {
                         return (
                           <div key={cue.id} onClick={()=>setActiveCue(cue)}
                             style={{position:'absolute',top:slotTop+PAD/2+idx*CUE_H,height:CUE_H-4,left:3,right:3}}
-                            className="rounded-[8px] border border-[#E2E8F0] bg-white shadow-sm flex flex-col justify-between px-2 py-1.5 overflow-hidden cursor-pointer hover:border-[#185FA5] hover:shadow-md transition-all">
+                            className={`rounded-[8px] border bg-white shadow-sm flex flex-col justify-between px-2 py-1.5 overflow-hidden cursor-pointer transition-all ${
+                              highlightIds.has(cue.id)
+                                ? 'border-[#E24B4A] shadow-[0_0_0_2px_#E24B4A44]'
+                                : 'border-[#E2E8F0] hover:border-[#185FA5] hover:shadow-md'
+                            }`}>
                             <div>
                               <div className="font-bold leading-tight text-[#1A1A2E] truncate" style={{fontSize:Math.max(9,Math.round(11*zoom))+'px'}}>{cue.title}</div>
                               {cue.durationMin>0 && <div className="text-[#A0AEC0] mt-0.5" style={{fontSize:Math.max(8,Math.round(9*zoom))+'px'}}>{cue.durationMin}분</div>}
@@ -357,6 +493,61 @@ export default function TimelinePage() {
           </div>
         )}
       </div>
+
+      {/* 시뮬레이션 결과 패널 */}
+      {simState === 'done' && (
+        <div className="bg-white border-t-2 border-[#E2E8F0] flex-shrink-0" style={{maxHeight:'40vh', overflowY:'auto'}}>
+          <div className="px-4 pt-3 pb-1 flex items-center justify-between sticky top-0 bg-white border-b border-[#F1F5F9] z-10">
+            <div className="flex items-center gap-2">
+              <i className="ti ti-sparkles text-[#185FA5] text-[14px]"/>
+              <span className="text-[13px] font-semibold text-[#1A1A2E]">분석 결과</span>
+              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${simIssues.filter(i=>i.severity==='conflict').length>0?'bg-[#FCEBEB] text-[#A32D2D]':'bg-[#EAF3DE] text-[#3B6D11]'}`}>
+                충돌 {simIssues.filter(i=>i.severity==='conflict').length}
+              </span>
+              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${simIssues.filter(i=>i.severity==='warning').length>0?'bg-[#FAEEDA] text-[#854F0B]':'bg-[#EAF3DE] text-[#3B6D11]'}`}>
+                주의 {simIssues.filter(i=>i.severity==='warning').length}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              {(['all','conflict','warning','info'] as const).map(sv=>(
+                <button key={sv} onClick={()=>setSimFilter(sv)}
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-semibold transition-colors ${simFilter===sv?'bg-[#185FA5] text-white':'bg-[#F4F6F9] text-[#64748B]'}`}>
+                  {sv==='all'?'전체':sv==='conflict'?'충돌':sv==='warning'?'주의':'참고'}
+                </button>
+              ))}
+              <button onClick={resetSim} className="ml-1 w-6 h-6 flex items-center justify-center text-[#A0AEC0] hover:text-[#1A1A2E]">
+                <i className="ti ti-x text-[13px]"/>
+              </button>
+            </div>
+          </div>
+          {simIssues.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-5 gap-1">
+              <i className="ti ti-circle-check text-[#3B6D11] text-[28px]"/>
+              <span className="text-[13px] font-semibold text-[#3B6D11]">문제 없음! 큐시트가 깔끔해요 👍</span>
+            </div>
+          ) : (
+            <div className="px-4 py-2 flex flex-col gap-2">
+              {simIssues.filter(i=>simFilter==='all'||i.severity===simFilter).map(issue=>(
+                <div key={issue.id}
+                  className={`rounded-[10px] px-3 py-2.5 border ${
+                    issue.severity==='conflict' ? 'bg-[#FCEBEB] border-[#F7C1C1]'
+                    : issue.severity==='warning' ? 'bg-[#FAEEDA] border-[#FAC775]'
+                    : 'bg-[#E6F1FB] border-[#B5D4F4]'
+                  }`}>
+                  <div className="flex items-start gap-2">
+                    <i className={`ti ${issue.severity==='conflict'?'ti-alert-triangle':issue.severity==='warning'?'ti-alert-circle':'ti-info-circle'} text-[13px] mt-0.5 flex-shrink-0 ${issue.severity==='conflict'?'text-[#A32D2D]':issue.severity==='warning'?'text-[#854F0B]':'text-[#185FA5]'}`}/>
+                    <div>
+                      {issue.time && <span className="text-[10px] font-semibold text-[#64748B] bg-white/70 px-1.5 py-0.5 rounded-full mr-1">{issue.time}</span>}
+                      <span className="text-[12px] font-semibold text-[#1A1A2E]">{issue.title}</span>
+                      <div className="text-[11px] text-[#64748B] mt-0.5 leading-relaxed">{issue.detail}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <BottomTabBar/>
       {activeCue && projectId && (
