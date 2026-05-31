@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ref, onValue, push, set } from 'firebase/database'
+import { ref, onValue, push, set, remove } from 'firebase/database'
 import { db } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
 import { Topbar, BottomTabBar } from '@/components/ui/Common'
@@ -25,6 +25,8 @@ export default function PTTPage() {
   const [parts, setParts] = useState<Part[]>([])
   const [target, setTarget] = useState<TargetId>('crew-all')
   const [history, setHistory] = useState<PTTRecord[]>([])
+  const [historyTab, setHistoryTab] = useState<'all' | string>('all')
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [pressing, setPressing] = useState(false)
   const [micPermission, setMicPermission] = useState<MicPermission>('unknown')
   const [requestingMic, setRequestingMic] = useState(false)
@@ -617,22 +619,70 @@ export default function PTTPage() {
         </div>
 
         {/* 히스토리 */}
-        <div className="text-[13px] font-semibold mb-3">무전 히스토리</div>
-        {history.length === 0 ? (
-          <div className="text-center py-8 text-[#A0AEC0]"><i className="ti ti-history text-[36px] block mb-2 opacity-30" /><p className="text-[13px]">무전 기록이 없어요</p></div>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {history.map((h) => (
-              <div key={h.id} className="flex items-center gap-3 px-3.5 py-3 bg-white border border-[#E2E8F0] rounded-[10px]">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[12px] font-semibold flex-shrink-0" style={{ background: h.senderColor }}>{h.senderName.charAt(0)}</div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-[13px] font-semibold truncate">{h.senderName}</div>
-                  <div className="text-[11px] text-[#64748B]">→ {h.targetLabel} · {h.duration}초</div>
-                </div>
-                <div className="text-[11px] text-[#A0AEC0]">{timeAgo(h.createdAt)}</div>
-                <i className="ti ti-volume text-[16px] text-[#185FA5] cursor-pointer" />
-              </div>
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-[13px] font-semibold">무전 히스토리</div>
+          {history.length > 0 && (
+            <button onClick={() => setShowDeleteConfirm(true)}
+              className="text-[11px] text-[#E24B4A] hover:text-[#A32D2D] flex items-center gap-1">
+              <i className="ti ti-trash text-[11px]"/> 전체 삭제
+            </button>
+          )}
+        </div>
+        {/* 팀별 탭 */}
+        {history.length > 0 && (
+          <div className="flex gap-1.5 overflow-x-auto pb-2 mb-3">
+            <button onClick={() => setHistoryTab('all')}
+              className={`flex-shrink-0 px-3 py-1 rounded-full text-[11px] font-semibold transition-colors ${historyTab === 'all' ? 'bg-[#185FA5] text-white' : 'bg-white border border-[#E2E8F0] text-[#64748B]'}`}>
+              전체
+            </button>
+            {parts.map(p => (
+              <button key={p.id} onClick={() => setHistoryTab(p.id)}
+                className={`flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-semibold transition-colors ${historyTab === p.id ? 'text-white' : 'bg-white border border-[#E2E8F0] text-[#64748B]'}`}
+                style={historyTab === p.id ? {background: p.color, borderColor: p.color} : {}}>
+                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{background: historyTab === p.id ? 'white' : p.color}}/>
+                {p.name}
+              </button>
             ))}
+          </div>
+        )}
+        {(() => {
+          const filtered = historyTab === 'all'
+            ? history
+            : history.filter(h => {
+                const part = parts.find(p => p.id === historyTab)
+                return part && (h.target === historyTab || h.targetLabel === part.name || h.targetLabel?.includes(part.name))
+              })
+          return filtered.length === 0 ? (
+            <div className="text-center py-8 text-[#A0AEC0]"><i className="ti ti-history text-[36px] block mb-2 opacity-30" /><p className="text-[13px]">무전 기록이 없어요</p></div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {filtered.map((h) => (
+                <div key={h.id} className="flex items-center gap-3 px-3.5 py-3 bg-white border border-[#E2E8F0] rounded-[10px]">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[12px] font-semibold flex-shrink-0" style={{ background: h.senderColor }}>{h.senderName.charAt(0)}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] font-semibold truncate">{h.senderName}</div>
+                    <div className="text-[11px] text-[#64748B]">→ {h.targetLabel} · {h.duration}초</div>
+                  </div>
+                  <div className="text-[11px] text-[#A0AEC0]">{timeAgo(h.createdAt)}</div>
+                  <button onClick={() => deleteOneHistory(h.id)} className="text-[#E2E8F0] hover:text-[#E24B4A] transition-colors ml-1">
+                    <i className="ti ti-x text-[13px]"/>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )
+        })()}
+        {/* 전체삭제 확인 모달 */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-5" onClick={() => setShowDeleteConfirm(false)}>
+            <div className="bg-white rounded-[20px] p-5 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+              <div className="text-[16px] font-semibold mb-2">히스토리 전체 삭제</div>
+              <p className="text-[13px] text-[#64748B] mb-5">모든 무전 기록을 삭제할까요? 되돌릴 수 없어요.</p>
+              <div className="flex gap-2">
+                <button onClick={() => setShowDeleteConfirm(false)} className="flex-1 h-[42px] border border-[#E2E8F0] rounded-[12px] text-[13px] text-[#64748B]">취소</button>
+                <button onClick={deleteAllHistory} className="flex-1 h-[42px] bg-[#E24B4A] text-white rounded-[12px] text-[13px] font-semibold">삭제</button>
+              </div>
+            </div>
           </div>
         )}
       </div>
