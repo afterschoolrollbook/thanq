@@ -679,10 +679,9 @@ export default function TimelinePage() {
                     {simState==='scanning' ? '스캔 중' : simState==='done' ? '다시' : 'AI 분석'}
                   </button>
                 )}
-              </div>
-            </div>
-            </div>{/* end flex items-center gap-2 */}
-            <div className="flex gap-2 overflow-x-auto pb-3" >
+              </div>{/* end right controls */}
+            </div>{/* end flex items-center gap-2 row */}
+            <div className="flex gap-2 overflow-x-auto pb-3">
               <button onClick={()=>setSelectedPartId(null)} className={`flex-shrink-0 px-3 py-1 rounded-full text-[12px] font-semibold ${!selectedPartId?'bg-[#185FA5] text-white':'border border-[#E2E8F0] text-[#64748B] bg-white'}`}>전체</button>
               {parts.map(p=>(
                 <button key={p.id} onClick={()=>setSelectedPartId(selectedPartId===p.id?null:p.id)}
@@ -691,7 +690,7 @@ export default function TimelinePage() {
                   <span className="w-2 h-2 rounded-full flex-shrink-0" style={{background:p.color}}/>{p.name}
                 </button>
               ))}
-            </div>{/* end part filter flex */}
+            </div>{/* end part filter */}
           </div>{/* end min-w-max */}
           </div>{/* end overflow-x-auto */}
         </div>
