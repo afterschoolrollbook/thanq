@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 import { ref, onValue, update, push, set } from 'firebase/database'
 import { db } from '@/lib/firebase'
@@ -96,8 +96,34 @@ export default function MyPartPage() {
   const [showAddCue, setShowAddCue] = useState(false)
   const [activeCue, setActiveCue] = useState<CueWithPart | null>(null)
   const [readOnlyToast, setReadOnlyToast] = useState(false)
+  const [selectedDate, setSelectedDate] = useState<string>('')
+  const dateScrollRef = useRef<HTMLDivElement>(null)
+  const dateButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({})
 
   const selectedPart = allParts.find(p => p.id === selectedPartId) ?? null
+
+  // 날짜 목록 (cues에서 추출, 정렬)
+  const dateList = Array.from(new Set(cues.map((c: CueItem) => c.date || '__today__'))).sort((a, b) => {
+    if (a === '__today__') return 1
+    if (b === '__today__') return -1
+    return a.localeCompare(b)
+  })
+
+  // 선택된 날짜의 큐 필터
+  const filteredCues = selectedDate
+    ? cues.filter((c: CueItem) => (c.date || '__today__') === selectedDate)
+    : cues
+
+  const selectDate = useCallback((date: string) => {
+    setSelectedDate(date)
+    setTimeout(() => {
+      const btn = dateButtonRefs.current[date]
+      if (btn && dateScrollRef.current) {
+        const container = dateScrollRef.current
+        container.scrollTo({ left: btn.offsetLeft - container.offsetWidth / 2 + btn.offsetWidth / 2, behavior: 'smooth' })
+      }
+    }, 50)
+  }, [])
   const myPartName = allParts.find(p => p.id === myMember?.partId)?.name ?? ''
   const isPlannerRole = myMember?.role === 'planner' || myMember?.role === 'owner' || project?.ownerId === user?.uid
   const isParticipant = myMember?.role === 'participant'
