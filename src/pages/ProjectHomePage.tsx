@@ -171,14 +171,16 @@ export default function ProjectHomePage() {
 
   async function saveMyRole(partId: string) {
     if (!projectId || !user) return
+    const isReturningToPlanner = partId === '__planner__'
     const selectedPart = parts.find(p => p.id === partId)
     await update(ref(db, `projectMembers/${projectId}/${user.uid}`), {
-      partId,
-      partName: selectedPart?.name ?? '',
-      role: isOwner ? 'planner' : 'staff',
+      partId: isReturningToPlanner ? '' : partId,
+      partName: isReturningToPlanner ? '기획자' : (selectedPart?.name ?? ''),
+      role: isReturningToPlanner ? 'planner' : (isOwner ? 'planner' : 'staff'),
     })
-    setMyPartId(partId)
-    setMyPartName(selectedPart?.name ?? '')
+    setMyPartId(isReturningToPlanner ? '' : partId)
+    setMyPartName(isReturningToPlanner ? '' : (selectedPart?.name ?? ''))
+    setMyNewPartId('')
     setShowMyRoleModal(false)
   }
 
@@ -746,6 +748,20 @@ export default function ProjectHomePage() {
             </div>
             <p className="text-[12px] text-[#64748B] mb-4">어느 파트로 보고 싶으신가요? 선택한 파트의 시각으로 확인할 수 있어요.</p>
             <div className="flex flex-col gap-2 mb-4 max-h-[300px] overflow-y-auto">
+              {/* 기획자(전체) 옵션 - 오너/플래너만 */}
+              {(myRole === 'planner' || myRole === 'owner' || project?.ownerId === user?.uid) && (
+                <button onClick={() => setMyNewPartId('__planner__')}
+                  className={`flex items-center gap-3 p-3 rounded-[10px] border-2 text-left transition-colors ${myNewPartId === '__planner__' || (!myNewPartId && !myPartId) ? 'border-[#185FA5] bg-[#E6F1FB]' : 'border-[#E2E8F0]'}`}>
+                  <div className="w-5 h-5 rounded-full bg-[#E6F1FB] flex items-center justify-center flex-shrink-0">
+                    <i className="ti ti-shield-check text-[#185FA5] text-[11px]"/>
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-[13px] font-semibold text-[#185FA5]">기획자 (전체 관리)</div>
+                    <div className="text-[11px] text-[#64748B]">모든 팀 수정 가능</div>
+                  </div>
+                  {(myNewPartId === '__planner__' || (!myNewPartId && !myPartId)) && <i className="ti ti-check text-[#185FA5] text-[16px]"/>}
+                </button>
+              )}
               {parts.filter(p => !(p as any).isParticipant).length > 0 && (
                 <div className="text-[11px] font-bold text-[#185FA5] mb-1 flex items-center gap-1">
                   <i className="ti ti-users text-[10px]"/> 행사진행
