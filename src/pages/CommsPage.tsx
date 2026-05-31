@@ -4,11 +4,12 @@ import { ref, onValue, push, set } from 'firebase/database'
 import { db } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
 import { Topbar, BottomTabBar } from '@/components/ui/Common'
-import type { Notice } from '@/types'
+import type { Notice, Project } from '@/types'
 
 export default function CommsPage() {
   const { projectId } = useParams()
   const user = useAuthStore((s) => s.user)
+  const [project, setProject] = useState<Project | null>(null)
   const [notices, setNotices] = useState<Notice[]>([])
   const [showForm, setShowForm] = useState(false)
   const [type, setType] = useState<Notice['type']>('notice')
@@ -18,6 +19,7 @@ export default function CommsPage() {
 
   useEffect(() => {
     if (!projectId) return
+    onValue(ref(db, `projects/${projectId}`), s => { if (s.exists()) setProject(s.val()) }, { onlyOnce: true })
     onValue(ref(db, `notices/${projectId}`), (s) => {
       if (s.exists()) { const l: Notice[] = Object.values(s.val()); l.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()); setNotices(l) }
       else setNotices([])
@@ -38,7 +40,7 @@ export default function CommsPage() {
 
   return (
     <div className="min-h-screen bg-[#F4F6F9]">
-      <Topbar />
+      <Topbar projectName={project?.name}/>
       <div className="max-w-2xl mx-auto px-5 pt-5 pb-24">
 
         {/* 헤더 */}
