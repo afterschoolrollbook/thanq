@@ -493,7 +493,7 @@ export default function PTTPage() {
 
   return (
     <div className="min-h-screen bg-[#F4F6F9]">
-      <Topbar />
+      <Topbar projectName={project?.name}/>
       <div className="max-w-2xl mx-auto px-5 pt-5 pb-28">
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -544,8 +544,8 @@ export default function PTTPage() {
                 <rect key={i} x="36" y={34 + i*7} width="48" height="3" rx="1.5" fill={pressing ? '#EF9A9A' : '#A5D6A7'}/>
               ))}
               {/* PTT 빨간 버튼 배경 */}
-              <circle cx="60" cy="108" r="22" fill={pressing ? '#C0392B' : '#E53935'}/>
-              <circle cx="60" cy="108" r="17" fill={pressing ? '#E53935' : '#EF5350'}/>
+              <circle cx="60" cy="108" r="22" fill={pressing ? '#C0392B' : '#94A3B8'}/>
+              <circle cx="60" cy="108" r="17" fill={pressing ? '#E53935' : '#CBD5E1'}/>
               {/* 마이크 아이콘 */}
               <rect x="55" y="98" width="10" height="14" rx="5" fill="white"/>
               <path d="M50 110 Q50 120 60 120 Q70 120 70 110" stroke="white" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
