@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
-import { ref as dbRef, onValue, push, set } from 'firebase/database'
+import { ref as dbRef, onValue, push, set, update } from 'firebase/database'
 import { db } from '@/lib/firebase'
 import { timeToMinutes, minutesToTime } from '@/utils/joinCode'
 import { Topbar, StatusBadge, BottomTabBar } from '@/components/ui/Common'
@@ -379,6 +379,8 @@ export default function TimelinePage() {
   const [project, setProject] = useState<Project | null>(null)
   const user = useAuthStore((s) => s.user)
   const [myMember, setMyMember] = useState<{role: string; partId?: string; partName?: string} | null>(null)
+  const [showMyRoleModal, setShowMyRoleModal] = useState(false)
+  const [myNewPartId, setMyNewPartId] = useState('')
   const [parts, setParts] = useState<Part[]>([])
   const myPartName = parts.find(p => p.id === myMember?.partId)?.name ?? myMember?.partName ?? ''
   const [allCues, setAllCues] = useState<CueWithPart[]>([])
@@ -527,6 +529,25 @@ export default function TimelinePage() {
     setScanPass(0)
   }
 
+  async function saveMyRole(partId: string) {
+    if (!projectId || !user) return
+    const isReturningToPlanner = partId === '__planner__'
+    const selectedPart = parts.find(p => p.id === partId)
+    await update(dbRef(db, `projectMembers/${projectId}/${user.uid}`), {
+      partId: isReturningToPlanner ? '' : partId,
+      partName: isReturningToPlanner ? '기획자' : (selectedPart?.name ?? ''),
+      role: isReturningToPlanner ? 'planner' : ((myMember?.role==='owner'||project?.ownerId===user.uid) ? 'planner' : 'staff'),
+    })
+    setMyMember(prev => prev ? {
+      ...prev,
+      partId: isReturningToPlanner ? '' : partId,
+      partName: isReturningToPlanner ? '' : (selectedPart?.name ?? ''),
+      role: isReturningToPlanner ? 'planner' : ((prev.role==='owner'||project?.ownerId===user.uid) ? 'planner' : 'staff'),
+    } : prev)
+    setMyNewPartId('')
+    setShowMyRoleModal(false)
+  }
+
   async function addCue(data: Omit<CueItem, 'id'|'createdAt'|'updatedAt'>, checks: {title:string;category:string}[] = []) {
     if (!projectId) return
     const savePartId = data.partId
@@ -635,6 +656,9 @@ export default function TimelinePage() {
                       {myMember.role==='owner'||myMember.role==='planner' ? '기획자' : myMember.role==='admin' ? '관리자' : myMember.role==='participant' ? '참가자' : '스태프'}
                     </span>
                     {myPartName && <><span className="text-[#E2E8F0]">·</span><span className="text-[#64748B]">{myPartName}</span></>}
+                    <button onClick={()=>setShowMyRoleModal(true)} className="ml-0.5 text-[#A0AEC0] hover:text-[#185FA5]">
+                      <i className="ti ti-pencil text-[10px]"/>
+                    </button>
                   </span>
                 )}
               </div>
@@ -849,6 +873,64 @@ export default function TimelinePage() {
         />
       )}
 
+      {/* 내 파트 변경 모달 */}
+      {showMyRoleModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-5" onClick={()=>setShowMyRoleModal(false)}>
+          <div className="bg-white rounded-[20px] p-5 w-full max-w-sm" onClick={e=>e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-[16px] font-semibold">내 파트 변경</div>
+              <button onClick={()=>setShowMyRoleModal(false)}><i className="ti ti-x text-[18px] text-[#A0AEC0]"/></button>
+            </div>
+            <p className="text-[12px] text-[#64748B] mb-4">어느 파트로 보고 싶으신가요? 선택한 파트의 시각으로 확인할 수 있어요.</p>
+            <div className="flex flex-col gap-2 mb-4 max-h-[300px] overflow-y-auto">
+              {(myMember?.role==='planner'||myMember?.role==='owner'||project?.ownerId===user?.uid) && (
+                <button onClick={()=>setMyNewPartId('__planner__')}
+                  className={`flex items-center gap-3 p-3 rounded-[10px] border-2 text-left transition-colors ${myNewPartId==='__planner__'||(!myNewPartId&&!myMember?.partId)?'border-[#185FA5] bg-[#E6F1FB]':'border-[#E2E8F0]'}`}>
+                  <div className="w-5 h-5 rounded-full bg-[#E6F1FB] flex items-center justify-center flex-shrink-0">
+                    <i className="ti ti-shield-check text-[#185FA5] text-[11px]"/>
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-[13px] font-semibold text-[#185FA5]">기획자 (전체 관리)</div>
+                    <div className="text-[11px] text-[#64748B]">모든 팀 수정 가능</div>
+                  </div>
+                  {(myNewPartId==='__planner__'||(!myNewPartId&&!myMember?.partId))&&<i className="ti ti-check text-[#185FA5] text-[16px]"/>}
+                </button>
+              )}
+              {parts.filter(p=>!p.isParticipant).length>0&&(
+                <div className="text-[11px] font-bold text-[#185FA5] mb-1 flex items-center gap-1">
+                  <i className="ti ti-users text-[10px]"/> 행사진행
+                </div>
+              )}
+              {parts.filter(p=>!p.isParticipant).map(part=>(
+                <button key={part.id} onClick={()=>setMyNewPartId(part.id)}
+                  className={`flex items-center gap-3 p-3 rounded-[10px] border-2 text-left transition-colors ${myNewPartId===part.id||(!myNewPartId&&part.id===myMember?.partId)?'border-[#185FA5] bg-[#E6F1FB]':'border-[#E2E8F0]'}`}>
+                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{background:part.color}}/>
+                  <span className="text-[13px] font-semibold flex-1">{part.name}</span>
+                  {(myNewPartId===part.id||(!myNewPartId&&part.id===myMember?.partId))&&<i className="ti ti-check text-[#185FA5] text-[16px]"/>}
+                </button>
+              ))}
+              {parts.filter(p=>p.isParticipant).length>0&&(
+                <div className="text-[11px] font-bold text-[#854F0B] mt-2 mb-1 flex items-center gap-1">
+                  <i className="ti ti-run text-[10px]"/> 참가자
+                </div>
+              )}
+              {parts.filter(p=>p.isParticipant).map(part=>(
+                <button key={part.id} onClick={()=>setMyNewPartId(part.id)}
+                  className={`flex items-center gap-3 p-3 rounded-[10px] border-2 text-left transition-colors ${myNewPartId===part.id||(!myNewPartId&&part.id===myMember?.partId)?'border-[#854F0B] bg-[#FFF8F0]':'border-[#E2E8F0]'}`}>
+                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{background:part.color}}/>
+                  <span className="text-[13px] font-semibold flex-1">{part.name}</span>
+                  {(myNewPartId===part.id||(!myNewPartId&&part.id===myMember?.partId))&&<i className="ti ti-check text-[#854F0B] text-[16px]"/>}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <button onClick={()=>setShowMyRoleModal(false)} className="flex-1 h-[42px] border border-[#E2E8F0] rounded-[12px] text-[13px] text-[#64748B]">취소</button>
+              <button onClick={()=>saveMyRole(myNewPartId||myMember?.partId||'__planner__')}
+                className="flex-1 h-[42px] bg-[#185FA5] text-white rounded-[12px] text-[13px] font-semibold">저장</button>
+            </div>
+          </div>
+        </div>
+      )}
       <BottomTabBar/>
       {showAddCue && projectId && (
         <AddCueModal
