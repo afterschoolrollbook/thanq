@@ -174,18 +174,31 @@ function DateRoller({ dates, selected, cues, onSelect }: {
 // ─── 큐시트 추가 모달 ──────────────────────────────────────
 function AddCueModal({ onClose, onSave, partId, projectId, order }: {
   onClose: () => void
-  onSave: (item: Omit<CueItem, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>
+  onSave: (item: Omit<CueItem, 'id' | 'createdAt' | 'updatedAt'>, checks: {title: string; category: string}[]) => Promise<void>
   partId: string; projectId: string; order: number
 }) {
+  const [tab, setTab] = useState<'info' | 'check' | 'memo'>('info')
   const [title, setTitle] = useState('')
   const [startTime, setStartTime] = useState('')
   const [durationMin, setDurationMin] = useState('')
   const [memo, setMemo] = useState('')
   const [date, setDate] = useState('')
   const [saving, setSaving] = useState(false)
+  const [checks, setChecks] = useState<{title: string; category: string}[]>([])
+  const [newCheck, setNewCheck] = useState('')
+
+  function addCheck() {
+    if (!newCheck.trim()) return
+    setChecks(prev => [...prev, { title: newCheck.trim(), category: 'prep' }])
+    setNewCheck('')
+  }
+
+  function removeCheck(i: number) {
+    setChecks(prev => prev.filter((_, idx) => idx !== i))
+  }
 
   async function handleSave() {
-    if (!title.trim()) return
+    if (!title.trim()) { setTab('info'); return }
     setSaving(true)
     await onSave({
       partId, projectId, order,
@@ -195,42 +208,101 @@ function AddCueModal({ onClose, onSave, partId, projectId, order }: {
       memo: memo.trim() || undefined,
       ...(date ? { date } : {}),
       status: 'pending',
-    })
+    }, checks)
     setSaving(false)
   }
 
+  const tabs = [
+    { id: 'info', label: '기본정보' },
+    { id: 'check', label: `체크리스트${checks.length > 0 ? ` (${checks.length})` : ''}` },
+    { id: 'memo', label: '메모' },
+  ] as const
+
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center" onClick={onClose}>
-      <div className="bg-white w-full max-w-2xl rounded-t-[20px] p-5 pb-8" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-white w-full max-w-2xl rounded-t-[20px] pb-8" style={{ maxHeight: '90vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+        {/* 헤더 */}
+        <div className="flex items-center justify-between px-5 pt-5 pb-3 flex-shrink-0">
           <div className="text-[16px] font-semibold">큐시트 항목 추가</div>
           <button onClick={onClose}><i className="ti ti-x text-[18px] text-[#A0AEC0]"></i></button>
         </div>
-        <div className="flex flex-col gap-3 mb-5">
-          <div>
-            <label className={lbl}>항목명 <span className="text-[#A32D2D]">*</span></label>
-            <input className={inp} placeholder="예: 오프닝 영상 재생" value={title} onChange={e => setTitle(e.target.value)} autoFocus />
-          </div>
-          <div>
-            <label className={lbl}>날짜 <span className="text-[#A0AEC0] font-normal">(준비일 등, 비워두면 행사 당일)</span></label>
-            <input className={inp} type="date" value={date} onChange={e => setDate(e.target.value)} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={lbl}>시작 시간</label>
-              <input className={inp} type="time" value={startTime} onChange={e => setStartTime(e.target.value)} />
-            </div>
-            <div>
-              <label className={lbl}>소요 시간 (분)</label>
-              <input className={inp} type="number" min="0" placeholder="0" value={durationMin} onChange={e => setDurationMin(e.target.value)} />
-            </div>
-          </div>
-          <div>
-            <label className={lbl}>메모 (선택)</label>
-            <input className={inp} placeholder="참고사항을 입력하세요" value={memo} onChange={e => setMemo(e.target.value)} />
-          </div>
+        {/* 탭 */}
+        <div className="flex border-b border-[#E2E8F0] px-5 flex-shrink-0">
+          {tabs.map(t => (
+            <button key={t.id} onClick={() => setTab(t.id)}
+              className={`mr-4 pb-2 text-[13px] font-semibold border-b-2 transition-colors ${tab === t.id ? 'border-[#185FA5] text-[#185FA5]' : 'border-transparent text-[#A0AEC0]'}`}>
+              {t.label}
+            </button>
+          ))}
         </div>
-        <div className="flex gap-2">
+        {/* 탭 내용 */}
+        <div className="flex-1 overflow-y-auto px-5 py-4">
+          {tab === 'info' && (
+            <div className="flex flex-col gap-3">
+              <div>
+                <label className={lbl}>항목명 <span className="text-[#A32D2D]">*</span></label>
+                <input className={inp} placeholder="예: 오프닝 영상 재생" value={title} onChange={e => setTitle(e.target.value)} autoFocus />
+              </div>
+              <div>
+                <label className={lbl}>날짜 <span className="text-[#A0AEC0] font-normal">(비워두면 행사 당일)</span></label>
+                <input className={inp} type="date" value={date} onChange={e => setDate(e.target.value)} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={lbl}>시작 시간</label>
+                  <input className={inp} type="time" value={startTime} onChange={e => setStartTime(e.target.value)} />
+                </div>
+                <div>
+                  <label className={lbl}>소요 시간 (분)</label>
+                  <input className={inp} type="number" min="0" placeholder="0" value={durationMin} onChange={e => setDurationMin(e.target.value)} />
+                </div>
+              </div>
+            </div>
+          )}
+          {tab === 'check' && (
+            <div className="flex flex-col gap-2">
+              {checks.length === 0 && (
+                <p className="text-[13px] text-[#A0AEC0] text-center py-4">체크리스트 항목을 추가해보세요</p>
+              )}
+              {checks.map((c, i) => (
+                <div key={i} className="flex items-center gap-3 p-3 rounded-[10px] border border-[#E2E8F0] bg-white">
+                  <div className="w-4 h-4 rounded border-2 border-[#E2E8F0] flex-shrink-0"></div>
+                  <span className="text-[13px] flex-1">{c.title}</span>
+                  <button onClick={() => removeCheck(i)} className="text-[#E2E8F0] hover:text-[#E24B4A]">
+                    <i className="ti ti-trash text-[14px]"></i>
+                  </button>
+                </div>
+              ))}
+              <div className="flex gap-2 mt-2">
+                <input
+                  className={inp + ' flex-1'}
+                  placeholder="체크리스트 항목 추가..."
+                  value={newCheck}
+                  onChange={e => setNewCheck(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') addCheck() }}
+                />
+                <button onClick={addCheck}
+                  className="w-10 h-10 bg-[#185FA5] text-white rounded-[10px] flex items-center justify-center flex-shrink-0">
+                  <i className="ti ti-plus text-[16px]"></i>
+                </button>
+              </div>
+            </div>
+          )}
+          {tab === 'memo' && (
+            <div>
+              <label className={lbl}>메모</label>
+              <textarea
+                className="w-full border border-[#E2E8F0] rounded-[10px] p-3 text-[13px] text-[#1A1A2E] resize-none focus:outline-none focus:border-[#185FA5]"
+                style={{ height: 160 }}
+                placeholder="참고사항을 입력하세요..."
+                value={memo}
+                onChange={e => setMemo(e.target.value)}
+              />
+            </div>
+          )}
+        </div>
+        {/* 하단 버튼 */}
+        <div className="flex gap-2 px-5 flex-shrink-0">
           <button onClick={onClose} className="flex-1 h-[42px] border border-[#E2E8F0] rounded-[10px] text-[13px] text-[#64748B]">취소</button>
           <button onClick={handleSave} disabled={!title.trim() || saving}
             className="flex-1 h-[42px] bg-[#185FA5] text-white rounded-[10px] text-[13px] font-semibold disabled:opacity-40">
@@ -351,11 +423,21 @@ export default function MyPartPage() {
     await update(ref(db, `cueItems/${projectId}/${selectedPartId}/${item.id}`), { status, updatedAt: new Date().toISOString() })
   }
 
-  async function addCue(data: Omit<CueItem, 'id' | 'createdAt' | 'updatedAt'>) {
+  async function addCue(data: Omit<CueItem, 'id' | 'createdAt' | 'updatedAt'>, checks: {title: string; category: string}[] = []) {
     if (!projectId || !selectedPartId || !isMyPart) return
     const newRef = push(ref(db, `cueItems/${projectId}/${selectedPartId}`))
+    const cueId = newRef.key!
     const now = new Date().toISOString()
-    await set(newRef, { ...data, id: newRef.key!, createdAt: now, updatedAt: now })
+    await set(newRef, { ...data, id: cueId, createdAt: now, updatedAt: now })
+    // 체크리스트 저장
+    for (const check of checks) {
+      const checkRef = push(ref(db, `checkItems/${projectId}/${selectedPartId}`))
+      await set(checkRef, {
+        id: checkRef.key, partId: selectedPartId, projectId,
+        cueId, category: check.category, title: check.title,
+        isDone: false, createdAt: now,
+      })
+    }
     setShowAddCue(false)
   }
 
