@@ -7,8 +7,7 @@ import {
   signInWithPopup,
   updateProfile,
 } from 'firebase/auth'
-import { ref, get } from 'firebase/database'
-import { auth, db } from '@/lib/firebase'
+import { auth } from '@/lib/firebase'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -20,14 +19,7 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  async function goNext(uid: string) {
-    const snap = await get(ref(db, 'projects'))
-    if (snap.exists()) {
-      // 내 프로젝트가 있는지 확인
-      const projects = Object.values(snap.val()) as { ownerId: string }[]
-      const mine = projects.find((p) => p.ownerId === uid)
-      if (mine) { navigate('/dashboard'); return }
-    }
+  function goNext(_uid: string) {
     navigate('/dashboard')
   }
 
@@ -41,10 +33,10 @@ export default function LoginPage() {
       if (isSignUp) {
         const { user } = await createUserWithEmailAndPassword(auth, email, password)
         await updateProfile(user, { displayName: name })
-        await goNext(user.uid)
+        goNext(user.uid)
       } else {
         const { user } = await signInWithEmailAndPassword(auth, email, password)
-        await goNext(user.uid)
+        goNext(user.uid)
       }
     } catch (e: unknown) {
       const code = (e as { code?: string }).code
@@ -59,7 +51,7 @@ export default function LoginPage() {
     setLoading(true)
     try {
       const { user } = await signInWithPopup(auth, new GoogleAuthProvider())
-      await goNext(user.uid)
+      goNext(user.uid)
     } catch { setError('Google 로그인에 실패했습니다.') }
     finally { setLoading(false) }
   }
