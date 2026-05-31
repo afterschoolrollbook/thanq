@@ -80,6 +80,113 @@ function runSim(parts: Part[], allCues: CueWithPart[], selectedDate: string, pro
 }
 
 
+// ── 분석결과 플로팅 패널 ──────────────────────────────────
+function SimResultPanel({ issues, simFilter, setSimFilter, onClose }: {
+  issues: SimIssue[]
+  simFilter: SimSeverity | 'all'
+  setSimFilter: (v: SimSeverity | 'all') => void
+  onClose: () => void
+}) {
+  const [pos, setPos] = useState({ x: 16, y: 100 })
+  const [minimized, setMinimized] = useState(false)
+  const dragging = useRef(false)
+  const dragStart = useRef({ mx: 0, my: 0, px: 0, py: 0 })
+
+  function onMouseDown(e: React.MouseEvent) {
+    dragging.current = true
+    dragStart.current = { mx: e.clientX, my: e.clientY, px: pos.x, py: pos.y }
+    e.preventDefault()
+  }
+  useEffect(() => {
+    function onMove(e: MouseEvent) {
+      if (!dragging.current) return
+      setPos({
+        x: dragStart.current.px + e.clientX - dragStart.current.mx,
+        y: dragStart.current.py + e.clientY - dragStart.current.my,
+      })
+    }
+    function onUp() { dragging.current = false }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
+  }, [])
+
+  const conflictCount = issues.filter(i => i.severity === 'conflict').length
+  const warningCount  = issues.filter(i => i.severity === 'warning').length
+  const filtered = issues.filter(i => simFilter === 'all' || i.severity === simFilter)
+
+  return (
+    <div style={{ position:'fixed', left: pos.x, top: pos.y, zIndex: 200, width: 320, userSelect:'none' }}
+      className="bg-white rounded-[16px] shadow-[0_8px_32px_rgba(0,0,0,0.18)] border border-[#E2E8F0] overflow-hidden">
+      {/* 헤더 — 드래그 핸들 */}
+      <div onMouseDown={onMouseDown}
+        className="flex items-center justify-between px-3 py-2.5 bg-[#185FA5] cursor-grab active:cursor-grabbing select-none">
+        <div className="flex items-center gap-2">
+          <i className="ti ti-sparkles text-white text-[13px]"/>
+          <span className="text-[12px] font-semibold text-white">분석 결과</span>
+          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${conflictCount>0?'bg-[#FCEBEB] text-[#A32D2D]':'bg-white/20 text-white'}`}>
+            충돌 {conflictCount}
+          </span>
+          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${warningCount>0?'bg-[#FAEEDA] text-[#854F0B]':'bg-white/20 text-white'}`}>
+            주의 {warningCount}
+          </span>
+        </div>
+        <div className="flex items-center gap-1">
+          <button onClick={(e)=>{e.stopPropagation();setMinimized(v=>!v)}}
+            className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-white/20 text-white">
+            <i className={`ti ${minimized?'ti-chevron-down':'ti-chevron-up'} text-[12px]`}/>
+          </button>
+          <button onClick={(e)=>{e.stopPropagation();onClose()}}
+            className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-white/20 text-white">
+            <i className="ti ti-x text-[12px]"/>
+          </button>
+        </div>
+      </div>
+
+      {!minimized && (
+        <>
+          {/* 필터 */}
+          <div className="flex gap-1 px-3 py-2 border-b border-[#F1F5F9]">
+            {(['all','conflict','warning','info'] as const).map(sv=>(
+              <button key={sv} onClick={(e)=>{e.stopPropagation();setSimFilter(sv)}}
+                className={`px-2 py-0.5 rounded-full text-[10px] font-semibold transition-colors ${simFilter===sv?'bg-[#185FA5] text-white':'bg-[#F4F6F9] text-[#64748B] hover:bg-[#E2E8F0]'}`}>
+                {sv==='all'?`전체 ${issues.length}`:sv==='conflict'?`충돌 ${conflictCount}`:sv==='warning'?`주의 ${warningCount}`:`참고 ${issues.filter(i=>i.severity==='info').length}`}
+              </button>
+            ))}
+          </div>
+          {/* 이슈 목록 */}
+          <div style={{ maxHeight: 320, overflowY:'auto' }} className="px-2 py-2 flex flex-col gap-1.5">
+            {issues.length === 0 ? (
+              <div className="flex flex-col items-center py-5 gap-1">
+                <i className="ti ti-circle-check text-[#3B6D11] text-[24px]"/>
+                <span className="text-[12px] font-semibold text-[#3B6D11]">문제 없음! 큐시트가 깔끔해요 👍</span>
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="text-center py-4 text-[11px] text-[#A0AEC0]">해당 항목이 없어요</div>
+            ) : filtered.map(issue=>(
+              <div key={issue.id}
+                className={`rounded-[10px] px-2.5 py-2 border ${
+                  issue.severity==='conflict' ? 'bg-[#FCEBEB] border-[#F7C1C1]'
+                  : issue.severity==='warning' ? 'bg-[#FAEEDA] border-[#FAC775]'
+                  : 'bg-[#E6F1FB] border-[#B5D4F4]'
+                }`}>
+                <div className="flex items-start gap-1.5">
+                  <i className={`ti ${issue.severity==='conflict'?'ti-alert-triangle':issue.severity==='warning'?'ti-alert-circle':'ti-info-circle'} text-[12px] mt-0.5 flex-shrink-0 ${issue.severity==='conflict'?'text-[#A32D2D]':issue.severity==='warning'?'text-[#854F0B]':'text-[#185FA5]'}`}/>
+                  <div>
+                    {issue.time && <span className="text-[10px] font-semibold text-[#64748B] mr-1">{issue.time}</span>}
+                    <span className="text-[11px] font-semibold text-[#1A1A2E]">{issue.title}</span>
+                    <div className="text-[10px] text-[#64748B] mt-0.5 leading-relaxed">{issue.detail}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 // ── 달력 ──────────────────────────────────────────────────
 function MiniCalendar({ selectedDate, onChange, eventDates, prepDates, onClose }: {
   selectedDate: string; onChange: (d: string) => void; eventDates: string[]; prepDates: string[]; onClose: () => void
@@ -362,16 +469,14 @@ export default function TimelinePage() {
                   </button>
                   {showCalendar && <MiniCalendar selectedDate={selectedDate} onChange={setSelectedDate} eventDates={eventDates} prepDates={prepDates} onClose={()=>setShowCalendar(false)}/>}
                 </div>
-                {/* 프로젝트 운영 단계 배지 */}
-                {(project as any)?.phase && (
-                  <span className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold ${
-                    (project as any).phase === 'live'    ? 'bg-[#FCEBEB] text-[#A32D2D]' :
-                    (project as any).phase === 'testing' ? 'bg-[#E6F1FB] text-[#185FA5]' :
-                    'bg-[#F4F6F9] text-[#64748B]'
-                  }`}>
-                    {(project as any).phase === 'live'    && <><span className="w-1.5 h-1.5 rounded-full bg-[#E24B4A] animate-pulse"/> 진행</>}
-                    {(project as any).phase === 'testing' && <><i className="ti ti-player-play text-[10px]"/> 테스트중</>}
-                    {(project as any).phase === 'planning'&& <><i className="ti ti-pencil text-[10px]"/> 기획중</>}
+                {/* 내 위치/등급 배지 */}
+                {myMember && (
+                  <span className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold bg-white border border-[#E2E8F0]">
+                    <i className={`ti ${myMember.role==='owner'||myMember.role==='planner' ? 'ti-shield-check text-[#185FA5]' : 'ti-user text-[#64748B]'} text-[11px]`}/>
+                    <span className="text-[#1A1A2E]">
+                      {myMember.role==='owner'||myMember.role==='planner' ? '기획자' : myMember.role==='admin' ? '관리자' : myMember.role==='participant' ? '참가자' : '스태프'}
+                    </span>
+                    {myPartName && <><span className="text-[#E2E8F0]">·</span><span className="text-[#64748B]">{myPartName}</span></>}
                   </span>
                 )}
               </div>
@@ -380,12 +485,24 @@ export default function TimelinePage() {
                 <span className="text-[11px] text-[#A0AEC0] w-9 text-center">{Math.round(zoom*100)}%</span>
                 <button onClick={()=>setZoom(z=>Math.min(2,+(z+0.15).toFixed(2)))} className="w-7 h-7 rounded-full border border-[#E2E8F0] bg-white flex items-center justify-center text-[#64748B] hover:bg-[#F4F6F9]"><i className="ti ti-plus text-[13px]"/></button>
                 <button onClick={()=>setZoom(1)} className="h-7 px-2 rounded-full border border-[#E2E8F0] bg-white text-[11px] font-semibold text-[#64748B] hover:bg-[#F4F6F9] ml-1">초기화</button>
-                {/* 시뮬레이션 버튼 — 테스트중 상태일 때만 */}
+                {/* 운영 단계 배지 — 초기화 오른쪽 */}
+                {(project as any)?.phase && (
+                  <span className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold ml-1 ${
+                    (project as any).phase==='live'     ? 'bg-[#FCEBEB] text-[#A32D2D]' :
+                    (project as any).phase==='testing'  ? 'bg-[#E6F1FB] text-[#185FA5]' :
+                    'bg-[#F4F6F9] text-[#64748B]'
+                  }`}>
+                    {(project as any).phase==='live'    && <><span className="w-1.5 h-1.5 rounded-full bg-[#E24B4A] animate-pulse"/> 진행</>}
+                    {(project as any).phase==='testing' && <><i className="ti ti-player-play text-[10px]"/> 테스트중</>}
+                    {(project as any).phase==='planning'&& <><i className="ti ti-pencil text-[10px]"/> 기획중</>}
+                  </span>
+                )}
+                {/* 시뮬레이션 버튼 — 테스트중일 때만 */}
                 {(project as any)?.phase === 'testing' && (
-                  <button onClick={simState==='done' ? resetSim : startSimulation}
+                  <button onClick={simState==='scanning' ? undefined : simState==='done' ? resetSim : startSimulation}
                     className={`ml-1 h-7 px-2.5 rounded-full text-[11px] font-semibold flex items-center gap-1 transition-all ${
-                      simState==='scanning' ? 'bg-[#185FA5] text-white opacity-80 cursor-not-allowed'
-                      : simState==='done' ? 'bg-[#EAF3DE] text-[#3B6D11] border border-[#C0DD97]'
+                      simState==='scanning' ? 'bg-[#185FA5] text-white opacity-70 cursor-not-allowed'
+                      : simState==='done'   ? 'bg-[#EAF3DE] text-[#3B6D11] border border-[#C0DD97] hover:bg-[#D4EDBA]'
                       : 'bg-[#185FA5] text-white hover:bg-[#0C447C]'
                     }`}>
                     <i className={`ti ${simState==='scanning' ? 'ti-loader-2' : simState==='done' ? 'ti-refresh' : 'ti-player-play'} text-[11px] ${simState==='scanning' ? 'animate-spin' : ''}`}/>
@@ -557,59 +674,14 @@ export default function TimelinePage() {
         )}
       </div>
 
-      {/* 시뮬레이션 결과 패널 */}
+      {/* 분석결과 플로팅 패널 */}
       {simState === 'done' && (
-        <div className="bg-white border-t-2 border-[#E2E8F0] flex-shrink-0" style={{maxHeight:'40vh', overflowY:'auto'}}>
-          <div className="px-4 pt-3 pb-1 flex items-center justify-between sticky top-0 bg-white border-b border-[#F1F5F9] z-10">
-            <div className="flex items-center gap-2">
-              <i className="ti ti-sparkles text-[#185FA5] text-[14px]"/>
-              <span className="text-[13px] font-semibold text-[#1A1A2E]">분석 결과</span>
-              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${simIssues.filter(i=>i.severity==='conflict').length>0?'bg-[#FCEBEB] text-[#A32D2D]':'bg-[#EAF3DE] text-[#3B6D11]'}`}>
-                충돌 {simIssues.filter(i=>i.severity==='conflict').length}
-              </span>
-              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${simIssues.filter(i=>i.severity==='warning').length>0?'bg-[#FAEEDA] text-[#854F0B]':'bg-[#EAF3DE] text-[#3B6D11]'}`}>
-                주의 {simIssues.filter(i=>i.severity==='warning').length}
-              </span>
-            </div>
-            <div className="flex items-center gap-1">
-              {(['all','conflict','warning','info'] as const).map(sv=>(
-                <button key={sv} onClick={()=>setSimFilter(sv)}
-                  className={`px-2 py-0.5 rounded-full text-[10px] font-semibold transition-colors ${simFilter===sv?'bg-[#185FA5] text-white':'bg-[#F4F6F9] text-[#64748B]'}`}>
-                  {sv==='all'?'전체':sv==='conflict'?'충돌':sv==='warning'?'주의':'참고'}
-                </button>
-              ))}
-              <button onClick={resetSim} className="ml-1 w-6 h-6 flex items-center justify-center text-[#A0AEC0] hover:text-[#1A1A2E]">
-                <i className="ti ti-x text-[13px]"/>
-              </button>
-            </div>
-          </div>
-          {simIssues.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-5 gap-1">
-              <i className="ti ti-circle-check text-[#3B6D11] text-[28px]"/>
-              <span className="text-[13px] font-semibold text-[#3B6D11]">문제 없음! 큐시트가 깔끔해요 👍</span>
-            </div>
-          ) : (
-            <div className="px-4 py-2 flex flex-col gap-2">
-              {simIssues.filter(i=>simFilter==='all'||i.severity===simFilter).map(issue=>(
-                <div key={issue.id}
-                  className={`rounded-[10px] px-3 py-2.5 border ${
-                    issue.severity==='conflict' ? 'bg-[#FCEBEB] border-[#F7C1C1]'
-                    : issue.severity==='warning' ? 'bg-[#FAEEDA] border-[#FAC775]'
-                    : 'bg-[#E6F1FB] border-[#B5D4F4]'
-                  }`}>
-                  <div className="flex items-start gap-2">
-                    <i className={`ti ${issue.severity==='conflict'?'ti-alert-triangle':issue.severity==='warning'?'ti-alert-circle':'ti-info-circle'} text-[13px] mt-0.5 flex-shrink-0 ${issue.severity==='conflict'?'text-[#A32D2D]':issue.severity==='warning'?'text-[#854F0B]':'text-[#185FA5]'}`}/>
-                    <div>
-                      {issue.time && <span className="text-[10px] font-semibold text-[#64748B] bg-white/70 px-1.5 py-0.5 rounded-full mr-1">{issue.time}</span>}
-                      <span className="text-[12px] font-semibold text-[#1A1A2E]">{issue.title}</span>
-                      <div className="text-[11px] text-[#64748B] mt-0.5 leading-relaxed">{issue.detail}</div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <SimResultPanel
+          issues={simIssues}
+          simFilter={simFilter}
+          setSimFilter={setSimFilter}
+          onClose={resetSim}
+        />
       )}
 
       <BottomTabBar/>
