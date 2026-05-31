@@ -197,7 +197,7 @@ export default function MyPartPage() {
   const { projectId } = useParams()
   const user = useAuthStore((s) => s.user)
   const [project, setProject] = useState<{ ownerId?: string } | null>(null)
-  const [myMember, setMyMember] = useState<{ role: string; partId?: string } | null>(null)
+  const [myMember, setMyMember] = useState<{ role: string; partId?: string; partName?: string } | null>(null)
   const [allParts, setAllParts] = useState<Part[]>([])
   const [myPart, setMyPart] = useState<Part | null>(null)
   const [selectedPartId, setSelectedPartId] = useState<string | null>(null)
@@ -210,7 +210,7 @@ export default function MyPartPage() {
   const [selectedDate, setSelectedDate] = useState<string>('')
 
   const selectedPart = allParts.find(p => p.id === selectedPartId) ?? null
-  const myPartName = allParts.find(p => p.id === myMember?.partId)?.name ?? ''
+  const myPartName = allParts.find(p => p.id === myMember?.partId)?.name ?? myMember?.partName ?? ''
   const isPlannerRole = myMember?.role === 'planner' || myMember?.role === 'owner' || project?.ownerId === user?.uid
   const isParticipant = myMember?.role === 'participant'
   const hasPartAssigned = !!(myMember?.partId)
@@ -248,7 +248,7 @@ export default function MyPartPage() {
 
   useEffect(() => {
     if (!allParts.length) return
-    const mine = allParts.find(p => p.id === myMember?.partId) ?? null
+    const mine = allParts.find(p => p.id === myMember?.partId) ?? allParts.find(p => p.name === myMember?.partName) ?? null
     setMyPart(mine)
     if (!selectedPartId) setSelectedPartId(mine?.id ?? allParts[0]?.id ?? null)
   }, [myMember, allParts])
@@ -547,7 +547,7 @@ export default function MyPartPage() {
           isReadOnly={(() => {
             if (isParticipant) return true
             if (isPlanner) return false
-            return activeCue.partId !== myMember?.partId
+            return activeCue.partId !== myMember?.partId && activeCue.partName !== myMember?.partName
           })()}
           myPartName={myPartName}
         />

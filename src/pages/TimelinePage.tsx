@@ -57,9 +57,9 @@ export default function TimelinePage() {
   const { projectId } = useParams()
   const [project, setProject] = useState<Project | null>(null)
   const user = useAuthStore((s) => s.user)
-  const [myMember, setMyMember] = useState<{role: string; partId?: string} | null>(null)
+  const [myMember, setMyMember] = useState<{role: string; partId?: string; partName?: string} | null>(null)
   const [parts, setParts] = useState<Part[]>([])
-  const myPartName = parts.find(p => p.id === myMember?.partId)?.name ?? ''
+  const myPartName = parts.find(p => p.id === myMember?.partId)?.name ?? myMember?.partName ?? ''
   const [allCues, setAllCues] = useState<CueWithPart[]>([])
   const [allChecks, setAllChecks] = useState<CheckItem[]>([])
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
@@ -374,7 +374,7 @@ export default function TimelinePage() {
             const hasPartAssigned = !!(myMember?.partId)
             if (isPlannerRole && !hasPartAssigned) return false
             // 기획자 파트 배정됨 or 스태프 → 내 파트만
-            return activeCue.partId !== myMember?.partId
+            return activeCue.partId !== myMember?.partId && activeCue.partName !== myMember?.partName
           })()}
         />
       )}
