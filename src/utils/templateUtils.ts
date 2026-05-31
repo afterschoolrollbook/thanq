@@ -72,12 +72,7 @@ async function buildTemplateParts(projectId: string): Promise<TemplatePartDraft[
           } : {}),
         }
       }),
-      checkItems: checkItems
-        .filter((c) => !c.cueId)
-        .map((c) => ({
-          title: c.title,
-          category: c.category,
-        })),
+      checkItems: [],  // 파트 레벨 체크리스트 미사용 - 모든 체크리스트는 큐에 연결
     })
   }
 
@@ -269,20 +264,7 @@ export async function applyTemplateToProject(
       }
     }
 
-    // 파트 레벨 체크리스트 (큐에 미연결)
-    for (const check of tPart.checkItems) {
-      const checkRef = push(ref(db, `checkItems/${projectId}/${partId}`))
-      await set(checkRef, {
-        id: checkRef.key,
-        partId,
-        projectId,
-        // cueId 없음 → 파트 레벨
-        category: check.category,
-        title: check.title,
-        isDone: false,
-        createdAt: new Date().toISOString(),
-      })
-    }
+    // 파트 레벨 체크리스트 미사용 - 모든 체크리스트는 큐에 연결됨
   }
 }
 
