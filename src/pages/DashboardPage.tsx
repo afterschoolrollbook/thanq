@@ -39,8 +39,9 @@ interface CueChangeAlert {
   partId: string
   partName: string
   partColor: string
+  cueId?: string
   cueTitle: string
-  changeType: 'new' | 'updated' | 'deleted'
+  changeType: 'new' | 'updated' | 'deleted' | 'edited'
   detail: string
   isChecked: boolean
   createdAt: string
@@ -419,7 +420,6 @@ export default function DashboardPage() {
               ) : (
                 <div className="flex flex-col gap-2">
                   {filtered.map((alert) => {
-                    const isExpanded = expandedAlertId === alert.id
                     const isDone = alertTab === 'history'
                     return (
                       <div key={alert.id} className={`border rounded-[12px] overflow-hidden transition-all ${isDone?'bg-[#F4F6F9] border-[#E2E8F0] opacity-70':'bg-[#E6F1FB] border-[#B5D4F4]'}`}>
