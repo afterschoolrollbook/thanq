@@ -189,8 +189,6 @@ function AddCueModal({ onClose, onSave, partId, projectId, order, allParts, isPl
   const [newCheck, setNewCheck] = useState('')
   const [targetPartId, setTargetPartId] = useState(partId)
 
-  const targetPart = allParts.find(p => p.id === targetPartId) ?? currentPart
-
   function addCheck() {
     if (!newCheck.trim()) return
     setChecks(prev => [...prev, { title: newCheck.trim(), category: 'prep' }])
