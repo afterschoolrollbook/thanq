@@ -448,23 +448,34 @@ export default function TimelinePage() {
       if (!s.exists()) return
       const list: Part[] = Object.values(s.val())
       list.sort((a,b) => {
-        // 행사진행 먼저, 참가자 나중
         if (!!a.isParticipant !== !!b.isParticipant) return a.isParticipant ? 1 : -1
         return a.order - b.order
       })
       setParts(list)
-      const cueMap: CueWithPart[] = [], checkMap: CheckItem[] = []
-      let lc = 0, lck = 0
+
+      // 큐 - 파트별 독립 리스너 (실시간 반영)
+      const cuesByPart = new Map<string, CueWithPart[]>()
       list.forEach(part => {
         onValue(dbRef(db, `cueItems/${projectId}/${part.id}`), cs => {
-          lc++
-          if (cs.exists()) Object.values(cs.val() as CueItem[]).forEach((i:CueItem) => cueMap.push({...i, partName:part.name, partColor:part.color, partId:part.id}))
-          if (lc === list.length) { cueMap.sort((a,b) => timeToMinutes(a.startTime)-timeToMinutes(b.startTime)); setAllCues([...cueMap]) }
+          const partCues: CueWithPart[] = cs.exists()
+            ? Object.values(cs.val() as CueItem[]).map((i:CueItem) => ({...i, partName:part.name, partColor:part.color, partId:part.id}))
+            : []
+          cuesByPart.set(part.id, partCues)
+          const merged: CueWithPart[] = []
+          list.forEach(p => (cuesByPart.get(p.id) ?? []).forEach(c => merged.push(c)))
+          merged.sort((a,b) => timeToMinutes(a.startTime)-timeToMinutes(b.startTime))
+          setAllCues([...merged])
         })
+      })
+
+      // 체크 - 파트별 독립 리스너 (실시간 반영)
+      const checksByPart = new Map<string, CheckItem[]>()
+      list.forEach(part => {
         onValue(dbRef(db, `checkItems/${projectId}/${part.id}`), cs => {
-          lck++
-          if (cs.exists()) Object.values(cs.val() as CheckItem[]).forEach((i:CheckItem) => checkMap.push(i))
-          if (lck === list.length) setAllChecks([...checkMap])
+          checksByPart.set(part.id, cs.exists() ? Object.values(cs.val() as CheckItem[]) : [])
+          const merged: CheckItem[] = []
+          list.forEach(p => (checksByPart.get(p.id) ?? []).forEach(c => merged.push(c)))
+          setAllChecks([...merged])
         })
       })
     })
