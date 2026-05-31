@@ -98,6 +98,7 @@ export default function MyPartPage() {
   const [readOnlyToast, setReadOnlyToast] = useState(false)
 
   const selectedPart = allParts.find(p => p.id === selectedPartId) ?? null
+  const myPartName = allParts.find(p => p.id === myMember?.partId)?.name ?? ''
   const isPlannerRole = myMember?.role === 'planner' || myMember?.role === 'owner' || project?.ownerId === user?.uid
   const isParticipant = myMember?.role === 'participant'
   const hasPartAssigned = !!(myMember?.partId)  // 특정 파트에 배정됐는지
@@ -120,15 +121,20 @@ export default function MyPartPage() {
       if (s.exists()) {
         const list: Part[] = Object.values(s.val())
         list.sort((a, b) => a.order - b.order)
-        const mine = list.find((p) => p.id === myMember?.partId) ?? null
         setAllParts(list)
-        setMyPart(mine ?? null)
-        if (!selectedPartId) setSelectedPartId(mine?.id ?? list[0]?.id ?? null)  // 탭 초기 선택은 내 파트, 없으면 첫번째
         setLoading(false)
       } else setLoading(false)
     })
     return () => u()
   }, [projectId, user])
+
+  // myMember 또는 allParts 바뀔 때마다 myPart 업데이트
+  useEffect(() => {
+    if (!allParts.length) return
+    const mine = allParts.find(p => p.id === myMember?.partId) ?? null
+    setMyPart(mine)
+    if (!selectedPartId) setSelectedPartId(mine?.id ?? allParts[0]?.id ?? null)
+  }, [myMember, allParts])
 
   useEffect(() => {
     if (!projectId || !selectedPartId) return
@@ -431,7 +437,7 @@ export default function MyPartPage() {
             if (isPlanner) return false  // 파트 미배정 기획자 → 모두 수정 가능
             return activeCue.partId !== myMember?.partId  // 스태프/파트배정기획자 → 내 파트만
           })()}
-          myPartName={myPart?.name ?? ''}
+          myPartName={myPartName}
         />
       )}
     </div>

@@ -84,13 +84,17 @@ export default function TimelinePage() {
         setProject(p)
         setSelectedDate(p.date ?? new Date().toISOString().split('T')[0])
         if (user) {
+          // parts 로딩과 별도로 myMember 로딩 (순서 무관하게 myPartName 계산됨)
           onValue(dbRef(db, `projectMembers/${projectId}/${user.uid}`), (ms) => {
             if (ms.exists()) setMyMember(ms.val())
-          }, { onlyOnce: true })
+          })
         }
       }
     }, { onlyOnce: true })
   }, [projectId])
+
+  // myMember 또는 parts 바뀔 때 myPartName 자동 갱신 (이미 파생값으로 계산되므로 별도 처리 불필요)
+  // → myPartName = parts.find(p => p.id === myMember?.partId)?.name ?? '' 가 렌더마다 재계산됨 ✓
 
   // 공지 실시간 로딩
   useEffect(() => {
