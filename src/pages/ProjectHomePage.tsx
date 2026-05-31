@@ -783,7 +783,7 @@ export default function ProjectHomePage() {
               {/* 테스트중일 때만 시뮬레이션 버튼 표시 */}
               {((project as any).phase === 'testing' || !(project as any).phase && false) && (
                 <button
-                  onClick={() => setShowSimulation(true)}
+                  onClick={() => navigate(`/p/${projectId}/timeline`)}
                   className="w-full h-[42px] bg-[#E6F1FB] border-2 border-[#185FA5] rounded-[12px] text-[13px] font-semibold text-[#185FA5] flex items-center justify-center gap-2 hover:bg-[#185FA5] hover:text-white transition-all group">
                   <i className="ti ti-player-play text-[15px]" />
                   AI 시뮬레이션 실행
