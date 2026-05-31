@@ -67,14 +67,19 @@ function AddCueModal({ onClose, onSave, partId, projectId, order, allParts, isPl
         <div className="px-5 pb-3 flex-shrink-0">
           {isPlanner ? (
             <div className="flex items-center gap-2">
-              <span className={lbl} style={{margin:0}}>추가할 파트:</span>
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#E6F1FB] text-[#185FA5] flex-shrink-0 whitespace-nowrap">
+                <i className="ti ti-shield-check text-[10px]"/>기획자
+              </span>
               <select value={targetPartId} onChange={e=>setTargetPartId(e.target.value)}
-                className="flex-1 h-[32px] border border-[#E2E8F0] rounded-[8px] px-2 text-[12px] font-semibold text-[#1A1A2E] bg-white focus:outline-none focus:border-[#185FA5]">
-                {allParts.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+                className="flex-1 h-[32px] border border-[#185FA5] rounded-[8px] px-2 text-[12px] font-semibold text-[#1A1A2E] bg-white focus:outline-none focus:border-[#185FA5]">
+                {allParts.map(p=><option key={p.id} value={p.id}>{p.id===currentPart?.id ? `★ ${p.name} (내 파트)` : p.name}</option>)}
               </select>
             </div>
           ) : (
             <div className="flex items-center gap-2">
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#F4F6F9] text-[#64748B] flex-shrink-0 whitespace-nowrap">
+                <i className="ti ti-user text-[10px]"/>스태프
+              </span>
               <span className="w-2 h-2 rounded-full flex-shrink-0" style={{background:currentPart?.color??'#185FA5'}}/>
               <span className="text-[12px] font-semibold text-[#1A1A2E]">{currentPart?.name??''}</span>
               <span className="text-[11px] text-[#A0AEC0]">에 추가</span>
@@ -613,32 +618,32 @@ export default function TimelinePage() {
       <Topbar projectName={project?.name}/>
       <div className="flex-1 flex flex-col overflow-hidden">
 
-        {/* 상단 컨트롤 — 중앙 정렬 */}
+        {/* 상단 컨트롤 — 가로 스크롤 허용, 줄바꿈 방지 */}
         <div className="bg-white border-b border-[#E2E8F0] pt-3 pb-0">
-          <div className="max-w-2xl mx-auto px-5">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div className="relative" ref={calendarRef}>
-                  <button onClick={()=>setShowCalendar(v=>!v)}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-[10px] border border-[#E2E8F0] bg-white hover:bg-[#F4F6F9]">
-                    <i className="ti ti-calendar text-[#185FA5] text-[14px]"/>
-                    <span className="text-[13px] font-semibold">{selectedDate}</span>
-                    <i className={`ti ti-chevron-${showCalendar?'up':'down'} text-[#A0AEC0] text-[11px]`}/>
-                  </button>
-                  {showCalendar && <MiniCalendar selectedDate={selectedDate} onChange={setSelectedDate} eventDates={eventDates} prepDates={prepDates} onClose={()=>setShowCalendar(false)}/>}
-                </div>
-                {/* 내 위치/등급 배지 */}
-                {myMember && (
-                  <span className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold bg-white border border-[#E2E8F0]">
-                    <i className={`ti ${myMember.role==='owner'||myMember.role==='planner' ? 'ti-shield-check text-[#185FA5]' : 'ti-user text-[#64748B]'} text-[11px]`}/>
-                    <span className="text-[#1A1A2E]">
-                      {myMember.role==='owner'||myMember.role==='planner' ? '기획자' : myMember.role==='admin' ? '관리자' : myMember.role==='participant' ? '참가자' : '스태프'}
-                    </span>
-                    {myPartName && <><span className="text-[#E2E8F0]">·</span><span className="text-[#64748B]">{myPartName}</span></>}
-                  </span>
-                )}
+          <div className="overflow-x-auto">
+          <div className="px-4 min-w-max">
+            <div className="flex items-center gap-2 mb-3 flex-nowrap">
+              <div className="relative flex-shrink-0" ref={calendarRef}>
+                <button onClick={()=>setShowCalendar(v=>!v)}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-[10px] border border-[#E2E8F0] bg-white hover:bg-[#F4F6F9] whitespace-nowrap">
+                  <i className="ti ti-calendar text-[#185FA5] text-[14px]"/>
+                  <span className="text-[13px] font-semibold">{selectedDate}</span>
+                  <i className={`ti ti-chevron-${showCalendar?'up':'down'} text-[#A0AEC0] text-[11px]`}/>
+                </button>
+                {showCalendar && <MiniCalendar selectedDate={selectedDate} onChange={setSelectedDate} eventDates={eventDates} prepDates={prepDates} onClose={()=>setShowCalendar(false)}/>}
               </div>
-              <div className="flex items-center gap-1.5">
+              {/* 내 위치/등급 배지 */}
+              {myMember && (
+                <span className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold bg-white border border-[#E2E8F0] flex-shrink-0 whitespace-nowrap">
+                  <i className={`ti ${myMember.role==='owner'||myMember.role==='planner' ? 'ti-shield-check text-[#185FA5]' : 'ti-user text-[#64748B]'} text-[11px]`}/>
+                  <span className="text-[#1A1A2E]">
+                    {myMember.role==='owner'||myMember.role==='planner' ? '기획자' : myMember.role==='admin' ? '관리자' : myMember.role==='participant' ? '참가자' : '스태프'}
+                  </span>
+                  {myPartName && <><span className="text-[#E2E8F0]">·</span><span className="text-[#64748B]">{myPartName}</span></>}
+                </span>
+              )}
+              {/* 오른쪽 컨트롤들 — 왼쪽 배지와 같은 행, ml-auto로 우측 정렬 */}
+              <div className="flex items-center gap-1.5 ml-auto flex-shrink-0">
                 {/* 큐 추가 버튼 — 기획자/스태프만 */}
                 {myMember && myMember.role !== 'participant' && (
                   <button onClick={()=>setShowAddCue(true)}
@@ -676,7 +681,8 @@ export default function TimelinePage() {
                 )}
               </div>
             </div>
-            <div className="flex gap-2 overflow-x-auto pb-3 -mx-5 px-5" >
+            </div>{/* end flex items-center gap-2 */}
+            <div className="flex gap-2 overflow-x-auto pb-3" >
               <button onClick={()=>setSelectedPartId(null)} className={`flex-shrink-0 px-3 py-1 rounded-full text-[12px] font-semibold ${!selectedPartId?'bg-[#185FA5] text-white':'border border-[#E2E8F0] text-[#64748B] bg-white'}`}>전체</button>
               {parts.map(p=>(
                 <button key={p.id} onClick={()=>setSelectedPartId(selectedPartId===p.id?null:p.id)}
@@ -685,8 +691,9 @@ export default function TimelinePage() {
                   <span className="w-2 h-2 rounded-full flex-shrink-0" style={{background:p.color}}/>{p.name}
                 </button>
               ))}
-            </div>
-          </div>
+            </div>{/* end part filter flex */}
+          </div>{/* end min-w-max */}
+          </div>{/* end overflow-x-auto */}
         </div>
 
         {/* 그리드 — 중앙 정렬 + 스크롤 */}
@@ -858,7 +865,12 @@ export default function TimelinePage() {
           projectId={projectId}
           order={allCues.length}
           allParts={parts}
-          isPlanner={myMember?.role==='owner'||myMember?.role==='planner'}
+          isPlanner={
+            myMember?.role==='owner' ||
+            myMember?.role==='planner' ||
+            myMember?.role==='admin' ||
+            (user != null && project?.ownerId === user.uid)
+          }
           currentPart={parts.find(p=>p.id===myMember?.partId)??null}
         />
       )}
