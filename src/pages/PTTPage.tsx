@@ -533,7 +533,7 @@ export default function PTTPage() {
           {/* 무전기 일러스트 + PTT 버튼 통합 */}
           <button onPointerDown={startPTT} onPointerUp={stopPTT} onPointerLeave={stopPTT} disabled={micPermission !== 'granted'}
             className="select-none touch-none outline-none focus:outline-none active:scale-95 transition-transform">
-            <svg width="120" height="160" viewBox="0 0 120 160" xmlns="http://www.w3.org/2000/svg">
+            <svg width="200" height="266" viewBox="0 0 120 160" xmlns="http://www.w3.org/2000/svg">
               {/* 안테나 */}
               <rect x="82" y="4" width="5" height="28" rx="2.5" fill={pressing ? '#E24B4A' : '#A0AEC0'}/>
               {/* 몸체 */}
