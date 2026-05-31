@@ -144,6 +144,8 @@ export default function TimelinePage() {
   const [simState, setSimState] = useState<'idle'|'scanning'|'done'>('idle')
   const [simIssues, setSimIssues] = useState<SimIssue[]>([])
   const [scanY, setScanY] = useState(0)
+  const [_scanDir, setScanDir] = useState(1)
+  const [_scanPass, setScanPass] = useState(0)
   const [highlightIds, setHighlightIds] = useState<Set<string>>(new Set())
   const [simFilter, setSimFilter] = useState<SimSeverity|'all'>('all')
   const gridRef = useRef<HTMLDivElement>(null)
@@ -228,15 +230,33 @@ export default function TimelinePage() {
     setSimIssues([])
     setHighlightIds(new Set())
     setScanY(0)
+    setScanDir(1)
+    setScanPass(0)
     const gridEl = gridRef.current
     const maxH = gridEl ? gridEl.scrollHeight : 600
+    const SCAN_H = Math.round(maxH * 0.15) // 스캔 박스 세로 (전체의 15% ≈ 1시간분)
+    const TOTAL_PASSES = 3 // 왕복 3회
     let y = 0
-    const speed = Math.max(2, maxH / 120) // 약 2초에 걸쳐 스캔
+    let dir = 1
+    let pass = 0
+    const speed = Math.max(1, maxH / 300) // 느리게 (약 5초/패스)
     if (scanRef.current) clearInterval(scanRef.current)
     scanRef.current = setInterval(() => {
-      y += speed
+      y += speed * dir
+      if (dir === 1 && y + SCAN_H >= maxH) {
+        y = maxH - SCAN_H
+        dir = -1
+        pass++
+        setScanPass(pass)
+      } else if (dir === -1 && y <= 0) {
+        y = 0
+        dir = 1
+        pass++
+        setScanPass(pass)
+      }
       setScanY(y)
-      if (y >= maxH) {
+      setScanDir(dir)
+      if (pass >= TOTAL_PASSES * 2) {
         clearInterval(scanRef.current!)
         const issues = runSim(parts, allCues, selectedDate, project)
         setSimIssues(issues)
@@ -252,6 +272,8 @@ export default function TimelinePage() {
     setSimIssues([])
     setHighlightIds(new Set())
     setScanY(0)
+    setScanDir(1)
+    setScanPass(0)
   }
 
   const visibleParts = selectedPartId ? parts.filter(p=>p.id===selectedPartId) : parts
@@ -330,14 +352,28 @@ export default function TimelinePage() {
         <div className="bg-white border-b border-[#E2E8F0] pt-3 pb-0">
           <div className="max-w-2xl mx-auto px-5">
             <div className="flex items-center justify-between mb-3">
-              <div className="relative" ref={calendarRef}>
-                <button onClick={()=>setShowCalendar(v=>!v)}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-[10px] border border-[#E2E8F0] bg-white hover:bg-[#F4F6F9]">
-                  <i className="ti ti-calendar text-[#185FA5] text-[14px]"/>
-                  <span className="text-[13px] font-semibold">{selectedDate}</span>
-                  <i className={`ti ti-chevron-${showCalendar?'up':'down'} text-[#A0AEC0] text-[11px]`}/>
-                </button>
-                {showCalendar && <MiniCalendar selectedDate={selectedDate} onChange={setSelectedDate} eventDates={eventDates} prepDates={prepDates} onClose={()=>setShowCalendar(false)}/>}
+              <div className="flex items-center gap-2">
+                <div className="relative" ref={calendarRef}>
+                  <button onClick={()=>setShowCalendar(v=>!v)}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-[10px] border border-[#E2E8F0] bg-white hover:bg-[#F4F6F9]">
+                    <i className="ti ti-calendar text-[#185FA5] text-[14px]"/>
+                    <span className="text-[13px] font-semibold">{selectedDate}</span>
+                    <i className={`ti ti-chevron-${showCalendar?'up':'down'} text-[#A0AEC0] text-[11px]`}/>
+                  </button>
+                  {showCalendar && <MiniCalendar selectedDate={selectedDate} onChange={setSelectedDate} eventDates={eventDates} prepDates={prepDates} onClose={()=>setShowCalendar(false)}/>}
+                </div>
+                {/* 프로젝트 운영 단계 배지 */}
+                {(project as any)?.phase && (
+                  <span className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold ${
+                    (project as any).phase === 'live'    ? 'bg-[#FCEBEB] text-[#A32D2D]' :
+                    (project as any).phase === 'testing' ? 'bg-[#E6F1FB] text-[#185FA5]' :
+                    'bg-[#F4F6F9] text-[#64748B]'
+                  }`}>
+                    {(project as any).phase === 'live'    && <><span className="w-1.5 h-1.5 rounded-full bg-[#E24B4A] animate-pulse"/> 진행</>}
+                    {(project as any).phase === 'testing' && <><i className="ti ti-player-play text-[10px]"/> 테스트중</>}
+                    {(project as any).phase === 'planning'&& <><i className="ti ti-pencil text-[10px]"/> 기획중</>}
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-1.5">
                 <button onClick={()=>setZoom(z=>Math.max(0.5,+(z-0.15).toFixed(2)))} className="w-7 h-7 rounded-full border border-[#E2E8F0] bg-white flex items-center justify-center text-[#64748B] hover:bg-[#F4F6F9]"><i className="ti ti-minus text-[13px]"/></button>
@@ -380,13 +416,40 @@ export default function TimelinePage() {
           <div className="flex-1 flex justify-center" style={{overflow:'scroll'}} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}>
             <div style={{minWidth: totalGridW, width: totalGridW}} ref={gridRef} className="relative">
 
-              {/* 스캔 라인 오버레이 */}
-              {simState === 'scanning' && (
-                <div className="pointer-events-none absolute inset-0 z-30 overflow-hidden">
-                  <div style={{position:'absolute', top: scanY, left:0, right:0, height:3, background:'linear-gradient(90deg,transparent,#185FA5,#378ADD,#185FA5,transparent)', boxShadow:'0 0 16px 4px #185FA566'}}/>
-                  <div style={{position:'absolute', top: Math.max(0, scanY-60), left:0, right:0, height:60, background:'linear-gradient(to bottom, transparent, #185FA511)'}}/>
-                </div>
-              )}
+              {/* 스캔 박스 오버레이 */}
+              {simState === 'scanning' && (() => {
+                const gridEl = gridRef.current
+                const maxH = gridEl ? gridEl.scrollHeight : 600
+                const SCAN_H = Math.round(maxH * 0.15)
+                return (
+                  <div className="pointer-events-none absolute inset-0 z-30 overflow-hidden">
+                    {/* 스캔 박스 */}
+                    <div style={{
+                      position: 'absolute',
+                      top: scanY,
+                      left: TIME_W,
+                      right: 0,
+                      height: SCAN_H,
+                      border: '2px solid #185FA5',
+                      borderRadius: 8,
+                      background: 'rgba(24,95,165,0.04)',
+                      boxShadow: '0 0 0 1px #185FA522, 0 0 20px 4px #185FA533',
+                    }}>
+                      {/* 상단 글로우 라인 */}
+                      <div style={{position:'absolute', top:-1, left:0, right:0, height:3, background:'linear-gradient(90deg,transparent,#378ADD,#185FA5,#378ADD,transparent)', borderRadius:'8px 8px 0 0'}}/>
+                      {/* 하단 글로우 라인 */}
+                      <div style={{position:'absolute', bottom:-1, left:0, right:0, height:3, background:'linear-gradient(90deg,transparent,#378ADD,#185FA5,#378ADD,transparent)', borderRadius:'0 0 8px 8px'}}/>
+                      {/* 스캔 레이블 */}
+                      <div style={{position:'absolute', top:6, right:8, display:'flex', alignItems:'center', gap:4}}>
+                        <span style={{fontSize:9, fontWeight:700, color:'#185FA5', background:'#E6F1FB', padding:'1px 6px', borderRadius:20, opacity:0.9}}>SCANNING</span>
+                      </div>
+                    </div>
+                    {/* 위아래 어두운 오버레이 */}
+                    <div style={{position:'absolute', top:0, left:TIME_W, right:0, height: Math.max(0, scanY), background:'rgba(244,246,249,0.5)'}}/>
+                    <div style={{position:'absolute', top: scanY + SCAN_H, left:TIME_W, right:0, bottom:0, background:'rgba(244,246,249,0.5)'}}/>
+                  </div>
+                )
+              })()}
 
               {/* 파트 헤더 sticky */}
               <div className="sticky top-0 z-20 bg-white border-b-2 border-[#E2E8F0] shadow-sm">
