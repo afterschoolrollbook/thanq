@@ -58,6 +58,7 @@ export default function TimelinePage() {
   const [project, setProject] = useState<Project | null>(null)
   const user = useAuthStore((s) => s.user)
   const [myMember, setMyMember] = useState<{role: string; partId?: string} | null>(null)
+  const myPartName = parts.find(p => p.id === myMember?.partId)?.name ?? ''
   const [parts, setParts] = useState<Part[]>([])
   const [allCues, setAllCues] = useState<CueWithPart[]>([])
   const [allChecks, setAllChecks] = useState<CheckItem[]>([])
@@ -359,6 +360,7 @@ export default function TimelinePage() {
           cue={activeCue}
           projectId={projectId}
           onClose={() => setActiveCue(null)}
+          myPartName={myPartName}
           isReadOnly={(() => {
             if (!user) return true
             // 참가자 → 항상 읽기 전용

@@ -427,6 +427,7 @@ export default function MyPartPage() {
           projectId={projectId!}
           onClose={() => setActiveCue(null)}
           isReadOnly={!isMyPart}
+          myPartName={myPart?.name ?? ''}
         />
       )}
     </div>
