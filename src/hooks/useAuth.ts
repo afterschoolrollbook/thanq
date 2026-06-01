@@ -5,6 +5,8 @@ import { auth, db } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
 import type { User } from '@/types'
 
+// 앱 전체에서 onAuthStateChanged는 딱 한 번만 등록
+// useAuth()를 여러 컴포넌트(LandingPage, PrivateRoute 등)에서 호출해도 중복 구독 없음
 let isInitialized = false
 
 export function useAuth() {
@@ -14,6 +16,7 @@ export function useAuth() {
   const loading = useAuthStore((s) => s.loading)
 
   useEffect(() => {
+    // 이미 초기화된 경우 재구독하지 않음
     if (isInitialized) return
     isInitialized = true
 
@@ -40,6 +43,7 @@ export function useAuth() {
         }
         setUser(user)
 
+        // 관리자 페이지 회원 목록을 위해 DB에 유저 정보 저장/갱신
         try {
           const existingSnap = await get(ref(db, `users/${firebaseUser.uid}/createdAt`))
           await update(ref(db, `users/${firebaseUser.uid}`), {
@@ -60,10 +64,12 @@ export function useAuth() {
       setLoading(false)
     })
 
-    // cleanup: 구독만 해제, isInitialized는 리셋하지 않음
-    // → 리셋하면 LandingPage 언마운트 시 구독이 끊겨 loading이 영원히 true가 됨
-    return () => { unsubscribe() }
-  }, [setUser, setLoading])
+    // 앱이 언마운트되면 구독 해제 + 플래그 리셋
+    return () => {
+      unsubscribe()
+      isInitialized = false
+    }
+  }, [])
 
   return { user, loading }
 }
