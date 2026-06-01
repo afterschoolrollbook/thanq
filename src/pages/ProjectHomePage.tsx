@@ -740,11 +740,6 @@ export default function ProjectHomePage() {
                             <i className="ti ti-user-plus text-[14px]"/>
                           </button>
                         )}
-                        {!editingPartsBottom && (isOwner || part.id === myPartId) && (
-                          <button onClick={() => setShowInviteModal(part)} className="ml-2 text-[#A0AEC0] hover:text-[#185FA5] flex-shrink-0">
-                            <i className="ti ti-user-plus text-[14px]"/>
-                          </button>
-                        )}
                         {editingPartsBottom && (
                           <div className="flex gap-2 ml-2 flex-shrink-0">
                             {isOwner && <button onClick={() => setShowInviteModal(part)} className="text-[#A0AEC0] hover:text-[#185FA5]"><i className="ti ti-user-plus text-[14px]"/></button>}
