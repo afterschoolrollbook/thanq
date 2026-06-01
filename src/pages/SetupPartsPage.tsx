@@ -34,6 +34,7 @@ export default function SetupPartsPage() {
   const [showBulkInvite, setShowBulkInvite] = useState(false)
   const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set())
   const [bulkPreview, setBulkPreview] = useState<{ type: 'sms' | 'kakao' | 'email'; msg: string; subject?: string } | null>(null)
+  const [individualPreview, setIndividualPreview] = useState<{ type: 'sms' | 'kakao' | 'email'; msg: string; subject?: string; phone?: string; email?: string } | null>(null)
   const [projectName, setProjectName] = useState('')
 
   const joinCode = projectId?.slice(-6).toUpperCase() ?? 'AB3X7F'
@@ -126,19 +127,11 @@ export default function SetupPartsPage() {
     setInviteTarget(null)
   }
 
-  function shareKakao() {
-    const msg = `[ThanQ] ${manager.name || '담당자'}님을 초대합니다!\n참여 코드: ${joinCode}\n${joinLink}`
-    if (navigator.share) navigator.share({ title: 'ThanQ 초대', text: msg, url: joinLink })
-    else window.open(`https://story.kakao.com/share?url=${encodeURIComponent(joinLink)}`)
-  }
-  function shareSMS() {
-    window.location.href = `sms:${manager.phone.replace(/-/g, '')}?body=${encodeURIComponent(`[ThanQ] 현장 운영 앱에 초대합니다! 참여코드: ${joinCode} / ${joinLink}`)}`
-  }
-  function shareEmail() {
-    if (!manager.email) { alert('이메일 주소를 먼저 입력해주세요'); return }
-    const part = inviteTarget?.group === 'staff' ? staffParts[inviteTarget.idx] : participantParts[inviteTarget!.idx]
-    const subject = `[ThanQ] ${projectName || '프로젝트'} 참여 초대`
-    const body = `안녕하세요, ${manager.name || '담당자'}님!
+  function getIndividualMsg() {
+    const part = inviteTarget?.group === 'staff' ? staffParts[inviteTarget!.idx] : participantParts[inviteTarget!.idx]
+    return {
+      subject: `[ThanQ] ${projectName || '프로젝트'} 참여 초대`,
+      body: `안녕하세요, ${manager.name || '담당자'}님!
 
 ${projectName || '프로젝트'}에 초대합니다.${part?.name ? `
 담당 파트: ${part.name}` : ''}
@@ -147,7 +140,21 @@ ${projectName || '프로젝트'}에 초대합니다.${part?.name ? `
 참여 링크: ${joinLink}
 
 위 링크를 클릭하거나 참여 코드를 입력하시면 바로 합류할 수 있어요.`
-    window.location.href = `mailto:${manager.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+    }
+  }
+  function shareKakao() {
+    const { body } = getIndividualMsg()
+    setIndividualPreview({ type: 'kakao', msg: body })
+  }
+  function shareSMS() {
+    if (!manager.phone) { alert('전화번호를 먼저 입력해주세요'); return }
+    const { body } = getIndividualMsg()
+    setIndividualPreview({ type: 'sms', msg: body, phone: manager.phone.replace(/-/g, '') })
+  }
+  function shareEmail() {
+    if (!manager.email) { alert('이메일 주소를 먼저 입력해주세요'); return }
+    const { subject, body } = getIndividualMsg()
+    setIndividualPreview({ type: 'email', msg: body, subject, email: manager.email })
   }
   async function copyLink() { await navigator.clipboard.writeText(joinLink); alert('링크가 복사됐어요!') }
 
@@ -625,6 +632,55 @@ ${projectName || '프로젝트'} 현장 운영 앱에 초대합니다.
                   className="flex-1 h-[44px] border border-[#E2E8F0] rounded-[12px] text-[13px] text-[#64748B]">취소</button>
                 <button onClick={doSend}
                   className="flex-1 h-[44px] bg-[#185FA5] text-white rounded-[12px] text-[13px] font-semibold flex items-center justify-center gap-2">
+                  <i className="ti ti-send text-[14px]" /> 이대로 보내기
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {/* 개별 초대 미리보기 모달 */}
+      {individualPreview && (
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-end justify-center" onClick={() => setIndividualPreview(null)}>
+          <div className="bg-white rounded-t-[20px] w-full max-w-2xl pb-8" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#F4F6F9]">
+              <div className="flex items-center gap-2">
+                <i className={`ti ${individualPreview.type === 'sms' ? 'ti-message' : individualPreview.type === 'kakao' ? 'ti-message-2' : 'ti-mail'} text-[16px] text-[#185FA5]`} />
+                <div className="text-[16px] font-semibold">
+                  {individualPreview.type === 'sms' ? '문자 미리보기' : individualPreview.type === 'kakao' ? '카카오톡 미리보기' : '이메일 미리보기'}
+                </div>
+              </div>
+              <button onClick={() => setIndividualPreview(null)}><i className="ti ti-x text-[18px] text-[#A0AEC0]" /></button>
+            </div>
+            <div className="px-5 pt-4">
+              {individualPreview.type === 'email' && (
+                <div className="mb-3">
+                  <label className="text-[11px] font-semibold text-[#64748B] block mb-1.5">제목</label>
+                  <input value={individualPreview.subject} onChange={e => setIndividualPreview({ ...individualPreview, subject: e.target.value })}
+                    className="w-full h-[42px] border border-[#E2E8F0] rounded-[10px] px-3 text-[13px] outline-none focus:border-[#185FA5]" />
+                </div>
+              )}
+              <div className="mb-4">
+                <label className="text-[11px] font-semibold text-[#64748B] block mb-1.5">내용 (수정 가능)</label>
+                <textarea value={individualPreview.msg} onChange={e => setIndividualPreview({ ...individualPreview, msg: e.target.value })}
+                  rows={7} className="w-full border border-[#E2E8F0] rounded-[10px] px-3 py-2.5 text-[13px] outline-none focus:border-[#185FA5] resize-none leading-relaxed" />
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => setIndividualPreview(null)}
+                  className="flex-1 h-[44px] border border-[#E2E8F0] rounded-[12px] text-[13px] text-[#64748B]">취소</button>
+                <button onClick={() => {
+                  if (individualPreview.type === 'sms') {
+                    window.location.href = `sms:${individualPreview.phone}?body=${encodeURIComponent(individualPreview.msg)}`
+                  } else if (individualPreview.type === 'kakao') {
+                    if (navigator.share) navigator.share({ title: 'ThanQ 초대', text: individualPreview.msg, url: joinLink })
+                    else window.open(`https://story.kakao.com/share?url=${encodeURIComponent(joinLink)}`)
+                  } else if (individualPreview.type === 'email') {
+                    window.location.href = `mailto:${individualPreview.email}?subject=${encodeURIComponent(individualPreview.subject || '')}&body=${encodeURIComponent(individualPreview.msg)}`
+                  }
+                  setIndividualPreview(null)
+                }} className="flex-1 h-[44px] bg-[#185FA5] text-white rounded-[12px] text-[13px] font-semibold flex items-center justify-center gap-2">
                   <i className="ti ti-send text-[14px]" /> 이대로 보내기
                 </button>
               </div>

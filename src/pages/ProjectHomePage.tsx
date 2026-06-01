@@ -37,6 +37,7 @@ export default function ProjectHomePage() {
   const [showBulkInvite, setShowBulkInvite] = useState(false)
   const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set())
   const [bulkPreview, setBulkPreview] = useState<{ type: 'sms' | 'kakao' | 'email'; msg: string; subject?: string } | null>(null)
+  const [individualPreview, setIndividualPreview] = useState<{ type: 'sms' | 'kakao' | 'email'; msg: string; subject?: string; phone?: string; email?: string; inviteLink?: string } | null>(null)
   const [myChecks, setMyChecks] = useState<CheckItem[]>([])
   const [loading, setLoading] = useState(true)
   const [showExport, setShowExport] = useState(false)
@@ -1169,24 +1170,19 @@ ${project?.name || '프로젝트'}에 초대합니다.
                   {[
                     { label: '문자', icon: 'ti-message', color: '#3B6D11',
                       fn: () => {
-                        const phone = mgr.phone?.replace(/-/g, '')
-                        if (!phone) { alert('전화번호가 없어요. 담당자 정보를 먼저 입력해주세요.'); return }
-                        window.location.href = `sms:${phone}?body=${encodeURIComponent(msgBody)}`
-                        setShowInviteModal(null)
+                        if (!mgr.phone) { alert('전화번호가 없어요. 담당자 정보를 먼저 입력해주세요.'); return }
+                        setIndividualPreview({ type: 'sms', msg: msgBody, phone: mgr.phone.replace(/-/g, ''), inviteLink })
                       }
                     },
                     { label: '카카오톡', icon: 'ti-message-2', color: '#854F0B',
                       fn: () => {
-                        if (navigator.share) navigator.share({ title: 'ThanQ 초대', text: msgBody, url: inviteLink })
-                        else window.open(`https://story.kakao.com/share?url=${encodeURIComponent(inviteLink)}`)
-                        setShowInviteModal(null)
+                        setIndividualPreview({ type: 'kakao', msg: msgBody, inviteLink })
                       }
                     },
                     { label: '이메일', icon: 'ti-mail', color: '#185FA5',
                       fn: () => {
                         if (!mgr.email) { alert('이메일이 없어요. 담당자 정보를 먼저 입력해주세요.'); return }
-                        window.location.href = `mailto:${mgr.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(msgBody)}`
-                        setShowInviteModal(null)
+                        setIndividualPreview({ type: 'email', msg: msgBody, subject, email: mgr.email, inviteLink })
                       }
                     },
                     { label: '링크 복사', icon: 'ti-link', color: '#64748B',
@@ -1207,6 +1203,56 @@ ${project?.name || '프로젝트'}에 초대합니다.
           </div>
         )
       })()}
+
+
+      {/* 개별 초대 미리보기 모달 */}
+      {individualPreview && (
+        <div className="fixed inset-0 bg-black/50 z-[70] flex items-end justify-center" onClick={() => setIndividualPreview(null)}>
+          <div className="bg-white rounded-t-[20px] w-full max-w-2xl pb-8" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#F4F6F9]">
+              <div className="flex items-center gap-2">
+                <i className={`ti ${individualPreview.type === 'sms' ? 'ti-message' : individualPreview.type === 'kakao' ? 'ti-message-2' : 'ti-mail'} text-[16px] text-[#185FA5]`} />
+                <div className="text-[16px] font-semibold">
+                  {individualPreview.type === 'sms' ? '문자 미리보기' : individualPreview.type === 'kakao' ? '카카오톡 미리보기' : '이메일 미리보기'}
+                </div>
+              </div>
+              <button onClick={() => setIndividualPreview(null)}><i className="ti ti-x text-[18px] text-[#A0AEC0]" /></button>
+            </div>
+            <div className="px-5 pt-4">
+              {individualPreview.type === 'email' && (
+                <div className="mb-3">
+                  <label className="text-[11px] font-semibold text-[#64748B] block mb-1.5">제목</label>
+                  <input value={individualPreview.subject} onChange={e => setIndividualPreview({ ...individualPreview, subject: e.target.value })}
+                    className="w-full h-[42px] border border-[#E2E8F0] rounded-[10px] px-3 text-[13px] outline-none focus:border-[#185FA5]" />
+                </div>
+              )}
+              <div className="mb-4">
+                <label className="text-[11px] font-semibold text-[#64748B] block mb-1.5">내용 (수정 가능)</label>
+                <textarea value={individualPreview.msg} onChange={e => setIndividualPreview({ ...individualPreview, msg: e.target.value })}
+                  rows={7} className="w-full border border-[#E2E8F0] rounded-[10px] px-3 py-2.5 text-[13px] outline-none focus:border-[#185FA5] resize-none leading-relaxed" />
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => setIndividualPreview(null)}
+                  className="flex-1 h-[44px] border border-[#E2E8F0] rounded-[12px] text-[13px] text-[#64748B]">취소</button>
+                <button onClick={() => {
+                  if (individualPreview.type === 'sms') {
+                    window.location.href = `sms:${individualPreview.phone}?body=${encodeURIComponent(individualPreview.msg)}`
+                  } else if (individualPreview.type === 'kakao') {
+                    if (navigator.share) navigator.share({ title: 'ThanQ 초대', text: individualPreview.msg, url: individualPreview.inviteLink || '' })
+                    else window.open(`https://story.kakao.com/share?url=${encodeURIComponent(individualPreview.inviteLink || '')}`)
+                  } else if (individualPreview.type === 'email') {
+                    window.location.href = `mailto:${individualPreview.email}?subject=${encodeURIComponent(individualPreview.subject || '')}&body=${encodeURIComponent(individualPreview.msg)}`
+                  }
+                  setIndividualPreview(null)
+                  setShowInviteModal(null)
+                }} className="flex-1 h-[44px] bg-[#185FA5] text-white rounded-[12px] text-[13px] font-semibold flex items-center justify-center gap-2">
+                  <i className="ti ti-send text-[14px]" /> 이대로 보내기
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 역할 변경 모달 */}
       {roleChangeTarget && (
