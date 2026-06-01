@@ -5,9 +5,7 @@ import { auth, db } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
 import type { User } from '@/types'
 
-// 앱 전체에서 onAuthStateChanged는 딱 한 번만 등록
-// useAuth()를 여러 컴포넌트(LandingPage, PrivateRoute 등)에서 호출해도 중복 구독 없음
-let isInitialized = false
+let unsubscribe: (() => void) | null = null
 
 export function useAuth() {
   const setUser = useAuthStore((s) => s.setUser)
@@ -16,11 +14,10 @@ export function useAuth() {
   const loading = useAuthStore((s) => s.loading)
 
   useEffect(() => {
-    // 이미 초기화된 경우 재구독하지 않음
-    if (isInitialized) return
-    isInitialized = true
+    // 이미 구독 중이면 재등록 안 함
+    if (unsubscribe) return
 
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         let isPro = false
         try {
@@ -42,32 +39,37 @@ export function useAuth() {
           isPro,
         }
         setUser(user)
+        // DB 저장과 무관하게 즉시 loading 해제 → PrivateRoute 통과
+        setLoading(false)
 
-        // 관리자 페이지 회원 목록을 위해 DB에 유저 정보 저장/갱신
-        try {
-          const existingSnap = await get(ref(db, `users/${firebaseUser.uid}/createdAt`))
-          await update(ref(db, `users/${firebaseUser.uid}`), {
-            uid: firebaseUser.uid,
-            email: firebaseUser.email ?? '',
-            displayName: firebaseUser.displayName ?? '',
-            photoURL: firebaseUser.photoURL ?? null,
-            createdAt: existingSnap.exists()
-              ? existingSnap.val()
-              : (firebaseUser.metadata.creationTime ?? new Date().toISOString()),
-            lastLoginAt: new Date().toISOString(),
-          })
-        } catch { /* DB 저장 실패해도 로그인은 계속 */ }
+        // DB 저장은 백그라운드로 (로그인 흐름 차단 안 함)
+        get(ref(db, `users/${firebaseUser.uid}/createdAt`))
+          .then((existingSnap) =>
+            update(ref(db, `users/${firebaseUser.uid}`), {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email ?? '',
+              displayName: firebaseUser.displayName ?? '',
+              photoURL: firebaseUser.photoURL ?? null,
+              createdAt: existingSnap.exists()
+                ? existingSnap.val()
+                : (firebaseUser.metadata.creationTime ?? new Date().toISOString()),
+              lastLoginAt: new Date().toISOString(),
+            })
+          )
+          .catch(() => {})
 
       } else {
         setUser(null)
+        setLoading(false)
       }
-      setLoading(false)
     })
 
-    // 앱이 언마운트되면 구독 해제 + 플래그 리셋
+    // cleanup 시 구독 해제
     return () => {
-      unsubscribe()
-      isInitialized = false
+      if (unsubscribe) {
+        unsubscribe()
+        unsubscribe = null
+      }
     }
   }, [])
 
