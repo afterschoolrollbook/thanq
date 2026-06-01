@@ -121,7 +121,7 @@ export default function TemplateExportModal({ project, onClose }: Props) {
             <div className="flex items-start gap-2.5 bg-[#F0FDF4] border border-[#BBF7D0] rounded-[12px] px-3 py-2.5 mb-4">
               <i className="ti ti-shield-check text-[#16A34A] text-[15px] mt-0.5 flex-shrink-0" />
               <p className="text-[12px] text-[#166534]">
-                담당자 배정·연락처 정보는 <strong>자동으로 제외</strong>돼요. 메모·체크리스트에 직접 입력한 연락처는 포함될 수 있으니 확인해주세요.
+                모든 정보가 템플릿에 포함돼요. 타인에게 템플릿을 보내실 경우 <strong>중요한 정보는 알아서 삭제하시고 전달하시길 바랍니다!</strong>
               </p>
             </div>
 
