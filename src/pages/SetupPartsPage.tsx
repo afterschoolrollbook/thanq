@@ -6,7 +6,6 @@ import { useAuthStore } from '@/store/authStore'
 import { PART_COLORS } from '@/utils/fieldTerms'
 import { Topbar, StepBar, BottomTabBar } from '@/components/ui/Common'
 import type { Part } from '@/types'
-import { sendInviteEmail } from '@/utils/emailUtils'
 
 interface Manager { name: string; alias: string; phone: string; email: string }
 interface PartDraft { name: string; manager: Manager | null; isParticipant: boolean }
@@ -137,14 +136,44 @@ export default function SetupPartsPage() {
     const part = inviteTarget?.group === 'staff' ? staffParts[inviteTarget.idx] : participantParts[inviteTarget!.idx]
     setEmailSending(true)
     try {
-      await sendInviteEmail({
-        toEmail: manager.email,
-        toName: manager.name || '',
-        projectName: projectName || 'ThanQ 프로젝트',
-        partName: part?.name || '',
-        joinCode: joinCode,
-        joinLink: joinLink,
+      // Firebase에서 이메일 설정 불러오기
+      const { get, ref: dbRef } = await import('firebase/database')
+      const snap = await get(dbRef(db, 'siteSettings/email'))
+      if (!snap.exists() || !snap.val().enabled) {
+        alert('이메일 설정이 되어있지 않아요. 관리자 페이지에서 설정해주세요.'); return
+      }
+      const { apiKey, from } = snap.val()
+
+      const html = `
+        <div style="max-width:480px;margin:40px auto;font-family:sans-serif;">
+          <div style="background:#185FA5;padding:28px 32px;border-radius:16px 16px 0 0;">
+            <div style="color:#fff;font-size:22px;font-weight:700;">ThanQ</div>
+            <div style="color:#A8C8F0;font-size:13px;">현장 운영 플랫폼</div>
+          </div>
+          <div style="background:#fff;padding:32px;border:1px solid #E2E8F0;border-top:none;border-radius:0 0 16px 16px;">
+            <p style="margin:0 0 8px;color:#64748B;font-size:13px;">안녕하세요, <strong>${manager.name || '담당자'}님</strong></p>
+            <h2 style="margin:0 0 24px;color:#1A1A2E;font-size:20px;font-weight:700;">${projectName || 'ThanQ 프로젝트'}에 초대받으셨어요! 🎉</h2>
+            ${part?.name ? `<div style="background:#F4F6F9;border-radius:12px;padding:16px;margin-bottom:24px;"><div style="font-size:11px;color:#64748B;margin-bottom:4px;">배정된 파트</div><div style="font-size:15px;font-weight:600;">${part.name}</div></div>` : ''}
+            <div style="background:#EAF3DE;border-radius:12px;padding:20px;margin-bottom:24px;text-align:center;">
+              <div style="font-size:11px;color:#3B6D11;font-weight:600;margin-bottom:8px;">참여 코드</div>
+              <div style="font-size:28px;font-weight:800;color:#3B6D11;letter-spacing:6px;">${joinCode}</div>
+            </div>
+            <a href="${joinLink}" style="display:block;background:#185FA5;color:#fff;text-decoration:none;text-align:center;padding:16px;border-radius:12px;font-size:15px;font-weight:600;margin-bottom:16px;">🚀 지금 바로 참여하기</a>
+            <p style="color:#A0AEC0;font-size:11px;">${joinLink}</p>
+          </div>
+        </div>`
+
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: from,
+          to: manager.email,
+          subject: `[ThanQ] ${projectName || 'ThanQ 프로젝트'} 참여 초대`,
+          html,
+        }),
       })
+      if (!res.ok) { const err = await res.json(); throw new Error(err.message || '발송 실패') }
       alert(`✅ ${manager.name || manager.email}님께 초대 이메일을 보냈어요!`)
     } catch (e: any) {
       alert(`❌ 이메일 발송 실패: ${e.message}`)
