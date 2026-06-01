@@ -593,13 +593,22 @@ export default function MyPartPage() {
                     <span className="text-[18px] font-semibold text-[#1A1A2E]">{selectedPart.name}</span>
                     {!isMyPart && <span className="text-[10px] bg-[#F4F6F9] text-[#A0AEC0] px-2 py-0.5 rounded-full">열람 전용</span>}
                   </div>
-                  <div className="text-[12px] text-[#64748B] mt-0.5">
-                    <span>{isPlanner ? '기획자 · 전체 수정 가능' : isMyPart ? '내 파트' : isParticipant ? '참가자 · 열람만 가능' : '다른 팀 현황'}</span>
+                  <div className="flex items-center gap-2 mt-1">
                     {isPlannerRole && (
-                      <button onClick={() => setShowMyRoleModal(true)} className="ml-1 text-[#A0AEC0] hover:text-[#185FA5]">
-                        <i className="ti ti-pencil text-[10px]"/>
-                      </button>
+                      <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#E2E8F0] rounded-full text-[12px] font-semibold text-[#1A1A2E]">
+                        <i className="ti ti-shield-check text-[#185FA5] text-[13px]" />
+                        기획자
+                      </span>
                     )}
+                    <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#E2E8F0] rounded-full text-[12px] font-semibold text-[#1A1A2E]">
+                      <i className="ti ti-puzzle text-[#64748B] text-[13px]" />
+                      {myPartName || (isPlanner ? '전체 파트 관리' : '파트 미배정')}
+                      {isPlannerRole && (
+                        <button onClick={() => setShowMyRoleModal(true)} className="ml-1 text-[#A0AEC0] hover:text-[#185FA5]">
+                          <i className="ti ti-pencil text-[11px]"/>
+                        </button>
+                      )}
+                    </span>
                   </div>
                 </div>
                 {isMyPart && (
