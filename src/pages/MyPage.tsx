@@ -75,9 +75,6 @@ export default function MyPage() {
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState<{ success: number; fail: number; duplicate: number } | null>(null)
   const [dragOver, setDragOver] = useState(false)
-  const [importing, setImporting] = useState(false)
-  const [importResult, setImportResult] = useState<{ success: number; fail: number; duplicate: number } | null>(null)
-  const [dragOver, setDragOver] = useState(false)
 
   // 탈퇴
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -195,7 +192,7 @@ export default function MyPage() {
     const existingKeys = new Set(
       myTemplates.map((t) => {
         try {
-          const p = JSON.parse(t.templateFile)
+          const p = JSON.parse(t.templateFile) as TemplateFile & { templateId?: string }
           return p.templateId ?? `${p.name}__${p.authorName}__${p.createdAt}`
         } catch { return '' }
       })
@@ -207,7 +204,7 @@ export default function MyPage() {
         const text = await file.text()
         const parsed = JSON.parse(text) as TemplateFile
         if (parsed.version !== '1.0' || !Array.isArray(parsed.parts)) throw new Error()
-        const key = parsed.templateId ?? `${parsed.name}__${parsed.authorName}__${parsed.createdAt}`
+        const key = (parsed as TemplateFile & { templateId?: string }).templateId ?? `${parsed.name}__${parsed.authorName}__${parsed.createdAt}`
         if (existingKeys.has(key)) { duplicate++; continue }
         existingKeys.add(key)
         const newRef = push(ref(db, `userTemplates/${user.uid}`))
