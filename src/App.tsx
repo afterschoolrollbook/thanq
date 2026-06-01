@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useEffect } from 'react'
 import { onAuthStateChanged } from 'firebase/auth'
-import { ref, onValue, update } from 'firebase/database'
+import { ref, get, update } from 'firebase/database'
 import { auth, db } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
 import type { User } from '@/types'
@@ -36,10 +36,9 @@ function AuthProvider() {
   const setLoading = useAuthStore((s) => s.setLoading)
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
-        // ✅ 핵심: DB 조회 전에 먼저 기본 user 세팅 + loading 해제
-        // → PrivateRoute가 즉시 통과됨
+        // 먼저 기본 정보로 즉시 로그인 처리 → PrivateRoute 바로 통과
         const basicUser: User = {
           uid: firebaseUser.uid,
           email: firebaseUser.email ?? '',
@@ -52,28 +51,28 @@ function AuthProvider() {
         setUser(basicUser)
         setLoading(false)
 
-        // DB 조회는 백그라운드로 — onlyOnce 사용으로 중복 리스너 방지
-        onValue(ref(db, `users/${firebaseUser.uid}/isPro`), (proSnap) => {
-          onValue(ref(db, `admins/${firebaseUser.uid}`), (adminSnap) => {
-            const isAdmin = adminSnap.exists() && adminSnap.val() === true
-            const isPro = isAdmin || (proSnap.exists() ? Boolean(proSnap.val()) : false)
-            if (isPro) setUser({ ...basicUser, isPro: true })
+        // isPro 백그라운드 조회
+        Promise.all([
+          get(ref(db, `users/${firebaseUser.uid}/isPro`)),
+          get(ref(db, `admins/${firebaseUser.uid}`)),
+        ]).then(([proSnap, adminSnap]) => {
+          const isAdmin = adminSnap.exists() && adminSnap.val() === true
+          const isPro = isAdmin || (proSnap.exists() ? Boolean(proSnap.val()) : false)
+          if (isPro) setUser({ ...basicUser, isPro: true })
+        }).catch(() => {})
 
-            // lastLoginAt 저장
-            onValue(ref(db, `users/${firebaseUser.uid}/createdAt`), (existingSnap) => {
-              update(ref(db, `users/${firebaseUser.uid}`), {
-                uid: firebaseUser.uid,
-                email: firebaseUser.email ?? '',
-                displayName: firebaseUser.displayName ?? '',
-                photoURL: firebaseUser.photoURL ?? null,
-                createdAt: existingSnap.exists()
-                  ? existingSnap.val()
-                  : (firebaseUser.metadata.creationTime ?? new Date().toISOString()),
-                lastLoginAt: new Date().toISOString(),
-              }).catch(() => {})
-            }, { onlyOnce: true })
-          }, { onlyOnce: true })
-        }, { onlyOnce: true })
+        // lastLoginAt 저장 백그라운드
+        get(ref(db, `users/${firebaseUser.uid}/createdAt`)).then((snap) => {
+          update(ref(db, `users/${firebaseUser.uid}`), {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email ?? '',
+            displayName: firebaseUser.displayName ?? '',
+            photoURL: firebaseUser.photoURL ?? null,
+            createdAt: snap.exists() ? snap.val() : (firebaseUser.metadata.creationTime ?? new Date().toISOString()),
+            lastLoginAt: new Date().toISOString(),
+          })
+        }).catch(() => {})
+
       } else {
         setUser(null)
         setLoading(false)
