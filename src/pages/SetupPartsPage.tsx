@@ -31,6 +31,8 @@ export default function SetupPartsPage() {
   const [initialized, setInitialized] = useState(false)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const [showQR, setShowQR] = useState(false)
+  const [showBulkInvite, setShowBulkInvite] = useState(false)
+  const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set())
   const [projectName, setProjectName] = useState('')
 
   const joinCode = projectId?.slice(-6).toUpperCase() ?? 'AB3X7F'
@@ -147,6 +149,39 @@ ${projectName || '프로젝트'}에 초대합니다.${part?.name ? `
     window.location.href = `mailto:${manager.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
   }
   async function copyLink() { await navigator.clipboard.writeText(joinLink); alert('링크가 복사됐어요!') }
+
+  function getSelectedParts() {
+    return [...staffParts, ...participantParts].filter((_, i) => {
+      const key = i < staffParts.length ? `staff_${i}` : `participant_${i - staffParts.length}`
+      return bulkSelected.has(key)
+    })
+  }
+
+  function bulkSendSMS() {
+    const targets = getSelectedParts().filter(p => p.manager?.phone)
+    if (targets.length === 0) { alert('선택한 담당자 중 전화번호가 없어요'); return }
+    const phones = targets.map(p => p.manager!.phone.replace(/-/g, '')).join(',')
+    const body = `[ThanQ] ${projectName || '프로젝트'} 현장 운영 앱에 초대합니다!\n참여 코드: ${joinCode}\n참여 링크: ${baseJoinLink}`
+    window.location.href = `sms:${phones}?body=${encodeURIComponent(body)}`
+  }
+
+  function bulkSendKakao() {
+    const body = `[ThanQ] ${projectName || '프로젝트'} 현장 운영 앱에 초대합니다!\n참여 코드: ${joinCode}\n참여 링크: ${baseJoinLink}`
+    if (navigator.share) {
+      navigator.share({ title: 'ThanQ 초대', text: body, url: baseJoinLink })
+    } else {
+      window.open(`https://story.kakao.com/share?url=${encodeURIComponent(baseJoinLink)}`)
+    }
+  }
+
+  function bulkSendEmail() {
+    const targets = getSelectedParts().filter(p => p.manager?.email)
+    if (targets.length === 0) { alert('선택한 담당자 중 이메일이 없어요'); return }
+    const emails = targets.map(p => p.manager!.email).join(',')
+    const subject = `[ThanQ] ${projectName || '프로젝트'} 참여 초대`
+    const body = `안녕하세요!\n\n${projectName || '프로젝트'} 현장 운영 앱에 초대합니다.\n\n참여 코드: ${joinCode}\n참여 링크: ${baseJoinLink}\n\n위 링크를 클릭하거나 참여 코드를 입력하시면 바로 합류할 수 있어요.`
+    window.location.href = `mailto:${emails}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+  }
 
   async function handleSave() {
     const allParts = [...staffParts, ...participantParts]
@@ -300,7 +335,7 @@ ${projectName || '프로젝트'}에 초대합니다.${part?.name ? `
           <div className="text-[12px] text-[#A0AEC0] text-center mb-1">참여 코드</div>
           <div className="text-[32px] font-bold tracking-[8px] text-[#185FA5] text-center my-2">{joinCode}</div>
           <div className="text-[12px] text-[#A0AEC0] text-center mb-3">이 코드를 공유하면 담당자가 바로 합류할 수 있어요</div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2 mb-2">
             <button onClick={copyLink} className="h-[36px] border border-[#E2E8F0] rounded-[10px] flex items-center justify-center gap-1.5 text-[12px] text-[#64748B] hover:border-[#185FA5]">
               <i className="ti ti-copy text-[14px]" /> 링크 복사
             </button>
@@ -308,6 +343,10 @@ ${projectName || '프로젝트'}에 초대합니다.${part?.name ? `
               <i className="ti ti-qrcode text-[14px]" /> QR 코드
             </button>
           </div>
+          <button onClick={() => setShowBulkInvite(true)}
+            className="w-full h-[38px] bg-[#185FA5] text-white rounded-[10px] flex items-center justify-center gap-2 text-[13px] font-semibold hover:bg-[#1450A3] transition-colors">
+            <i className="ti ti-send text-[14px]" /> 전체 담당자 일괄 초대
+          </button>
         </div>
 
         {error && (
@@ -389,6 +428,141 @@ ${projectName || '프로젝트'}에 초대합니다.${part?.name ? `
           </div>
         </div>
       )}
+
+      {/* 일괄 초대 모달 */}
+      {showBulkInvite && (() => {
+        const allParts = [
+          ...staffParts.map((p, i) => ({ ...p, key: `staff_${i}`, group: '행사진행' })),
+          ...participantParts.map((p, i) => ({ ...p, key: `participant_${i}`, group: '참가자' })),
+        ]
+        const allKeys = allParts.map(p => p.key)
+        const staffKeys = staffParts.map((_, i) => `staff_${i}`)
+        const participantKeys = participantParts.map((_, i) => `participant_${i}`)
+        const isAllSelected = allKeys.every(k => bulkSelected.has(k))
+        const isStaffSelected = staffKeys.every(k => bulkSelected.has(k))
+        const isParticipantSelected = participantKeys.every(k => bulkSelected.has(k))
+
+        const toggleKey = (key: string) => {
+          const next = new Set(bulkSelected)
+          next.has(key) ? next.delete(key) : next.add(key)
+          setBulkSelected(next)
+        }
+        const toggleGroup = (keys: string[], allOn: boolean) => {
+          const next = new Set(bulkSelected)
+          keys.forEach(k => allOn ? next.delete(k) : next.add(k))
+          setBulkSelected(next)
+        }
+
+        return (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center" onClick={() => setShowBulkInvite(false)}>
+            <div className="bg-white rounded-t-[20px] w-full max-w-2xl pb-8" onClick={e => e.stopPropagation()}>
+              {/* 헤더 */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-[#F4F6F9]">
+                <div className="text-[16px] font-semibold">일괄 초대</div>
+                <button onClick={() => setShowBulkInvite(false)}><i className="ti ti-x text-[18px] text-[#A0AEC0]" /></button>
+              </div>
+
+              <div className="px-5 pt-4 pb-3">
+                {/* 전체 선택 */}
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[13px] font-semibold text-[#1A1A2E]">받는 사람 선택</span>
+                  <button onClick={() => toggleGroup(allKeys, isAllSelected)}
+                    className={`text-[12px] font-semibold px-3 py-1 rounded-full transition-colors ${isAllSelected ? 'bg-[#185FA5] text-white' : 'bg-[#F4F6F9] text-[#64748B]'}`}>
+                    전체 {isAllSelected ? '해제' : '선택'}
+                  </button>
+                </div>
+
+                {/* 행사진행 그룹 */}
+                {staffParts.length > 0 && (
+                  <div className="mb-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-1.5">
+                        <i className="ti ti-users text-[#185FA5] text-[11px]" />
+                        <span className="text-[11px] font-bold text-[#185FA5]">행사진행</span>
+                      </div>
+                      <button onClick={() => toggleGroup(staffKeys, isStaffSelected)}
+                        className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full transition-colors ${isStaffSelected ? 'bg-[#185FA5] text-white' : 'bg-[#E6F1FB] text-[#185FA5]'}`}>
+                        {isStaffSelected ? '해제' : '전체선택'}
+                      </button>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      {staffParts.map((part, i) => {
+                        const key = `staff_${i}`
+                        const checked = bulkSelected.has(key)
+                        return (
+                          <button key={key} onClick={() => toggleKey(key)}
+                            className={`flex items-center gap-3 px-3 py-2.5 rounded-[10px] border transition-colors text-left ${checked ? 'border-[#185FA5] bg-[#E6F1FB]' : 'border-[#E2E8F0] bg-white'}`}>
+                            <div className={`w-5 h-5 rounded-[5px] border-2 flex items-center justify-center flex-shrink-0 transition-colors ${checked ? 'bg-[#185FA5] border-[#185FA5]' : 'border-[#D1D5DB]'}`}>
+                              {checked && <i className="ti ti-check text-white text-[11px]" />}
+                            </div>
+                            <span className="text-[13px] font-medium flex-1">{part.name || `운영팀 ${i+1}`}</span>
+                            <span className="text-[11px] text-[#A0AEC0]">{part.manager?.name || '담당자 없음'}</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* 참가자 그룹 */}
+                {participantParts.length > 0 && (
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-1.5">
+                        <i className="ti ti-run text-[#854F0B] text-[11px]" />
+                        <span className="text-[11px] font-bold text-[#854F0B]">참가자</span>
+                      </div>
+                      <button onClick={() => toggleGroup(participantKeys, isParticipantSelected)}
+                        className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full transition-colors ${isParticipantSelected ? 'bg-[#854F0B] text-white' : 'bg-[#FEF3C7] text-[#854F0B]'}`}>
+                        {isParticipantSelected ? '해제' : '전체선택'}
+                      </button>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      {participantParts.map((part, i) => {
+                        const key = `participant_${i}`
+                        const checked = bulkSelected.has(key)
+                        return (
+                          <button key={key} onClick={() => toggleKey(key)}
+                            className={`flex items-center gap-3 px-3 py-2.5 rounded-[10px] border transition-colors text-left ${checked ? 'border-[#854F0B] bg-[#FFF8F0]' : 'border-[#E2E8F0] bg-white'}`}>
+                            <div className={`w-5 h-5 rounded-[5px] border-2 flex items-center justify-center flex-shrink-0 transition-colors ${checked ? 'bg-[#854F0B] border-[#854F0B]' : 'border-[#D1D5DB]'}`}>
+                              {checked && <i className="ti ti-check text-white text-[11px]" />}
+                            </div>
+                            <span className="text-[13px] font-medium flex-1">{part.name || `그룹 ${i+1}`}</span>
+                            <span className="text-[11px] text-[#A0AEC0]">{part.manager?.name || '담당자 없음'}</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* 선택 인원 표시 */}
+                <div className="text-[12px] text-[#64748B] mb-3">{bulkSelected.size}명 선택됨</div>
+
+                {/* 발송 방법 버튼들 */}
+                <div className="grid grid-cols-3 gap-2">
+                  <button onClick={() => { if (bulkSelected.size === 0) { alert('담당자를 선택해주세요'); return } bulkSendSMS(); setShowBulkInvite(false) }}
+                    className="flex flex-col items-center gap-1.5 py-3 border border-[#E2E8F0] rounded-[12px] hover:border-[#3B6D11] hover:bg-[#F0FDF4] transition-colors">
+                    <i className="ti ti-message text-[#3B6D11] text-[20px]" />
+                    <span className="text-[11px] text-[#64748B]">문자</span>
+                  </button>
+                  <button onClick={() => { if (bulkSelected.size === 0) { alert('담당자를 선택해주세요'); return } bulkSendKakao(); setShowBulkInvite(false) }}
+                    className="flex flex-col items-center gap-1.5 py-3 border border-[#E2E8F0] rounded-[12px] hover:border-[#854F0B] hover:bg-[#FFFBF0] transition-colors">
+                    <i className="ti ti-message-2 text-[#854F0B] text-[20px]" />
+                    <span className="text-[11px] text-[#64748B]">카카오톡</span>
+                  </button>
+                  <button onClick={() => { if (bulkSelected.size === 0) { alert('담당자를 선택해주세요'); return } bulkSendEmail(); setShowBulkInvite(false) }}
+                    className="flex flex-col items-center gap-1.5 py-3 border border-[#E2E8F0] rounded-[12px] hover:border-[#185FA5] hover:bg-[#E6F1FB] transition-colors">
+                    <i className="ti ti-mail text-[#185FA5] text-[20px]" />
+                    <span className="text-[11px] text-[#64748B]">이메일</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
       {/* QR 코드 모달 */}
       {showQR && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center px-4" onClick={() => setShowQR(false)}>
