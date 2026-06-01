@@ -533,13 +533,13 @@ export default function MyPage() {
                 </div>
               )
               return (
-              <div className="grid grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-3 gap-2">
                 {filtered.map((t) => {
                   const fl = FIELD_LABELS[t.fieldType] ?? (t.fieldLabel ? { label: t.fieldLabel, color: '#64748B' } : FIELD_LABELS.custom)
                   const parsed = (() => { try { return JSON.parse(t.templateFile) as TemplateFile } catch { return null } })()
                   const isExpanded = previewTmpl?.id === t.id
                   return (
-                    <div key={t.id} className={`bg-white border rounded-[14px] p-3 flex flex-col gap-2 transition-all ${isExpanded ? 'col-span-2 border-[#185FA5]' : 'border-[#E2E8F0]'}`}>
+                    <div key={t.id} className={`bg-white border rounded-[14px] p-3 flex flex-col gap-2 transition-all ${isExpanded ? 'col-span-3 border-[#185FA5]' : 'border-[#E2E8F0]'}`}>
                       {/* 상단: 배지 + 펼치기 */}
                       <div className="flex items-center justify-between gap-1">
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full truncate"
