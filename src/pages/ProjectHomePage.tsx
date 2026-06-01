@@ -590,6 +590,18 @@ export default function ProjectHomePage() {
           </div>
           {(() => {
             const allCues = Object.values(cuesByPart).flat()
+            if (allCues.length === 0) return (
+              <div className="flex flex-col items-center justify-center py-5 gap-2">
+                <i className="ti ti-calendar-off text-[#A0AEC0] text-[28px]" />
+                <p className="text-[12px] text-[#A0AEC0] text-center leading-relaxed">
+                  타임라인으로 가셔서<br/>일정을 추가해 주세요 😊
+                </p>
+                <button onClick={() => navigate(`/p/${projectId}/timeline`)}
+                  className="mt-1 h-[32px] px-4 bg-[#E6F1FB] text-[#185FA5] rounded-[8px] text-[12px] font-semibold hover:bg-[#185FA5] hover:text-white transition-colors">
+                  타임라인 열기
+                </button>
+              </div>
+            )
 
             // 시간대 추출
             const times = [...new Set(allCues.map(c => c.startTime))].sort()
