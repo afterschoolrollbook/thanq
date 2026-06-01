@@ -6,11 +6,13 @@ import { useAuthStore } from '@/store/authStore'
 import { PART_COLORS } from '@/utils/fieldTerms'
 import { Topbar, StepBar, BottomTabBar } from '@/components/ui/Common'
 import type { Part } from '@/types'
+import { sendInviteEmail } from '@/utils/emailUtils'
 
 interface Manager { name: string; alias: string; phone: string; email: string }
 interface PartDraft { name: string; manager: Manager | null; isParticipant: boolean }
 
 const emptyManager = (): Manager => ({ name: '', alias: '', phone: '', email: '' })
+const [emailSending, setEmailSending] = useState(false)
 
 export default function SetupPartsPage() {
   const navigate = useNavigate()
@@ -32,6 +34,7 @@ export default function SetupPartsPage() {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
 
   const joinCode = projectId?.slice(-6).toUpperCase() ?? 'AB3X7F'
+  const [projectName, setProjectName] = useState('')
   const baseJoinLink = `${window.location.origin}/join?code=${joinCode}`
   // invitePartId는 현재 초대 중인 파트의 임시 ID (저장 전이라 없음 → 저장 후 공유)
   const [invitePartLink, setInvitePartLink] = useState('')
@@ -39,6 +42,7 @@ export default function SetupPartsPage() {
 
   useEffect(() => {
     if (!projectId) return
+    onValue(ref(db, `projects/${projectId}/name`), (s) => { if (s.exists()) setProjectName(s.val()) })
     onValue(ref(db, `draftParts/${projectId}`), (snap) => {
       if (snap.exists()) {
         const saved = snap.val() as Record<string, PartDraft>
@@ -128,9 +132,25 @@ export default function SetupPartsPage() {
   function shareSMS() {
     window.location.href = `sms:${manager.phone.replace(/-/g, '')}?body=${encodeURIComponent(`[ThanQ] 현장 운영 앱에 초대합니다! 참여코드: ${joinCode} / ${joinLink}`)}`
   }
-  function shareEmail() {
-    const body = `안녕하세요 ${manager.name || ''}님,\n\nThanQ 현장 운영 앱에 초대합니다.\n\n참여 코드: ${joinCode}\n접속 링크: ${joinLink}`
-    window.location.href = `mailto:${manager.email}?subject=${encodeURIComponent('[ThanQ] 현장 운영 앱 초대')}&body=${encodeURIComponent(body)}`
+  async function shareEmail() {
+    if (!manager.email) { alert('이메일 주소를 먼저 입력해주세요'); return }
+    const part = inviteTarget?.group === 'staff' ? staffParts[inviteTarget.idx] : participantParts[inviteTarget!.idx]
+    setEmailSending(true)
+    try {
+      await sendInviteEmail({
+        toEmail: manager.email,
+        toName: manager.name || '',
+        projectName: projectName || 'ThanQ 프로젝트',
+        partName: part?.name || '',
+        joinCode: joinCode,
+        joinLink: joinLink,
+      })
+      alert(`✅ ${manager.name || manager.email}님께 초대 이메일을 보냈어요!`)
+    } catch (e: any) {
+      alert(`❌ 이메일 발송 실패: ${e.message}`)
+    } finally {
+      setEmailSending(false)
+    }
   }
   async function copyLink() { await navigator.clipboard.writeText(joinLink); alert('링크가 복사됐어요!') }
 
@@ -355,7 +375,6 @@ export default function SetupPartsPage() {
               {[
                 { fn: shareSMS,   icon: 'ti-message',   color: '#3B6D11', label: '문자' },
                 { fn: shareKakao, icon: 'ti-message-2',  color: '#3A1D1D', label: '카카오톡' },
-                { fn: shareEmail, icon: 'ti-mail',       color: '#185FA5', label: '이메일' },
                 { fn: copyLink,   icon: 'ti-link',       color: '#64748B', label: '링크 복사' },
               ].map((s) => (
                 <button key={s.label} onClick={s.fn}
@@ -364,6 +383,11 @@ export default function SetupPartsPage() {
                   <span className="text-[11px] text-[#64748B]">{s.label}</span>
                 </button>
               ))}
+              <button onClick={shareEmail} disabled={emailSending}
+                className="flex flex-col items-center gap-1.5 py-3 border border-[#E2E8F0] rounded-[10px] hover:border-[#185FA5] disabled:opacity-50">
+                <i className={`ti ${emailSending ? 'ti-loader-2 animate-spin' : 'ti-mail'} text-[20px] text-[#185FA5]`} />
+                <span className="text-[11px] text-[#64748B]">{emailSending ? '발송 중' : '이메일'}</span>
+              </button>
             </div>
 
             <div className="flex gap-2">
