@@ -57,24 +57,15 @@ export default function LoginPage() {
   async function handleGoogle() {
     setError('')
     setLoading(true)
-    console.log('[ThanQ] Google 로그인 시작')
     try {
-      console.log('[ThanQ] signInWithPopup 호출')
-      const result = await signInWithPopup(auth, new GoogleAuthProvider())
-      console.log('[ThanQ] signInWithPopup 성공 uid:', result.user.uid)
+      await signInWithPopup(auth, new GoogleAuthProvider())
       goNext()
     } catch (e: unknown) {
       const code = (e as { code?: string }).code
-      const message = (e as { message?: string }).message
-      console.error('[ThanQ] Google 에러 code:', code)
-      console.error('[ThanQ] Google 에러 message:', message)
       if (code !== 'auth/popup-closed-by-user' && code !== 'auth/cancelled-popup-request') {
-        setError(`Google 로그인 실패: ${code}`)
+        setError('Google 로그인에 실패했습니다.')
       }
-    } finally {
-      setLoading(false)
-      console.log('[ThanQ] handleGoogle 완료')
-    }
+    } finally { setLoading(false) }
   }
 
   return (
