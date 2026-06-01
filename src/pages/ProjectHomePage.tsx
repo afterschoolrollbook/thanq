@@ -796,10 +796,10 @@ export default function ProjectHomePage() {
                 <p className="text-[12px] text-[#A0AEC0] text-center py-2">파트가 없어요</p>
               )}
 
-              {isOwner && (
+              {(
                 <div className="flex flex-col gap-2 mt-2 pt-3 border-t border-[#F4F6F9]">
                   <div className="flex items-center gap-2">
-                    <button onClick={() => setEditingPartsBottom(v => !v)}
+                    <button onClick={() => isOwner ? setEditingPartsBottom(v => !v) : setShowNoPermission(true)}
                       className={`flex-1 h-[32px] rounded-[8px] text-[12px] font-semibold border transition-colors ${editingPartsBottom ? 'bg-[#185FA5] text-white border-[#185FA5]' : 'border-[#E2E8F0] text-[#64748B]'}`}>
                       {editingPartsBottom ? '편집 완료' : '파트 편집'}
                     </button>
