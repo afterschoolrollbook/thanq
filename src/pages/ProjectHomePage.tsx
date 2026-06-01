@@ -1262,19 +1262,23 @@ ${project?.name || '프로젝트'}에 초대합니다.
         </div>
       )}
 
-      {/* 권한 없음 모달 */}
+      {/* 수정 권한 없음 모달 */}
       {showNoPermission && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-5" onClick={() => setShowNoPermission(false)}>
-          <div className="bg-white rounded-[20px] p-6 w-full max-w-sm flex flex-col items-center" onClick={e => e.stopPropagation()}>
-            <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mb-4">
-              <i className="ti ti-lock text-[#DC2626] text-[32px]"/>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-6">
+          <div className="bg-white rounded-[20px] p-6 w-full max-w-sm flex flex-col items-center text-center gap-4">
+            <div className="w-16 h-16 rounded-full bg-[#FEF2F2] flex items-center justify-center">
+              <i className="ti ti-lock text-[#DC2626] text-[32px]"></i>
             </div>
-            <div className="text-[13px] text-[#64748B] mb-1">
-              <span className="font-bold text-[#1A1A2E]">{myPartName}</span> 팀이십니다.
+            <div>
+              {myPartName && (
+                <div className="text-[13px] text-[#64748B] mb-1">
+                  <span className="font-bold text-[#1A1A2E]">{myPartName}</span> 팀이십니다.
+                </div>
+              )}
+              <div className="text-[17px] font-bold text-[#1A1A2E] mb-1">수정 권한이 없어요</div>
+              <div className="text-[13px] text-[#64748B]">해당 팀에 문의해 주시길 바랍니다.</div>
             </div>
-            <div className="text-[17px] font-bold text-[#1A1A2E] mb-1">수정 권한이 없어요</div>
-            <div className="text-[13px] text-[#64748B] mb-5">기획자에게 문의해 주시길 바랍니다.</div>
-            <button onClick={() => setShowNoPermission(false)} className="w-full h-[42px] bg-[#185FA5] text-white rounded-[12px] text-[13px] font-semibold">확인</button>
+            <button onClick={() => setShowNoPermission(false)} className="w-full h-[44px] bg-[#185FA5] text-white rounded-[12px] text-[14px] font-semibold">확인</button>
           </div>
         </div>
       )}
