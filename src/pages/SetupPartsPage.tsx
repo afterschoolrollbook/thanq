@@ -30,7 +30,7 @@ export default function SetupPartsPage() {
   const [manager, setManager] = useState<Manager>(emptyManager())
   const [initialized, setInitialized] = useState(false)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
-  const [emailSending, setEmailSending] = useState(false)
+  const [showQR, setShowQR] = useState(false)
   const [projectName, setProjectName] = useState('')
 
   const joinCode = projectId?.slice(-6).toUpperCase() ?? 'AB3X7F'
@@ -131,47 +131,20 @@ export default function SetupPartsPage() {
   function shareSMS() {
     window.location.href = `sms:${manager.phone.replace(/-/g, '')}?body=${encodeURIComponent(`[ThanQ] 현장 운영 앱에 초대합니다! 참여코드: ${joinCode} / ${joinLink}`)}`
   }
-  async function shareEmail() {
+  function shareEmail() {
     if (!manager.email) { alert('이메일 주소를 먼저 입력해주세요'); return }
-    setEmailSending(true)
-    try {
-      const snap = await get(ref(db, 'siteSettings/email'))
-      if (!snap.exists() || !snap.val().enabled) {
-        alert('이메일 설정이 되어있지 않아요. 관리자 페이지에서 설정해주세요.'); return
-      }
-      const { apiKey, from } = snap.val()
-      const part = inviteTarget?.group === 'staff' ? staffParts[inviteTarget.idx] : participantParts[inviteTarget!.idx]
-      const res = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          from,
-          to: manager.email,
-          subject: `[ThanQ] ${projectName || '프로젝트'} 참여 초대`,
-          html: `<div style="max-width:480px;margin:40px auto;font-family:sans-serif;">
-            <div style="background:#185FA5;padding:28px 32px;border-radius:16px 16px 0 0;">
-              <div style="color:#fff;font-size:22px;font-weight:700;">ThanQ</div>
-            </div>
-            <div style="background:#fff;padding:32px;border:1px solid #E2E8F0;border-top:none;border-radius:0 0 16px 16px;">
-              <p style="color:#64748B;font-size:13px;">안녕하세요, <strong>${manager.name || '담당자'}님</strong></p>
-              <h2 style="color:#1A1A2E;font-size:20px;">${projectName || '프로젝트'}에 초대받으셨어요! 🎉</h2>
-              ${part?.name ? `<div style="background:#F4F6F9;border-radius:12px;padding:16px;margin-bottom:24px;"><div style="font-size:11px;color:#64748B;">배정된 파트</div><div style="font-size:15px;font-weight:600;">${part.name}</div></div>` : ''}
-              <div style="background:#EAF3DE;border-radius:12px;padding:20px;margin-bottom:24px;text-align:center;">
-                <div style="font-size:11px;color:#3B6D11;font-weight:600;margin-bottom:8px;">참여 코드</div>
-                <div style="font-size:28px;font-weight:800;color:#3B6D11;letter-spacing:6px;">${joinCode}</div>
-              </div>
-              <a href="${joinLink}" style="display:block;background:#185FA5;color:#fff;text-decoration:none;text-align:center;padding:16px;border-radius:12px;font-size:15px;font-weight:600;">🚀 지금 바로 참여하기</a>
-            </div>
-          </div>`,
-        }),
-      })
-      if (!res.ok) { const err = await res.json(); throw new Error(err.message || '발송 실패') }
-      alert(`✅ ${manager.name || manager.email}님께 초대 이메일을 보냈어요!`)
-    } catch (e: any) {
-      alert(`❌ 이메일 발송 실패: ${e.message}`)
-    } finally {
-      setEmailSending(false)
-    }
+    const part = inviteTarget?.group === 'staff' ? staffParts[inviteTarget.idx] : participantParts[inviteTarget!.idx]
+    const subject = `[ThanQ] ${projectName || '프로젝트'} 참여 초대`
+    const body = `안녕하세요, ${manager.name || '담당자'}님!
+
+${projectName || '프로젝트'}에 초대합니다.${part?.name ? `
+담당 파트: ${part.name}` : ''}
+
+참여 코드: ${joinCode}
+참여 링크: ${joinLink}
+
+위 링크를 클릭하거나 참여 코드를 입력하시면 바로 합류할 수 있어요.`
+    window.location.href = `mailto:${manager.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
   }
   async function copyLink() { await navigator.clipboard.writeText(joinLink); alert('링크가 복사됐어요!') }
 
@@ -331,7 +304,7 @@ export default function SetupPartsPage() {
             <button onClick={copyLink} className="h-[36px] border border-[#E2E8F0] rounded-[10px] flex items-center justify-center gap-1.5 text-[12px] text-[#64748B] hover:border-[#185FA5]">
               <i className="ti ti-copy text-[14px]" /> 링크 복사
             </button>
-            <button className="h-[36px] border border-[#E2E8F0] rounded-[10px] flex items-center justify-center gap-1.5 text-[12px] text-[#64748B] hover:border-[#185FA5]">
+            <button onClick={() => setShowQR(true)} className="h-[36px] border border-[#E2E8F0] rounded-[10px] flex items-center justify-center gap-1.5 text-[12px] text-[#64748B] hover:border-[#185FA5]">
               <i className="ti ti-qrcode text-[14px]" /> QR 코드
             </button>
           </div>
@@ -396,7 +369,7 @@ export default function SetupPartsPage() {
               {[
                 { fn: shareSMS,   icon: 'ti-message',   color: '#3B6D11', label: '문자' },
                 { fn: shareKakao, icon: 'ti-message-2',  color: '#3A1D1D', label: '카카오톡' },
-                { fn: shareEmail, icon: emailSending ? 'ti-loader-2' : 'ti-mail', color: '#185FA5', label: emailSending ? '발송중' : '이메일' },
+                { fn: shareEmail, icon: 'ti-mail', color: '#185FA5', label: '이메일' },
                 { fn: copyLink,   icon: 'ti-link',       color: '#64748B', label: '링크 복사' },
               ].map((s) => (
                 <button key={s.label} onClick={s.fn}
@@ -413,6 +386,34 @@ export default function SetupPartsPage() {
               <button onClick={saveManager}
                 className="flex-1 h-[42px] bg-[#185FA5] text-white rounded-[10px] text-[13px] font-semibold">저장</button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* QR 코드 모달 */}
+      {showQR && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center px-4" onClick={() => setShowQR(false)}>
+          <div className="bg-white rounded-[20px] p-6 w-full max-w-[320px] flex flex-col items-center gap-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between w-full">
+              <div className="text-[16px] font-semibold">QR 코드</div>
+              <button onClick={() => setShowQR(false)}><i className="ti ti-x text-[18px] text-[#A0AEC0]" /></button>
+            </div>
+            <p className="text-[12px] text-[#64748B] text-center">QR 코드를 스캔하면 바로 참여할 수 있어요</p>
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(joinLink)}`}
+              alt="QR 코드"
+              className="w-[200px] h-[200px] rounded-[12px]"
+            />
+            <div className="text-[24px] font-bold tracking-[6px] text-[#185FA5]">{joinCode}</div>
+            <button
+              onClick={() => {
+                const a = document.createElement('a')
+                a.href = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(joinLink)}`
+                a.download = `ThanQ_${joinCode}_QR.png`
+                a.click()
+              }}
+              className="w-full h-[42px] bg-[#185FA5] text-white rounded-[12px] text-[13px] font-semibold flex items-center justify-center gap-2">
+              <i className="ti ti-download text-[14px]" /> QR 이미지 저장
+            </button>
           </div>
         </div>
       )}
