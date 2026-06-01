@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { ref, get } from 'firebase/database'
+import { db } from '@/lib/firebase'
 import { exportProjectAsTemplateJson } from '@/utils/templateUtils'
 import { useAuthStore } from '@/store/authStore'
 import type { Project } from '@/types'
@@ -21,9 +23,18 @@ export default function TemplateExportModal({ project, onClose }: Props) {
   const [useEmail, setUseEmail] = useState(false)
   const [allowedEmail, setAllowedEmail] = useState('')
 
+  const [partnersId, setPartnersId] = useState('')
   const [exporting, setExporting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState('')
+
+  // 유저 파트너스 ID 로드
+  useEffect(() => {
+    if (!user) return
+    get(ref(db, `users/${user.uid}/partnersId`)).then((snap) => {
+      if (snap.exists()) setPartnersId(snap.val())
+    })
+  }, [user])
 
   async function handleExport() {
     if (!name.trim()) { setError('템플릿 이름을 입력해주세요'); return }
@@ -39,6 +50,9 @@ export default function TemplateExportModal({ project, onClose }: Props) {
     setExporting(true)
     setError('')
     try {
+      // 본사 fallback ID (파트너스 미등록 유저용)
+      const COMPANY_PARTNERS_ID = 'thanqapp-20'
+      const finalPartnersId = partnersId.trim() || COMPANY_PARTNERS_ID
       const exportedJson = await exportProjectAsTemplateJson(
         project.id,
         name.trim(),
@@ -47,6 +61,7 @@ export default function TemplateExportModal({ project, onClose }: Props) {
         project.fieldType,
         usePassword ? password : undefined,
         useEmail ? allowedEmail.trim() : undefined,
+        finalPartnersId,
       )
       const blob = new Blob([exportedJson], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
