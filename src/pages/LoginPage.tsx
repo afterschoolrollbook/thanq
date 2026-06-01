@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
-  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   updateProfile,
 } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
@@ -18,6 +19,25 @@ export default function LoginPage() {
   const [agreed, setAgreed] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  // 구글 리다이렉트 후 돌아왔을 때 결과 처리
+  useEffect(() => {
+    setLoading(true)
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result) {
+          // 구글 로그인 성공 → 대시보드로
+          goNext()
+        }
+      })
+      .catch((e) => {
+        const code = (e as { code?: string }).code
+        if (code && code !== 'auth/no-redirect-operation') {
+          setError('Google 로그인에 실패했습니다.')
+        }
+      })
+      .finally(() => setLoading(false))
+  }, [])
 
   function goNext() {
     const joinRedirect = sessionStorage.getItem('join_redirect')
@@ -58,18 +78,10 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
     try {
-      const provider = new GoogleAuthProvider()
-      await signInWithPopup(auth, provider)
-      goNext()
-    } catch (e: unknown) {
-      const code = (e as { code?: string }).code
-      // 사용자가 팝업을 직접 닫은 경우 에러 표시 안 함
-      if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
-        // 아무것도 안 함
-      } else {
-        setError('Google 로그인에 실패했습니다.')
-      }
-    } finally {
+      // 팝업 대신 리다이렉트 — COOP 에러 원천 차단
+      await signInWithRedirect(auth, new GoogleAuthProvider())
+    } catch {
+      setError('Google 로그인에 실패했습니다.')
       setLoading(false)
     }
   }
