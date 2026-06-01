@@ -116,6 +116,8 @@ export function CueModal({ cue, projectId, onClose, isReadOnly = false, myPartNa
   const [memo, setMemo] = useState(cue.memo ?? '')
   const [editingTitle, setEditingTitle] = useState(false)
   const [title, setTitle] = useState(cue.title)
+  const [cardColor, setCardColor] = useState(cue.cardColor ?? '')
+  const [showColorPicker, setShowColorPicker] = useState(false)
   const [savingMemo, setSavingMemo] = useState(false)
   const [editingCheckId, setEditingCheckId] = useState<string|null>(null)
   const [editingCheckTitle, setEditingCheckTitle] = useState('')
@@ -195,6 +197,16 @@ export function CueModal({ cue, projectId, onClose, isReadOnly = false, myPartNa
     await writeCueAlert('edited', `제목 변경: "${cue.title}" → "${title.trim()}"`)
     setEditingTitle(false)
   }
+  async function saveCardColor(color: string) {
+    if (isReadOnly) { showReadOnlyToast(); return }
+    setCardColor(color)
+    setShowColorPicker(false)
+    await update(dbRef(db, `cueItems/${projectId}/${cue.partId}/${cue.id}`), {
+      cardColor: color || null,
+      updatedAt: new Date().toISOString()
+    })
+  }
+
   async function uploadPhoto(file: File) {
     setUploading(true)
     try {
@@ -224,6 +236,51 @@ export function CueModal({ cue, projectId, onClose, isReadOnly = false, myPartNa
               <span className="text-[11px] bg-[#F4F6F9] text-[#64748B] px-2 py-0.5 rounded-full flex items-center gap-1">
                 <i className="ti ti-user text-[10px]"/>{assignee}
               </span>
+              {/* 큐카드 색상 표시 + 변경 */}
+              {!isReadOnly && (
+                <div className="relative">
+                  <button
+                    onClick={() => setShowColorPicker(!showColorPicker)}
+                    className="flex items-center gap-1 px-2 py-0.5 rounded-full border border-[#E2E8F0] hover:border-[#185FA5] transition-colors"
+                    title="큐카드 색상 변경">
+                    <span className="w-3 h-3 rounded-full border border-white/30"
+                      style={{background: cardColor || cue.partColor}}/>
+                    <span className="text-[10px] text-[#64748B]">색상</span>
+                    <i className="ti ti-chevron-down text-[10px] text-[#A0AEC0]"/>
+                  </button>
+                  {showColorPicker && (
+                    <div className="absolute left-0 top-7 z-10 bg-white rounded-[14px] shadow-xl border border-[#E2E8F0] p-3 w-[220px]">
+                      <div className="text-[11px] font-semibold text-[#64748B] mb-2">큐카드 색상</div>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          { color: '', label: '기본 (파트색)' },
+                          { color: '#E24B4A', label: '빨강' },
+                          { color: '#E8820C', label: '주황' },
+                          { color: '#F5C518', label: '노랑' },
+                          { color: '#3B6D11', label: '초록' },
+                          { color: '#185FA5', label: '파랑' },
+                          { color: '#534AB7', label: '보라' },
+                          { color: '#C2185B', label: '분홍' },
+                          { color: '#0F6E56', label: '청록' },
+                          { color: '#64748B', label: '회색' },
+                          { color: '#1A1A2E', label: '검정' },
+                        ].map(({color, label}) => (
+                          <button key={label} onClick={() => saveCardColor(color)} title={label}
+                            className={`relative flex items-center justify-center transition-all ${
+                              color === ''
+                                ? `w-auto px-2.5 h-7 rounded-full border-2 text-[10px] font-semibold ${!cardColor ? 'border-[#185FA5] bg-[#E6F1FB] text-[#185FA5]' : 'border-[#E2E8F0] text-[#64748B] hover:border-[#185FA5]'}`
+                                : `w-7 h-7 rounded-full border-2 ${cardColor === color ? 'border-[#1A1A2E] scale-110 shadow-md' : 'border-transparent hover:scale-105'}`
+                            }`}
+                            style={color ? {background: color} : {}}>
+                            {color === '' && '기본'}
+                            {cardColor === color && color !== '' && <i className="ti ti-check text-white text-[11px]"/>}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-2">
               {/* 무전 버튼 */}

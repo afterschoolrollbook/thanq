@@ -184,6 +184,7 @@ function AddCueModal({ onClose, onSave, partId, projectId, order, allParts, isPl
   const [durationMin, setDurationMin] = useState('')
   const [memo, setMemo] = useState('')
   const [date, setDate] = useState('')
+  const [cardColor, setCardColor] = useState('')
   const [saving, setSaving] = useState(false)
   const [checks, setChecks] = useState<{title: string; category: string}[]>([])
   const [newCheck, setNewCheck] = useState('')
@@ -209,6 +210,7 @@ function AddCueModal({ onClose, onSave, partId, projectId, order, allParts, isPl
       durationMin: Number(durationMin) || 0,
       memo: memo.trim() || undefined,
       ...(date ? { date } : {}),
+      ...(cardColor ? { cardColor } : {}),
       status: 'pending',
     }, checks)
     setSaving(false)
@@ -271,6 +273,49 @@ function AddCueModal({ onClose, onSave, partId, projectId, order, allParts, isPl
               <div>
                 <label className={lbl}>날짜 <span className="text-[#A0AEC0] font-normal">(비워두면 행사 당일)</span></label>
                 <input className={inp} type="date" value={date} onChange={e => setDate(e.target.value)} />
+              </div>
+              {/* 큐카드 색상 */}
+              <div>
+                <label className={lbl}>큐카드 색상 <span className="text-[#A0AEC0] font-normal">(선택 안 하면 파트 색상)</span></label>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {[
+                    { color: '', label: '기본' },
+                    { color: '#E24B4A', label: '빨강' },
+                    { color: '#E8820C', label: '주황' },
+                    { color: '#F5C518', label: '노랑' },
+                    { color: '#3B6D11', label: '초록' },
+                    { color: '#185FA5', label: '파랑' },
+                    { color: '#534AB7', label: '보라' },
+                    { color: '#C2185B', label: '분홍' },
+                    { color: '#0F6E56', label: '청록' },
+                    { color: '#64748B', label: '회색' },
+                    { color: '#1A1A2E', label: '검정' },
+                  ].map(({color, label}) => (
+                    <button
+                      key={label}
+                      type="button"
+                      onClick={() => setCardColor(cardColor === color ? '' : color)}
+                      title={label}
+                      className={`relative flex items-center justify-center transition-all ${
+                        color === ''
+                          ? `w-auto px-3 h-8 rounded-full border-2 text-[11px] font-semibold ${cardColor === '' ? 'border-[#185FA5] bg-[#E6F1FB] text-[#185FA5]' : 'border-[#E2E8F0] text-[#64748B] hover:border-[#185FA5]'}`
+                          : `w-8 h-8 rounded-full border-2 ${cardColor === color ? 'border-[#1A1A2E] scale-110 shadow-md' : 'border-transparent hover:scale-105'}`
+                      }`}
+                      style={color ? { background: color } : {}}
+                    >
+                      {color === '' && '기본'}
+                      {cardColor === color && color !== '' && (
+                        <i className="ti ti-check text-white text-[12px]" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+                {cardColor && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <span className="w-4 h-4 rounded-full border border-white/20 shadow-sm flex-shrink-0" style={{background: cardColor}}/>
+                    <span className="text-[11px] text-[#64748B]">이 색상으로 큐카드가 표시돼요</span>
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>

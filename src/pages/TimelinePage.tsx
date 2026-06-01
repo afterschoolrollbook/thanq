@@ -24,6 +24,7 @@ function AddCueModal({ onClose, onSave, partId, projectId, order, allParts, isPl
   const [durationMin, setDurationMin] = useState('')
   const [memo, setMemo] = useState('')
   const [date, setDate] = useState('')
+  const [cardColor, setCardColor] = useState('')
   const [saving, setSaving] = useState(false)
   const [checks, setChecks] = useState<{title:string;category:string}[]>([])
   const [newCheck, setNewCheck] = useState('')
@@ -46,6 +47,7 @@ function AddCueModal({ onClose, onSave, partId, projectId, order, allParts, isPl
       durationMin: Number(durationMin) || 0,
       memo: memo.trim() || undefined,
       ...(date ? { date } : {}),
+      ...(cardColor ? { cardColor } : {}),
       status: 'pending',
     }, checks)
     setSaving(false)
@@ -99,6 +101,49 @@ function AddCueModal({ onClose, onSave, partId, projectId, order, allParts, isPl
               <div>
                 <label className={lbl}>날짜 <span className="text-[#A0AEC0] font-normal">(비워두면 행사 당일)</span></label>
                 <input className={inp} type="date" value={date} onChange={e=>setDate(e.target.value)}/>
+              </div>
+              {/* 큐카드 색상 */}
+              <div>
+                <label className={lbl}>큐카드 색상 <span className="text-[#A0AEC0] font-normal">(선택 안 하면 파트 색상)</span></label>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {[
+                    { color: '', label: '기본' },
+                    { color: '#E24B4A', label: '빨강' },
+                    { color: '#E8820C', label: '주황' },
+                    { color: '#F5C518', label: '노랑' },
+                    { color: '#3B6D11', label: '초록' },
+                    { color: '#185FA5', label: '파랑' },
+                    { color: '#534AB7', label: '보라' },
+                    { color: '#C2185B', label: '분홍' },
+                    { color: '#0F6E56', label: '청록' },
+                    { color: '#64748B', label: '회색' },
+                    { color: '#1A1A2E', label: '검정' },
+                  ].map(({color, label}) => (
+                    <button
+                      key={label}
+                      type="button"
+                      onClick={() => setCardColor(cardColor === color ? '' : color)}
+                      title={label}
+                      className={`relative flex items-center justify-center transition-all ${
+                        color === ''
+                          ? `w-auto px-3 h-8 rounded-full border-2 text-[11px] font-semibold ${cardColor === '' ? 'border-[#185FA5] bg-[#E6F1FB] text-[#185FA5]' : 'border-[#E2E8F0] text-[#64748B] hover:border-[#185FA5]'}`
+                          : `w-8 h-8 rounded-full border-2 ${cardColor === color ? 'border-[#1A1A2E] scale-110 shadow-md' : 'border-transparent hover:scale-105'}`
+                      }`}
+                      style={color ? { background: color } : {}}
+                    >
+                      {color === '' && '기본'}
+                      {cardColor === color && color !== '' && (
+                        <i className="ti ti-check text-white text-[12px]" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+                {cardColor && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <span className="w-4 h-4 rounded-full border border-white/20 shadow-sm flex-shrink-0" style={{background: cardColor}}/>
+                    <span className="text-[11px] text-[#64748B]">이 색상으로 큐카드가 표시돼요</span>
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -845,14 +890,25 @@ export default function TimelinePage() {
                         const hasPending = total>0 && done<total
                         return (
                           <div key={cue.id} onClick={()=>setActiveCue(cue)}
-                            style={{position:'absolute',top:slotTop+PAD/2+idx*CUE_H,height:CUE_H-4,left:3,right:3}}
+                            style={{
+                              position:'absolute',top:slotTop+PAD/2+idx*CUE_H,height:CUE_H-4,left:3,right:3,
+                              // cardColor가 있으면 배경을 해당 색상의 연한 버전으로
+                              ...(cue.cardColor ? {
+                                background: cue.cardColor + '18',
+                                borderColor: cue.cardColor + '66',
+                              } : {})
+                            }}
                             className={`rounded-[8px] border bg-white shadow-sm flex flex-col justify-between px-2 py-1.5 overflow-hidden cursor-pointer transition-all ${
                               highlightIds.has(cue.id)
                                 ? 'border-[#E24B4A] shadow-[0_0_0_2px_#E24B4A44]'
-                                : 'border-[#E2E8F0] hover:border-[#185FA5] hover:shadow-md'
+                                : cue.cardColor ? 'hover:shadow-md' : 'border-[#E2E8F0] hover:border-[#185FA5] hover:shadow-md'
                             }`}>
                             <div>
-                              <div className="font-bold leading-tight text-[#1A1A2E] truncate" style={{fontSize:Math.max(9,Math.round(11*zoom))+'px'}}>{cue.title}</div>
+                              <div className="font-bold leading-tight truncate"
+                                style={{
+                                  fontSize:Math.max(9,Math.round(11*zoom))+'px',
+                                  color: cue.cardColor ?? '#1A1A2E'
+                                }}>{cue.title}</div>
                               {cue.durationMin>0 && <div className="text-[#A0AEC0] mt-0.5" style={{fontSize:Math.max(8,Math.round(9*zoom))+'px'}}>{cue.durationMin}분</div>}
                             </div>
                             <div className="flex items-center justify-between mt-1 gap-1 flex-wrap">
@@ -872,8 +928,11 @@ export default function TimelinePage() {
                                 <i className={`ti ti-bell text-[12px] ${notices.length > 0 ? 'text-[#F59E0B]' : 'text-[#E2E8F0]'}`}/>
                               </div>
                             </div>
-                            {/* 미완료 체크 있으면 왼쪽 테두리 강조 */}
-                            {hasPending && <div className="absolute left-0 top-0 bottom-0 w-0.5 rounded-l-[8px]" style={{background:part.color}}/>}
+                            {/* 왼쪽 강조선: cardColor 있으면 그 색, 없으면 파트 색 (미완료 시) */}
+                            {(cue.cardColor || hasPending) && (
+                              <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-[8px]"
+                                style={{background: cue.cardColor ?? part.color}}/>
+                            )}
                           </div>
                         )
                       })

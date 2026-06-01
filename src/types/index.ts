@@ -93,6 +93,7 @@ export interface CueItem {
   assigneeName?: string
   memo?: string
   status: CueStatus
+  cardColor?: string     // 큐카드 개별 색상 (미설정 시 파트 색상 사용)
   photos?: Record<string, { url: string; name: string; uploadedAt: string }>
   createdAt: string
   updatedAt: string
