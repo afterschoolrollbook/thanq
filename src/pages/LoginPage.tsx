@@ -8,6 +8,7 @@ import {
   updateProfile,
 } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
+import { useAuthStore } from '@/store/authStore'
 
 export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false)
@@ -17,30 +18,45 @@ export default function LoginPage() {
   const [agreed, setAgreed] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [debugLog, setDebugLog] = useState<string[]>([])
 
-  // 구글 리다이렉트 후 돌아왔을 때 결과 처리
+  const authUser = useAuthStore((s) => s.user)
+  const authLoading = useAuthStore((s) => s.loading)
+
+  function log(msg: string) {
+    const t = new Date().toLocaleTimeString()
+    setDebugLog((p) => [...p.slice(-8), `${t} ${msg}`])
+  }
+
+  // authStore에 유저가 세팅되면 바로 이동
   useEffect(() => {
-    setLoading(true)
+    log(`authUser=${authUser?.uid ?? 'null'} authLoading=${authLoading}`)
+    if (authUser && !authLoading) {
+      log('유저 확인됨 → /dashboard 이동')
+      window.location.href = '/dashboard'
+    }
+  }, [authUser, authLoading])
+
+  // 구글 리다이렉트 결과 처리
+  useEffect(() => {
+    log('getRedirectResult 호출')
     getRedirectResult(auth)
       .then((result) => {
         if (result) {
-          // 구글 로그인 성공 → 페이지 완전 새로고침으로 이동 (auth 상태 충돌 방지)
-          const joinRedirect = sessionStorage.getItem('join_redirect')
-          if (joinRedirect) {
-            sessionStorage.removeItem('join_redirect')
-            window.location.href = joinRedirect
-          } else {
-            window.location.href = '/dashboard'
-          }
+          log(`getRedirectResult 성공 uid=${result.user.uid}`)
+          // authStore의 onAuthStateChanged가 자동으로 user를 세팅하고
+          // 위의 useEffect가 /dashboard로 이동시킴
+        } else {
+          log('getRedirectResult: 리다이렉트 결과 없음 (일반 접속)')
         }
       })
       .catch((e) => {
-        const code = (e as { code?: string }).code
+        const code = (e as { code?: string }).code ?? ''
+        log(`getRedirectResult 에러: ${code}`)
         if (code && code !== 'auth/no-redirect-operation') {
-          setError('Google 로그인에 실패했습니다.')
+          setError(`Google 로그인 실패: ${code}`)
         }
       })
-      .finally(() => setLoading(false))
   }, [])
 
   function goNext() {
@@ -59,17 +75,21 @@ export default function LoginPage() {
     if (isSignUp && !name) { setError('이름을 입력해주세요.'); return }
     if (isSignUp && !agreed) { setError('약관에 동의해주세요.'); return }
     setLoading(true)
+    log('이메일 로그인 시도')
     try {
       if (isSignUp) {
         const { user } = await createUserWithEmailAndPassword(auth, email, password)
         await updateProfile(user, { displayName: name })
+        log('회원가입 성공')
         goNext()
       } else {
         await signInWithEmailAndPassword(auth, email, password)
+        log('이메일 로그인 성공')
         goNext()
       }
     } catch (e: unknown) {
       const code = (e as { code?: string }).code
+      log(`이메일 로그인 에러: ${code}`)
       if (code === 'auth/wrong-password' || code === 'auth/user-not-found' || code === 'auth/invalid-credential')
         setError('이메일 또는 비밀번호가 올바르지 않습니다.')
       else if (code === 'auth/email-already-in-use') setError('이미 사용 중인 이메일입니다.')
@@ -81,8 +101,8 @@ export default function LoginPage() {
   async function handleGoogle() {
     setError('')
     setLoading(true)
+    log('Google 리다이렉트 시작')
     try {
-      // 팝업 대신 리다이렉트 — COOP 에러 원천 차단
       await signInWithRedirect(auth, new GoogleAuthProvider())
     } catch {
       setError('Google 로그인에 실패했습니다.')
@@ -122,6 +142,13 @@ export default function LoginPage() {
           </div>
 
           {error && <p className="text-[#A32D2D] text-[12px] mt-3">{error}</p>}
+
+          {/* 디버그 로그 */}
+          {debugLog.length > 0 && (
+            <div className="mt-3 p-2 bg-gray-100 rounded-lg text-[10px] font-mono text-gray-500 space-y-0.5 break-all">
+              {debugLog.map((l, i) => <div key={i}>{l}</div>)}
+            </div>
+          )}
 
           {isSignUp && (
             <label className="flex items-start gap-2 mt-4 cursor-pointer">
