@@ -16,13 +16,18 @@ const FEATURES = [
 ]
 
 const USE_CASES = [
+  { icon: '🎂', label: '기념일/파티' },
+  { icon: '🍳', label: '요리/클래스' },
+  { icon: '📚', label: '스터디/독서' },
+  { icon: '✈️', label: '여행/캠핑' },
+  { icon: '🍽️', label: '소셜다이닝/미팅' },
+  { icon: '🏃', label: '모임/클럽' },
   { icon: '🎪', label: '행사/축제' },
-  { icon: '🎬', label: '드라마/영화' },
   { icon: '🎵', label: '콘서트/공연' },
-  { icon: '👗', label: '패션쇼' },
   { icon: '⚽', label: '스포츠/대회' },
+  { icon: '🎬', label: '드라마/영화' },
   { icon: '📺', label: '방송/생방송' },
-  { icon: '🏔', label: '모임/클럽' },
+  { icon: '👗', label: '패션쇼' },
   { icon: '✏️', label: '직접 입력' },
 ]
 

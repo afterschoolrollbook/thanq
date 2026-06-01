@@ -20,6 +20,11 @@ export type FieldType =
   | 'sports'     // 스포츠/대회
   | 'broadcast'  // 방송/생방송
   | 'club'       // 모임/클럽
+  | 'party'      // 기념일/파티
+  | 'cooking'    // 요리/클래스
+  | 'study'      // 스터디/독서모임
+  | 'travel'     // 여행/캠핑
+  | 'social'     // 소셜다이닝/미팅
   | 'custom'     // 직접 입력
 
 export interface FieldTerms {

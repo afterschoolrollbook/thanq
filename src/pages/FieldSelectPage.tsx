@@ -8,20 +8,30 @@ import { Topbar, StepBar } from '@/components/ui/Common'
 import { readTemplateFile, verifyPassword, verifyEmail, getTemplateLockType } from '@/utils/templateUtils'
 import type { FieldType, TemplateFile } from '@/types'
 
+// 일반 생활 → 전문 현장 순서로 배치
+// 일상 카테고리 먼저 → 접근성 UP
 const FIELDS = [
-  { key: 'event' as FieldType,     name: '행사 / 축제',   desc: '대학 축제, 기업 행사, 박람회',  icon: 'ti-confetti',     bg: '#E6F1FB', color: '#185FA5' },
-  { key: 'film' as FieldType,      name: '드라마 / 영화',  desc: '촬영 현장, 광고, MV',           icon: 'ti-video',        bg: '#EEEDFE', color: '#534AB7' },
-  { key: 'concert' as FieldType,   name: '콘서트 / 공연',  desc: '콘서트, 뮤지컬, 연극',          icon: 'ti-music',        bg: '#E1F5EE', color: '#0F6E56' },
-  { key: 'fashion' as FieldType,   name: '패션쇼',         desc: '런웨이, 브랜드 쇼케이스',       icon: 'ti-hanger',       bg: '#FBEAF0', color: '#993556' },
-  { key: 'sports' as FieldType,    name: '스포츠 / 대회',  desc: '마라톤, 체육대회, e스포츠',     icon: 'ti-trophy',       bg: '#FAEEDA', color: '#854F0B' },
-  { key: 'broadcast' as FieldType, name: '방송 / 생방송',  desc: 'TV, 유튜브 라이브',             icon: 'ti-broadcast',    bg: '#FAECE7', color: '#993C1D' },
-  { key: 'club' as FieldType,      name: '모임 / 클럽',    desc: '드라이브, 라이딩, 러닝, 등산',  icon: 'ti-users-group',  bg: '#E8F5E9', color: '#2E7D32' },
+  // ── 일상 / 소모임 ──
+  { key: 'party' as FieldType,     name: '기념일 / 파티',  desc: '생일파티, 돌잔치, 집들이, 기념일',    icon: 'ti-cake',         bg: '#FFF0F6', color: '#C2185B' },
+  { key: 'cooking' as FieldType,   name: '요리 / 클래스',  desc: '쿠킹클래스, 베이킹, 원데이클래스',    icon: 'ti-chef-hat',     bg: '#FFF8E1', color: '#F57F17' },
+  { key: 'study' as FieldType,     name: '스터디 / 독서',  desc: '스터디그룹, 독서모임, 자기계발 모임', icon: 'ti-book',         bg: '#E8F5E9', color: '#2E7D32' },
+  { key: 'travel' as FieldType,    name: '여행 / 캠핑',    desc: '단체여행, 캠핑, 워크숍, 수련회',      icon: 'ti-plane',        bg: '#E3F2FD', color: '#1565C0' },
+  { key: 'club' as FieldType,      name: '모임 / 클럽',    desc: '러닝크루, 자전거, 등산, 드라이브',    icon: 'ti-users-group',  bg: '#E8F5E9', color: '#2E7D32' },
+  { key: 'social' as FieldType,   name: '소셜다이닝 / 미팅', desc: '소셜다이닝, 미팅, 네트워킹파티, 번개', icon: 'ti-friends',      bg: '#FCE4EC', color: '#C2185B' },
+  // ── 행사 / 전문 현장 ──
+  { key: 'event' as FieldType,     name: '행사 / 축제',    desc: '대학 축제, 기업 행사, 박람회',        icon: 'ti-confetti',     bg: '#E6F1FB', color: '#185FA5' },
+  { key: 'concert' as FieldType,   name: '콘서트 / 공연',  desc: '콘서트, 뮤지컬, 연극',               icon: 'ti-music',        bg: '#E1F5EE', color: '#0F6E56' },
+  { key: 'sports' as FieldType,    name: '스포츠 / 대회',  desc: '마라톤, 체육대회, e스포츠',           icon: 'ti-trophy',       bg: '#FAEEDA', color: '#854F0B' },
+  { key: 'film' as FieldType,      name: '드라마 / 영화',  desc: '촬영 현장, 광고, MV',                icon: 'ti-video',        bg: '#EEEDFE', color: '#534AB7' },
+  { key: 'fashion' as FieldType,   name: '패션쇼',         desc: '런웨이, 브랜드 쇼케이스',            icon: 'ti-hanger',       bg: '#FBEAF0', color: '#993556' },
+  { key: 'broadcast' as FieldType, name: '방송 / 생방송',  desc: 'TV, 유튜브 라이브',                  icon: 'ti-broadcast',    bg: '#FAECE7', color: '#993C1D' },
 ]
 
 const FIELD_LABELS: Record<string, string> = {
   event: '행사/축제', film: '드라마/영화', concert: '콘서트/공연',
   fashion: '패션쇼', sports: '스포츠/대회', broadcast: '방송/생방송',
-  club: '모임/클럽', custom: '직접 입력',
+  club: '모임/클럽', party: '기념일/파티', cooking: '요리/클래스',
+  study: '스터디/독서', travel: '여행/캠핑', social: '소셜다이닝/미팅', custom: '직접 입력',
 }
 
 export default function FieldSelectPage() {
@@ -157,7 +167,7 @@ export default function FieldSelectPage() {
       <StepBar step={2} />
       <div className="max-w-2xl mx-auto px-5 pt-7 pb-10">
         <h2 className="text-[20px] font-semibold text-[#1A1A2E] mb-1">어떤 현장에서 사용하실 건가요?</h2>
-        <p className="text-[13px] text-[#64748B] mb-5 leading-relaxed">선택한 분야에 맞는 용어와 템플릿이 자동으로 세팅됩니다. 나중에 언제든 변경 가능해요.</p>
+        <p className="text-[13px] text-[#64748B] mb-5 leading-relaxed">일상 소모임부터 전문 현장까지! 분야에 맞는 용어와 템플릿이 자동으로 세팅돼요.</p>
 
         {/* 템플릿으로 시작하기 버튼 */}
         <button
