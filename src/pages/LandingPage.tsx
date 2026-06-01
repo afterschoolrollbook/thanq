@@ -229,6 +229,7 @@ export function UpgradeModal({ onClose }: { onClose: () => void }) {
 export default function LandingPage() {
   const navigate = useNavigate()
   // useAuth는 모듈 레벨에서 자동 초기화됨 → store에서 직접 읽기
+  const user = useAuthStore((s) => s.user)
   const authLoading = useAuthStore((s) => s.loading)
   const heroRef = useRef<HTMLDivElement>(null)
   const [scrollY, setScrollY] = useState(0)

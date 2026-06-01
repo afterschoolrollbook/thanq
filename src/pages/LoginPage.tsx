@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
-  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   updateProfile,
 } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
@@ -55,13 +56,24 @@ export default function LoginPage() {
     } finally { setLoading(false) }
   }
 
+  // 컴포넌트 마운트 시 리다이렉트 결과 처리
+  useEffect(() => {
+    getRedirectResult(auth).then((result) => {
+      if (result?.user) goNext()
+    }).catch(() => {
+      setError('Google 로그인에 실패했습니다.')
+    })
+  }, [])
+
   async function handleGoogle() {
     setLoading(true)
     try {
-      await signInWithPopup(auth, new GoogleAuthProvider())
-      goNext()
-    } catch { setError('Google 로그인에 실패했습니다.') }
-    finally { setLoading(false) }
+      await signInWithRedirect(auth, new GoogleAuthProvider())
+      // 리다이렉트 후 돌아오면 위 useEffect에서 처리
+    } catch {
+      setError('Google 로그인에 실패했습니다.')
+      setLoading(false)
+    }
   }
 
   return (
