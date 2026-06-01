@@ -66,6 +66,13 @@ export default function ProjectHomePage() {
   const [partManagers, setPartManagers] = useState<Record<string, any>>({})
   const [editPartId, setEditPartId] = useState<string|null>(null)
   const [editPartName, setEditPartName] = useState('')
+  const [showPartEditModal, setShowPartEditModal] = useState(false)
+  const [editingPart, setEditingPart] = useState<any>(null)
+  const [editManagerName, setEditManagerName] = useState('')
+  const [editManagerAlias, setEditManagerAlias] = useState('')
+  const [editManagerPhone, setEditManagerPhone] = useState('')
+  const [editManagerEmail, setEditManagerEmail] = useState('')
+  const [partEditSaving, setPartEditSaving] = useState(false)
   const [showMoveDate, setShowMoveDate] = useState(false)
   const [moveTargetDate, setMoveTargetDate] = useState('')
   const [moving, setMoving] = useState(false)
@@ -295,6 +302,33 @@ export default function ProjectHomePage() {
     if (!projectId || !editPartName.trim()) return
     await update(ref(db, `parts/${projectId}/${partId}`), { name: editPartName.trim() })
     setEditPartId(null)
+  }
+
+  async function openPartEditModal(part: any) {
+    setEditingPart(part)
+    setEditPartName(part.name)
+    const mgr = partManagers[part.id] || {}
+    setEditManagerName(mgr.name ?? part.managerName ?? '')
+    setEditManagerAlias(mgr.alias ?? '')
+    setEditManagerPhone(mgr.phone ?? '')
+    setEditManagerEmail(mgr.email ?? '')
+    setShowPartEditModal(true)
+  }
+
+  async function savePartEdit() {
+    if (!projectId || !editingPart) return
+    setPartEditSaving(true)
+    try {
+      await update(ref(db, `parts/${projectId}/${editingPart.id}`), { name: editPartName.trim() || editingPart.name })
+      await set(ref(db, `partManagers/${projectId}/${editingPart.id}`), {
+        name: editManagerName.trim(),
+        alias: editManagerAlias.trim(),
+        phone: editManagerPhone.trim(),
+        email: editManagerEmail.trim(),
+      })
+      setShowPartEditModal(false)
+    } catch { alert('저장 중 오류가 발생했어요') }
+    setPartEditSaving(false)
   }
 
   async function deletePart(partId: string) {
@@ -572,69 +606,26 @@ export default function ProjectHomePage() {
           <div className="bg-white border border-[#E2E8F0] rounded-[14px] p-3.5">
             <div className="flex items-center justify-between mb-3">
               <div className="text-[13px] font-semibold flex items-center gap-1.5">
-                <i className="ti ti-layout-grid text-[#185FA5]" /> 파트별 현황
-              </div>
-              <div className="flex items-center gap-2">
-                {isOwner && (
-                  <button onClick={() => setEditingPartsTop(v => !v)}
-                    className={`text-[12px] font-semibold px-2 py-0.5 rounded-[6px] transition-colors ${editingPartsTop ? 'bg-[#185FA5] text-white' : 'text-[#185FA5]'}`}>
-                    {editingPartsTop ? '완료' : '편집'}
-                  </button>
-                )}
-                <button onClick={() => navigate(`/p/${projectId}/dashboard`)} className="text-[12px] text-[#185FA5]">대시보드</button>
+                <i className="ti ti-layout-grid text-[#185FA5]" /> 전체 현황
               </div>
             </div>
             <div className="flex flex-col gap-2">
               {parts.map((part) => (
                 <div key={part.id} className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: part.color }} />
-                  {editingPartsTop && editPartId === part.id ? (
-                    <input
-                      className="flex-1 text-[12px] border-b border-[#185FA5] outline-none bg-transparent"
-                      value={editPartName}
-                      autoFocus
-                      onChange={e => setEditPartName(e.target.value)}
-                      onBlur={() => savePartName(part.id)}
-                      onKeyDown={e => { if (e.key === 'Enter') savePartName(part.id); if (e.key === 'Escape') setEditPartId(null) }}
-                    />
-                  ) : (
-                    <span className="text-[12px] flex-1 truncate">{part.name}</span>
-                  )}
-                  {editingPartsTop ? (
-                    <div className="flex items-center gap-1.5">
-                      <button onClick={() => { setEditPartId(part.id); setEditPartName(part.name) }}
-                        className="text-[#A0AEC0] hover:text-[#185FA5]">
-                        <i className="ti ti-pencil text-[13px]" />
-                      </button>
-                      <button onClick={() => deletePart(part.id)}
-                        className="text-[#A0AEC0] hover:text-[#E24B4A]">
-                        <i className="ti ti-trash text-[13px]" />
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <StatusBadge status={part.status} />
-                      <span className="text-[11px] text-[#A0AEC0]">{part.progress}%</span>
-                    </>
-                  )}
+                  <span className="text-[12px] flex-1 truncate">{part.name}</span>
+                  <StatusBadge status={part.status} />
+                  <span className="text-[11px] text-[#A0AEC0] w-[28px] text-right">{part.progress}%</span>
                 </div>
               ))}
-              {editingPartsTop && (
-                <button onClick={addPart}
-                  className="mt-1 h-[30px] w-full border border-dashed border-[#E2E8F0] rounded-[8px] text-[12px] text-[#A0AEC0] flex items-center justify-center gap-1 hover:border-[#185FA5] hover:text-[#185FA5] transition-colors">
-                  <i className="ti ti-plus text-[12px]" /> 파트 추가
-                </button>
-              )}
-              {parts.length === 0 && !editingPartsTop && (
-                <div className="text-center py-3">
-                  <p className="text-[12px] text-[#64748B] mb-2.5">파트가 없어요</p>
-                  <button onClick={() => setEditingPartsTop(true)}
-                    className="h-[32px] px-3 bg-[#185FA5] text-white rounded-[8px] text-[12px] font-semibold flex items-center gap-1 mx-auto">
-                    <i className="ti ti-plus text-[12px]" /> 파트 추가
-                  </button>
-                </div>
+              {parts.length === 0 && (
+                <p className="text-[12px] text-[#A0AEC0] text-center py-3">파트가 없어요</p>
               )}
             </div>
+            <button onClick={() => navigate(`/p/${projectId}/dashboard`)}
+              className="mt-3 w-full h-[32px] border border-[#E2E8F0] rounded-[8px] text-[12px] text-[#185FA5] font-semibold hover:bg-[#E6F1FB] transition-colors">
+              대시보드 보기
+            </button>
           </div>
         </div>
 
@@ -664,30 +655,23 @@ export default function ProjectHomePage() {
                     {parts.filter(p => !(p as any).isParticipant).map(part => (
                       <div key={part.id} className="flex items-center gap-2 py-1">
                         <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: part.color }} />
-                        {editingPartsBottom && editPartId === part.id ? (
-                          <input
-                            className="flex-1 text-[13px] border-b border-[#185FA5] outline-none bg-transparent"
-                            value={editPartName} autoFocus
-                            onChange={e => setEditPartName(e.target.value)}
-                            onBlur={() => savePartName(part.id)}
-                            onKeyDown={e => { if (e.key === 'Enter') savePartName(part.id); if (e.key === 'Escape') setEditPartId(null) }}
-                          />
-                        ) : (
-                          <span className="text-[13px] flex-1">{part.name}</span>
+                        <span className="text-[13px] flex-1">{part.name}</span>
+                        {!editingPartsBottom && (
+                          <>
+                            <StatusBadge status={part.status} />
+                            <span className="text-[11px] text-[#A0AEC0] w-[28px] text-right">{part.progress}%</span>
+                          </>
                         )}
                         <span className="text-[12px] text-[#A0AEC0]">{partManagers[part.id]?.name ?? part.managerName ?? '담당자 없음'}</span>
-                        {/* 내 파트 뱃지 */}
                         {part.id === myPartId && (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#E6F1FB] text-[#185FA5]">나</span>
                         )}
-                        {/* 초대 버튼 - 기획자 또는 내 파트 팀장 */}
                         {(isOwner || part.id === myPartId) && !editingPartsBottom && (
                           <button onClick={() => setShowInviteModal(part)}
                             className="text-[#A0AEC0] hover:text-[#185FA5] transition-colors">
                             <i className="ti ti-user-plus text-[13px]"/>
                           </button>
                         )}
-                        {/* 역할 뱃지 */}
                         {(part as any).memberRole && (
                           <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
                             style={{ background: ROLE_BG[(part as any).memberRole] ?? '#F4F6F9', color: ROLE_COLOR[(part as any).memberRole] ?? '#64748B' }}>
@@ -697,7 +681,7 @@ export default function ProjectHomePage() {
                         {editingPartsBottom && (
                           <div className="flex gap-1.5">
                             {isOwner && <button onClick={() => { setRoleChangeTarget(part); setRoleChangeRole((part as any).memberRole ?? 'staff') }} className="text-[#A0AEC0] hover:text-[#E8820C]"><i className="ti ti-shield text-[13px]"/></button>}
-                            <button onClick={(e) => { e.stopPropagation(); setEditPartId(part.id); setEditPartName(part.name) }} className="text-[#A0AEC0] hover:text-[#185FA5]"><i className="ti ti-pencil text-[13px]"/></button>
+                            <button onClick={(e) => { e.stopPropagation(); openPartEditModal(part) }} className="text-[#A0AEC0] hover:text-[#185FA5]"><i className="ti ti-pencil text-[13px]"/></button>
                             <button onClick={() => deletePart(part.id)} className="text-[#A0AEC0] hover:text-[#E24B4A]"><i className="ti ti-trash text-[13px]"/></button>
                           </div>
                         )}
@@ -718,16 +702,12 @@ export default function ProjectHomePage() {
                     {parts.filter(p => (p as any).isParticipant).map(part => (
                       <div key={part.id} className="flex items-center gap-2 py-1">
                         <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: part.color }} />
-                        {editingPartsBottom && editPartId === part.id ? (
-                          <input
-                            className="flex-1 text-[13px] border-b border-[#185FA5] outline-none bg-transparent"
-                            value={editPartName} autoFocus
-                            onChange={e => setEditPartName(e.target.value)}
-                            onBlur={() => savePartName(part.id)}
-                            onKeyDown={e => { if (e.key === 'Enter') savePartName(part.id); if (e.key === 'Escape') setEditPartId(null) }}
-                          />
-                        ) : (
-                          <span className="text-[13px] flex-1">{part.name}</span>
+                        <span className="text-[13px] flex-1">{part.name}</span>
+                        {!editingPartsBottom && (
+                          <>
+                            <StatusBadge status={part.status} />
+                            <span className="text-[11px] text-[#A0AEC0] w-[28px] text-right">{part.progress}%</span>
+                          </>
                         )}
                         <span className="text-[12px] text-[#A0AEC0]">{partManagers[part.id]?.name ?? part.managerName ?? '담당자 없음'}</span>
                         {part.id === myPartId && (
@@ -736,7 +716,7 @@ export default function ProjectHomePage() {
                         {editingPartsBottom && (
                           <div className="flex gap-1.5">
                             {isOwner && <button onClick={() => { setRoleChangeTarget(part); setRoleChangeRole((part as any).memberRole ?? 'participant') }} className="text-[#A0AEC0] hover:text-[#E8820C]"><i className="ti ti-shield text-[13px]"/></button>}
-                            <button onClick={() => { setEditPartId(part.id); setEditPartName(part.name) }} className="text-[#A0AEC0] hover:text-[#185FA5]"><i className="ti ti-pencil text-[13px]"/></button>
+                            <button onClick={() => openPartEditModal(part)} className="text-[#A0AEC0] hover:text-[#185FA5]"><i className="ti ti-pencil text-[13px]"/></button>
                             <button onClick={() => deletePart(part.id)} className="text-[#A0AEC0] hover:text-[#E24B4A]"><i className="ti ti-trash text-[13px]"/></button>
                           </div>
                         )}
