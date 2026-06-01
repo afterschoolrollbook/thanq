@@ -395,7 +395,7 @@ export function CueModal({ cue, projectId, onClose, isReadOnly = false, myPartNa
                     </span>
                   )}
                   {/* 재료 카테고리면 재료 구매 버튼 */}
-                  {item.category === 'prep' && (
+                  {(item.category === 'prep' || item.category === 'setup') && (
                     <a href={getCoupangLink(item.title)} target="_blank" rel="noopener noreferrer"
                       className="flex-shrink-0 w-6 h-6 rounded flex items-center justify-center text-[#A0AEC0] hover:text-[#E24B4A] transition-colors"
                       title="재료 구매 (쿠팡)">
