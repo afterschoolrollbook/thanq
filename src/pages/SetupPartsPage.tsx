@@ -11,7 +11,6 @@ interface Manager { name: string; alias: string; phone: string; email: string }
 interface PartDraft { name: string; manager: Manager | null; isParticipant: boolean }
 
 const emptyManager = (): Manager => ({ name: '', alias: '', phone: '', email: '' })
-const [emailSending, setEmailSending] = useState(false)
 
 export default function SetupPartsPage() {
   const navigate = useNavigate()
@@ -33,7 +32,6 @@ export default function SetupPartsPage() {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
 
   const joinCode = projectId?.slice(-6).toUpperCase() ?? 'AB3X7F'
-  const [projectName, setProjectName] = useState('')
   const baseJoinLink = `${window.location.origin}/join?code=${joinCode}`
   // invitePartId는 현재 초대 중인 파트의 임시 ID (저장 전이라 없음 → 저장 후 공유)
   const [invitePartLink, setInvitePartLink] = useState('')
@@ -41,7 +39,6 @@ export default function SetupPartsPage() {
 
   useEffect(() => {
     if (!projectId) return
-    onValue(ref(db, `projects/${projectId}/name`), (s) => { if (s.exists()) setProjectName(s.val()) })
     onValue(ref(db, `draftParts/${projectId}`), (snap) => {
       if (snap.exists()) {
         const saved = snap.val() as Record<string, PartDraft>
@@ -131,55 +128,9 @@ export default function SetupPartsPage() {
   function shareSMS() {
     window.location.href = `sms:${manager.phone.replace(/-/g, '')}?body=${encodeURIComponent(`[ThanQ] 현장 운영 앱에 초대합니다! 참여코드: ${joinCode} / ${joinLink}`)}`
   }
-  async function shareEmail() {
-    if (!manager.email) { alert('이메일 주소를 먼저 입력해주세요'); return }
-    const part = inviteTarget?.group === 'staff' ? staffParts[inviteTarget.idx] : participantParts[inviteTarget!.idx]
-    setEmailSending(true)
-    try {
-      // Firebase에서 이메일 설정 불러오기
-      const { get, ref: dbRef } = await import('firebase/database')
-      const snap = await get(dbRef(db, 'siteSettings/email'))
-      if (!snap.exists() || !snap.val().enabled) {
-        alert('이메일 설정이 되어있지 않아요. 관리자 페이지에서 설정해주세요.'); return
-      }
-      const { apiKey, from } = snap.val()
-
-      const html = `
-        <div style="max-width:480px;margin:40px auto;font-family:sans-serif;">
-          <div style="background:#185FA5;padding:28px 32px;border-radius:16px 16px 0 0;">
-            <div style="color:#fff;font-size:22px;font-weight:700;">ThanQ</div>
-            <div style="color:#A8C8F0;font-size:13px;">현장 운영 플랫폼</div>
-          </div>
-          <div style="background:#fff;padding:32px;border:1px solid #E2E8F0;border-top:none;border-radius:0 0 16px 16px;">
-            <p style="margin:0 0 8px;color:#64748B;font-size:13px;">안녕하세요, <strong>${manager.name || '담당자'}님</strong></p>
-            <h2 style="margin:0 0 24px;color:#1A1A2E;font-size:20px;font-weight:700;">${projectName || 'ThanQ 프로젝트'}에 초대받으셨어요! 🎉</h2>
-            ${part?.name ? `<div style="background:#F4F6F9;border-radius:12px;padding:16px;margin-bottom:24px;"><div style="font-size:11px;color:#64748B;margin-bottom:4px;">배정된 파트</div><div style="font-size:15px;font-weight:600;">${part.name}</div></div>` : ''}
-            <div style="background:#EAF3DE;border-radius:12px;padding:20px;margin-bottom:24px;text-align:center;">
-              <div style="font-size:11px;color:#3B6D11;font-weight:600;margin-bottom:8px;">참여 코드</div>
-              <div style="font-size:28px;font-weight:800;color:#3B6D11;letter-spacing:6px;">${joinCode}</div>
-            </div>
-            <a href="${joinLink}" style="display:block;background:#185FA5;color:#fff;text-decoration:none;text-align:center;padding:16px;border-radius:12px;font-size:15px;font-weight:600;margin-bottom:16px;">🚀 지금 바로 참여하기</a>
-            <p style="color:#A0AEC0;font-size:11px;">${joinLink}</p>
-          </div>
-        </div>`
-
-      const res = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          from: from,
-          to: manager.email,
-          subject: `[ThanQ] ${projectName || 'ThanQ 프로젝트'} 참여 초대`,
-          html,
-        }),
-      })
-      if (!res.ok) { const err = await res.json(); throw new Error(err.message || '발송 실패') }
-      alert(`✅ ${manager.name || manager.email}님께 초대 이메일을 보냈어요!`)
-    } catch (e: any) {
-      alert(`❌ 이메일 발송 실패: ${e.message}`)
-    } finally {
-      setEmailSending(false)
-    }
+  function shareEmail() {
+    const body = `안녕하세요 ${manager.name || ''}님,\n\nThanQ 현장 운영 앱에 초대합니다.\n\n참여 코드: ${joinCode}\n접속 링크: ${joinLink}`
+    window.location.href = `mailto:${manager.email}?subject=${encodeURIComponent('[ThanQ] 현장 운영 앱 초대')}&body=${encodeURIComponent(body)}`
   }
   async function copyLink() { await navigator.clipboard.writeText(joinLink); alert('링크가 복사됐어요!') }
 
@@ -404,6 +355,7 @@ export default function SetupPartsPage() {
               {[
                 { fn: shareSMS,   icon: 'ti-message',   color: '#3B6D11', label: '문자' },
                 { fn: shareKakao, icon: 'ti-message-2',  color: '#3A1D1D', label: '카카오톡' },
+                { fn: shareEmail, icon: 'ti-mail',       color: '#185FA5', label: '이메일' },
                 { fn: copyLink,   icon: 'ti-link',       color: '#64748B', label: '링크 복사' },
               ].map((s) => (
                 <button key={s.label} onClick={s.fn}
@@ -412,11 +364,6 @@ export default function SetupPartsPage() {
                   <span className="text-[11px] text-[#64748B]">{s.label}</span>
                 </button>
               ))}
-              <button onClick={shareEmail} disabled={emailSending}
-                className="flex flex-col items-center gap-1.5 py-3 border border-[#E2E8F0] rounded-[10px] hover:border-[#185FA5] disabled:opacity-50">
-                <i className={`ti ${emailSending ? 'ti-loader-2 animate-spin' : 'ti-mail'} text-[20px] text-[#185FA5]`} />
-                <span className="text-[11px] text-[#64748B]">{emailSending ? '발송 중' : '이메일'}</span>
-              </button>
             </div>
 
             <div className="flex gap-2">
