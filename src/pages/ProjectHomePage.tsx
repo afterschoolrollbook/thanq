@@ -580,45 +580,19 @@ export default function ProjectHomePage() {
           </div>
         </div>
 
-        {/* 일정표 + 파트별 현황 */}
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <div className="bg-white border border-[#E2E8F0] rounded-[14px] p-3.5">
-            <div className="flex items-center justify-between mb-3">
-              <div className="text-[13px] font-semibold flex items-center gap-1.5">
-                <i className="ti ti-calendar-event text-[#185FA5]" /> 일정표
-              </div>
-              <button onClick={() => navigate(`/p/${projectId}/timeline`)} className="text-[12px] text-[#185FA5]">전체 보기</button>
+        {/* 일정표 */}
+        <div className="bg-white border border-[#E2E8F0] rounded-[14px] p-3.5 mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-[13px] font-semibold flex items-center gap-1.5">
+              <i className="ti ti-calendar-event text-[#185FA5]" /> 일정표
             </div>
-            <button onClick={() => navigate(`/p/${projectId}/timeline`)}
-              className="w-full h-[72px] bg-[#F4F6F9] rounded-[10px] flex flex-col items-center justify-center gap-1 hover:bg-[#E6F1FB] transition-colors">
-              <i className="ti ti-layout-columns text-[#185FA5] text-[22px]" />
-              <span className="text-[11px] text-[#185FA5] font-semibold">타임라인 열기</span>
-            </button>
+            <button onClick={() => navigate(`/p/${projectId}/timeline`)} className="text-[12px] text-[#185FA5]">전체 보기</button>
           </div>
-          <div className="bg-white border border-[#E2E8F0] rounded-[14px] p-3.5">
-            <div className="flex items-center justify-between mb-3">
-              <div className="text-[13px] font-semibold flex items-center gap-1.5">
-                <i className="ti ti-layout-grid text-[#185FA5]" /> 전체 현황
-              </div>
-            </div>
-            <div className="flex flex-col gap-2">
-              {parts.map((part) => (
-                <div key={part.id} className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: part.color }} />
-                  <span className="text-[12px] flex-1 truncate">{part.name}</span>
-                  <StatusBadge status={part.status} />
-                  <span className="text-[11px] text-[#A0AEC0] w-[28px] text-right">{part.progress}%</span>
-                </div>
-              ))}
-              {parts.length === 0 && (
-                <p className="text-[12px] text-[#A0AEC0] text-center py-3">파트가 없어요</p>
-              )}
-            </div>
-            <button onClick={() => navigate(`/p/${projectId}/dashboard`)}
-              className="mt-3 w-full h-[32px] border border-[#E2E8F0] rounded-[8px] text-[12px] text-[#185FA5] font-semibold hover:bg-[#E6F1FB] transition-colors">
-              대시보드 보기
-            </button>
-          </div>
+          <button onClick={() => navigate(`/p/${projectId}/timeline`)}
+            className="w-full h-[72px] bg-[#F4F6F9] rounded-[10px] flex flex-col items-center justify-center gap-1 hover:bg-[#E6F1FB] transition-colors">
+            <i className="ti ti-layout-columns text-[#185FA5] text-[22px]" />
+            <span className="text-[11px] text-[#185FA5] font-semibold">타임라인 열기</span>
+          </button>
         </div>
 
         {/* 파트 구성 */}
@@ -648,13 +622,9 @@ export default function ProjectHomePage() {
                       <div key={part.id} className="flex items-center gap-2 py-1">
                         <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: part.color }} />
                         <span className="text-[13px] flex-1">{part.name}</span>
-                        {!editingPartsBottom && (
-                          <>
-                            <StatusBadge status={part.status} />
-                            <span className="text-[11px] text-[#A0AEC0] w-[28px] text-right">{part.progress}%</span>
-                          </>
-                        )}
-                        <span className="text-[12px] text-[#A0AEC0]">{partManagers[part.id]?.name ?? part.managerName ?? '담당자 없음'}</span>
+                        <StatusBadge status={part.status} />
+                        <span className="text-[11px] text-[#A0AEC0] w-[30px] text-right">{part.progress}%</span>
+                        <span className="text-[11px] text-[#A0AEC0] w-[60px] text-right truncate">{partManagers[part.id]?.name ?? part.managerName ?? '담당자 없음'}</span>
                         {part.id === myPartId && (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#E6F1FB] text-[#185FA5]">나</span>
                         )}
@@ -695,13 +665,9 @@ export default function ProjectHomePage() {
                       <div key={part.id} className="flex items-center gap-2 py-1">
                         <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: part.color }} />
                         <span className="text-[13px] flex-1">{part.name}</span>
-                        {!editingPartsBottom && (
-                          <>
-                            <StatusBadge status={part.status} />
-                            <span className="text-[11px] text-[#A0AEC0] w-[28px] text-right">{part.progress}%</span>
-                          </>
-                        )}
-                        <span className="text-[12px] text-[#A0AEC0]">{partManagers[part.id]?.name ?? part.managerName ?? '담당자 없음'}</span>
+                        <StatusBadge status={part.status} />
+                        <span className="text-[11px] text-[#A0AEC0] w-[30px] text-right">{part.progress}%</span>
+                        <span className="text-[11px] text-[#A0AEC0] w-[60px] text-right truncate">{partManagers[part.id]?.name ?? part.managerName ?? '담당자 없음'}</span>
                         {part.id === myPartId && (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FFF8F0] text-[#854F0B]">나</span>
                         )}
