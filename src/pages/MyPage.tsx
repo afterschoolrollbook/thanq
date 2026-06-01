@@ -70,6 +70,7 @@ export default function MyPage() {
   const [myTemplates, setMyTemplates] = useState<SavedTemplate[]>([])
   const [tmplLoading, setTmplLoading] = useState(true)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [previewTmpl, setPreviewTmpl] = useState<SavedTemplate | null>(null)
   const [fieldFilter, setFieldFilter] = useState<string>('all')
   const [importing, setImporting] = useState(false)
@@ -608,7 +609,7 @@ export default function MyPage() {
                           className="h-[30px] w-[30px] border border-[#E2E8F0] rounded-[7px] text-[#64748B] hover:bg-[#F4F6F9] flex items-center justify-center">
                           <i className="ti ti-download text-[12px]" />
                         </button>
-                        <button onClick={() => deleteTemplate(t.id)} disabled={deletingId === t.id}
+                        <button onClick={() => setDeleteConfirmId(t.id)} disabled={deletingId === t.id}
                           className="h-[30px] w-[30px] border border-[#E2E8F0] rounded-[7px] text-[#A32D2D] hover:bg-[#FEF2F2] flex items-center justify-center disabled:opacity-40">
                           <i className="ti ti-trash text-[12px]" />
                         </button>
@@ -623,6 +624,40 @@ export default function MyPage() {
         )}
       </div>
     </div>
+
+      {/* ── 템플릿 삭제 확인 모달 ── */}
+      {deleteConfirmId && (() => {
+        const target = myTemplates.find((t) => t.id === deleteConfirmId)
+        return (
+          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-5"
+            onClick={() => setDeleteConfirmId(null)}>
+            <div className="bg-white rounded-[18px] p-6 w-full max-w-sm shadow-xl"
+              onClick={(e) => e.stopPropagation()}>
+              <div className="w-12 h-12 rounded-full bg-[#FEF2F2] flex items-center justify-center mx-auto mb-4">
+                <i className="ti ti-trash text-[#A32D2D] text-[22px]" />
+              </div>
+              <p className="text-[16px] font-bold text-[#1A1A2E] text-center mb-1">템플릿 삭제</p>
+              <p className="text-[13px] text-[#64748B] text-center mb-5">
+                <span className="font-semibold text-[#1A1A2E]">"{target?.name}"</span>을 삭제할까요?<br/>삭제하면 복구할 수 없어요.
+              </p>
+              <div className="flex gap-2">
+                <button onClick={() => setDeleteConfirmId(null)}
+                  className="flex-1 h-[42px] border border-[#E2E8F0] rounded-[10px] text-[13px] font-semibold text-[#64748B] hover:bg-[#F4F6F9] transition-colors">
+                  취소
+                </button>
+                <button onClick={async () => {
+                    await deleteTemplate(deleteConfirmId)
+                    setDeleteConfirmId(null)
+                  }}
+                  disabled={deletingId === deleteConfirmId}
+                  className="flex-1 h-[42px] bg-[#E24B4A] text-white rounded-[10px] text-[13px] font-semibold hover:bg-[#C53030] transition-colors disabled:opacity-50">
+                  {deletingId === deleteConfirmId ? '삭제 중...' : '삭제'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
   )
 }
 
