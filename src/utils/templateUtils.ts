@@ -50,11 +50,16 @@ async function buildTemplateParts(projectId: string): Promise<TemplatePartDraft[
     const checkSnap = await get(ref(db, `checkItems/${projectId}/${part.id}`))
     const checkItems: CheckItem[] = checkSnap.exists() ? Object.values(checkSnap.val()) : []
 
+    // 담당자 정보 불러오기
+    const managerSnap = await get(ref(db, `partManagers/${projectId}/${part.id}`))
+    const manager = managerSnap.exists() ? managerSnap.val() : null
+
     templateParts.push({
       name: part.name,
       color: part.color,
       order: part.order,
       isParticipant: part.isParticipant ?? false,
+      ...(manager ? { manager } : {}),
       cueItems: cueItems.map((c) => {
         const cueLinkedChecks = checkItems.filter((ch) => ch.cueId === c.id)
         return {
@@ -104,7 +109,9 @@ async function buildProjectMeta(projectId: string): Promise<{
     ...(project.startTime  ? { startTime:      project.startTime } : {}),
     ...(project.endTime    ? { endTime:        project.endTime }   : {}),
     ...(project.venue      ? { location:       project.venue }     : {}),
-    ...(project.overview   ? { contact:        project.overview }  : {}),
+    ...(project.overview          ? { contact:          project.overview }          : {}),
+    ...(project.estimatedPeople   ? { estimatedPeople:  project.estimatedPeople }   : {}),
+    ...(project.budget            ? { budget:            project.budget }            : {}),
     fieldLabel: FIELD_LABELS[project.fieldType]?.label ?? project.fieldType,
   }
 }
@@ -194,6 +201,8 @@ export async function applyTemplateToProject(
   if (template.startTime)    metaUpdate.startTime  = template.startTime
   if (template.endTime)      metaUpdate.endTime    = template.endTime
   if (template.location)     metaUpdate.venue      = template.location
+  if (template.estimatedPeople) (metaUpdate as any).estimatedPeople = template.estimatedPeople
+  if (template.budget)          (metaUpdate as any).budget           = template.budget
   if (Object.keys(metaUpdate).length > 0) {
     await update(ref(db, `projects/${projectId}`), metaUpdate)
   }
@@ -226,6 +235,11 @@ export async function applyTemplateToProject(
       progress: 0,
       createdAt: new Date().toISOString(),
     })
+
+    // 담당자 정보 복원
+    if ((tPart as any).manager) {
+      await set(ref(db, `partManagers/${projectId}/${partId}`), (tPart as any).manager)
+    }
 
     for (const [j, cue] of tPart.cueItems.entries()) {
       const cueRef = push(ref(db, `cueItems/${projectId}/${partId}`))
