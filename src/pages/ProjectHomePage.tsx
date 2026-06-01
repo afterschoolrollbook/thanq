@@ -580,7 +580,7 @@ export default function ProjectHomePage() {
           </div>
         </div>
 
-        {/* 일정표 */}
+        {/* 일정표 미리보기 */}
         <div className="bg-white border border-[#E2E8F0] rounded-[14px] p-3.5 mb-4">
           <div className="flex items-center justify-between mb-3">
             <div className="text-[13px] font-semibold flex items-center gap-1.5">
@@ -588,11 +588,39 @@ export default function ProjectHomePage() {
             </div>
             <button onClick={() => navigate(`/p/${projectId}/timeline`)} className="text-[12px] text-[#185FA5]">전체 보기</button>
           </div>
-          <button onClick={() => navigate(`/p/${projectId}/timeline`)}
-            className="w-full h-[72px] bg-[#F4F6F9] rounded-[10px] flex flex-col items-center justify-center gap-1 hover:bg-[#E6F1FB] transition-colors">
-            <i className="ti ti-layout-columns text-[#185FA5] text-[22px]" />
-            <span className="text-[11px] text-[#185FA5] font-semibold">타임라인 열기</span>
-          </button>
+          {/* 타임라인 미리보기 */}
+          {(() => {
+            const allCues = Object.values(cuesByPart).flat().sort((a, b) => a.startTime.localeCompare(b.startTime))
+            const preview = allCues.slice(0, 5)
+            if (preview.length === 0) return (
+              <button onClick={() => navigate(`/p/${projectId}/timeline`)}
+                className="w-full h-[72px] bg-[#F4F6F9] rounded-[10px] flex flex-col items-center justify-center gap-1 hover:bg-[#E6F1FB] transition-colors">
+                <i className="ti ti-layout-columns text-[#185FA5] text-[22px]" />
+                <span className="text-[11px] text-[#185FA5] font-semibold">타임라인 열기</span>
+              </button>
+            )
+            return (
+              <button onClick={() => navigate(`/p/${projectId}/timeline`)}
+                className="w-full text-left hover:bg-[#F4F6F9] rounded-[10px] transition-colors p-1">
+                <div className="flex flex-col gap-1">
+                  {preview.map((cue, i) => {
+                    const part = parts.find(p => p.id === cue.partId)
+                    return (
+                      <div key={i} className="flex items-center gap-2 px-2 py-1 rounded-[6px]">
+                        <span className="text-[11px] text-[#64748B] w-[36px] flex-shrink-0 font-mono">{cue.startTime}</span>
+                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: part?.color ?? '#A0AEC0' }} />
+                        <span className="text-[12px] text-[#1A1A2E] flex-1 truncate">{cue.title}</span>
+                        <span className="text-[10px] text-[#A0AEC0] truncate max-w-[60px]">{part?.name ?? ''}</span>
+                      </div>
+                    )
+                  })}
+                  {allCues.length > 5 && (
+                    <div className="text-center text-[11px] text-[#A0AEC0] py-1">+{allCues.length - 5}개 더보기</div>
+                  )}
+                </div>
+              </button>
+            )
+          })()}
         </div>
 
         {/* 파트 구성 */}
@@ -621,10 +649,10 @@ export default function ProjectHomePage() {
                     {parts.filter(p => !(p as any).isParticipant).map(part => (
                       <div key={part.id} className="flex items-center gap-2 py-1">
                         <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: part.color }} />
-                        <span className="text-[13px] flex-1">{part.name}</span>
-                        <StatusBadge status={part.status} />
-                        <span className="text-[11px] text-[#A0AEC0] w-[30px] text-right">{part.progress}%</span>
-                        <span className="text-[11px] text-[#A0AEC0] w-[60px] text-right truncate">{partManagers[part.id]?.name ?? part.managerName ?? '담당자 없음'}</span>
+                        <span className="text-[13px] flex-1 truncate">{part.name}</span>
+                        <span className="w-[44px] flex-shrink-0"><StatusBadge status={part.status} /></span>
+                        <span className="text-[11px] text-[#A0AEC0] w-[28px] flex-shrink-0 text-center">{part.progress}%</span>
+                        <span className="text-[11px] text-[#A0AEC0] w-[64px] flex-shrink-0 text-right truncate">{partManagers[part.id]?.name ?? part.managerName ?? '담당자 없음'}</span>
                         {part.id === myPartId && (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#E6F1FB] text-[#185FA5]">나</span>
                         )}
@@ -664,10 +692,10 @@ export default function ProjectHomePage() {
                     {parts.filter(p => (p as any).isParticipant).map(part => (
                       <div key={part.id} className="flex items-center gap-2 py-1">
                         <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: part.color }} />
-                        <span className="text-[13px] flex-1">{part.name}</span>
-                        <StatusBadge status={part.status} />
-                        <span className="text-[11px] text-[#A0AEC0] w-[30px] text-right">{part.progress}%</span>
-                        <span className="text-[11px] text-[#A0AEC0] w-[60px] text-right truncate">{partManagers[part.id]?.name ?? part.managerName ?? '담당자 없음'}</span>
+                        <span className="text-[13px] flex-1 truncate">{part.name}</span>
+                        <span className="w-[44px] flex-shrink-0"><StatusBadge status={part.status} /></span>
+                        <span className="text-[11px] text-[#A0AEC0] w-[28px] flex-shrink-0 text-center">{part.progress}%</span>
+                        <span className="text-[11px] text-[#A0AEC0] w-[64px] flex-shrink-0 text-right truncate">{partManagers[part.id]?.name ?? part.managerName ?? '담당자 없음'}</span>
                         {part.id === myPartId && (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FFF8F0] text-[#854F0B]">나</span>
                         )}
