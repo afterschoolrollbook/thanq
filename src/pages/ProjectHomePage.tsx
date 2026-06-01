@@ -58,13 +58,11 @@ export default function ProjectHomePage() {
   const [saving, setSaving] = useState(false)
 
   // 파트 편집 상태 - 파트별현황(상단)과 파트구성(하단) 분리
-  const [editingPartsTop, setEditingPartsTop] = useState(false)
   const [editingPartsBottom, setEditingPartsBottom] = useState(false)
   const [showMyRoleModal, setShowMyRoleModal] = useState(false)
   const [myNewPartId, setMyNewPartId] = useState('')
   const [showParts, setShowParts] = useState(true)
   const [partManagers, setPartManagers] = useState<Record<string, any>>({})
-  const [editPartId, setEditPartId] = useState<string|null>(null)
   const [editPartName, setEditPartName] = useState('')
   const [showPartEditModal, setShowPartEditModal] = useState(false)
   const [editingPart, setEditingPart] = useState<any>(null)
@@ -296,12 +294,6 @@ export default function ProjectHomePage() {
       status: 'waiting', progress: 0, order: parts.length,
       createdAt: new Date().toISOString(),
     })
-  }
-
-  async function savePartName(partId: string) {
-    if (!projectId || !editPartName.trim()) return
-    await update(ref(db, `parts/${projectId}/${partId}`), { name: editPartName.trim() })
-    setEditPartId(null)
   }
 
   async function openPartEditModal(part: any) {
@@ -1042,6 +1034,57 @@ export default function ProjectHomePage() {
           onClose={() => setShowImport(false)}
           onSuccess={() => { setShowImport(false); window.location.reload() }}
         />
+      )}
+      {/* 파트 수정 모달 */}
+      {showPartEditModal && editingPart && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-4" onClick={() => setShowPartEditModal(false)}>
+          <div className="bg-white rounded-[20px] w-full max-w-[400px] p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <div className="text-[16px] font-semibold">파트 수정</div>
+              <button onClick={() => setShowPartEditModal(false)}><i className="ti ti-x text-[18px] text-[#A0AEC0]" /></button>
+            </div>
+            <div className="flex flex-col gap-3">
+              <div>
+                <label className="text-[11px] font-semibold text-[#64748B] block mb-1.5">파트명</label>
+                <input value={editPartName} onChange={e => setEditPartName(e.target.value)}
+                  className="w-full h-[42px] border border-[#E2E8F0] rounded-[10px] px-3 text-[13px] outline-none focus:border-[#185FA5]" />
+              </div>
+              <div className="border-t border-[#F4F6F9] pt-3">
+                <div className="text-[12px] font-semibold text-[#64748B] mb-3">담당자 정보</div>
+                <div className="flex flex-col gap-3">
+                  <div>
+                    <label className="text-[11px] font-semibold text-[#64748B] block mb-1.5">이름</label>
+                    <input value={editManagerName} onChange={e => setEditManagerName(e.target.value)} placeholder="담당자 이름"
+                      className="w-full h-[42px] border border-[#E2E8F0] rounded-[10px] px-3 text-[13px] outline-none focus:border-[#185FA5]" />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold text-[#64748B] block mb-1.5">호칭</label>
+                    <input value={editManagerAlias} onChange={e => setEditManagerAlias(e.target.value)} placeholder="예: 홍팀장"
+                      className="w-full h-[42px] border border-[#E2E8F0] rounded-[10px] px-3 text-[13px] outline-none focus:border-[#185FA5]" />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold text-[#64748B] block mb-1.5">전화번호</label>
+                    <input value={editManagerPhone} onChange={e => setEditManagerPhone(e.target.value)} placeholder="010-0000-0000" type="tel"
+                      className="w-full h-[42px] border border-[#E2E8F0] rounded-[10px] px-3 text-[13px] outline-none focus:border-[#185FA5]" />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold text-[#64748B] block mb-1.5">이메일</label>
+                    <input value={editManagerEmail} onChange={e => setEditManagerEmail(e.target.value)} placeholder="example@email.com" type="email"
+                      className="w-full h-[42px] border border-[#E2E8F0] rounded-[10px] px-3 text-[13px] outline-none focus:border-[#185FA5]" />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-2 mt-5">
+              <button onClick={() => setShowPartEditModal(false)}
+                className="flex-1 h-[44px] border border-[#E2E8F0] rounded-[12px] text-[13px] text-[#64748B]">취소</button>
+              <button onClick={savePartEdit} disabled={partEditSaving}
+                className="flex-1 h-[44px] bg-[#185FA5] text-white rounded-[12px] text-[13px] font-semibold disabled:opacity-50">
+                {partEditSaving ? '저장 중...' : '저장'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
