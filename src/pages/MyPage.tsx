@@ -533,77 +533,66 @@ export default function MyPage() {
                 </div>
               )
               return (
-              <div className="flex flex-col gap-3">
+              <div className="grid grid-cols-2 gap-2.5">
                 {filtered.map((t) => {
                   const fl = FIELD_LABELS[t.fieldType] ?? (t.fieldLabel ? { label: t.fieldLabel, color: '#64748B' } : FIELD_LABELS.custom)
                   const parsed = (() => { try { return JSON.parse(t.templateFile) as TemplateFile } catch { return null } })()
+                  const isExpanded = previewTmpl?.id === t.id
                   return (
-                    <div key={t.id} className="bg-white border border-[#E2E8F0] rounded-[14px] p-4">
-                      <div className="flex items-start justify-between gap-3 mb-2">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                              style={{ background: fl.color + '18', color: fl.color }}>
-                              {fl.label}
-                            </span>
-                            {(t.templateFile.includes('"passwordHash"')) && (
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FFF8E1] text-[#B45309] flex items-center gap-1">
-                                <i className="ti ti-lock text-[10px]" /> 비밀번호
-                              </span>
-                            )}
-                            {(t.templateFile.includes('"allowedEmail"')) && (
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#E6F1FB] text-[#185FA5] flex items-center gap-1">
-                                <i className="ti ti-mail text-[10px]" /> 이메일 제한
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-[14px] font-semibold text-[#1A1A2E] truncate">{t.name}</div>
-                          <div className="text-[12px] text-[#64748B] mt-0.5 flex items-center gap-2 flex-wrap">
-                            <span>파트 {parsed?.parts.length ?? '?'}개</span>
-                            <span>·</span>
-                            <span>{new Date(t.savedAt).toLocaleDateString('ko-KR')}</span>
-                          </div>
+                    <div key={t.id} className={`bg-white border rounded-[14px] p-3 flex flex-col gap-2 transition-all ${isExpanded ? 'col-span-2 border-[#185FA5]' : 'border-[#E2E8F0]'}`}>
+                      {/* 상단: 배지 + 펼치기 */}
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full truncate"
+                          style={{ background: fl.color + '18', color: fl.color }}>
+                          {fl.label}
+                        </span>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          {t.templateFile.includes('"passwordHash"') && <i className="ti ti-lock text-[11px] text-[#B45309]" />}
+                          {t.templateFile.includes('"allowedEmail"') && <i className="ti ti-mail text-[11px] text-[#185FA5]" />}
+                          <button onClick={() => setPreviewTmpl(isExpanded ? null : t)}
+                            className="w-6 h-6 rounded-full bg-[#F4F6F9] flex items-center justify-center hover:bg-[#E2E8F0] transition-colors">
+                            <i className={`ti ${isExpanded ? 'ti-chevron-up' : 'ti-chevron-down'} text-[#64748B] text-[11px]`} />
+                          </button>
                         </div>
-                        <button onClick={() => setPreviewTmpl(previewTmpl?.id === t.id ? null : t)}
-                          className="w-8 h-8 rounded-full bg-[#F4F6F9] flex items-center justify-center flex-shrink-0 hover:bg-[#E2E8F0] transition-colors">
-                          <i className={`ti ${previewTmpl?.id === t.id ? 'ti-chevron-up' : 'ti-chevron-down'} text-[#64748B] text-[14px]`} />
-                        </button>
                       </div>
 
-                      {/* 액션 버튼 */}
-                      <div className="flex gap-2">
-                        <button onClick={() => useTemplate(t)}
-                          className="flex-1 h-[34px] bg-[#185FA5] text-white rounded-[8px] text-[12px] font-semibold flex items-center justify-center gap-1.5">
-                          <i className="ti ti-rocket text-[13px]" /> 이 템플릿으로 시작
-                        </button>
-                        <button onClick={() => downloadTemplate(t)}
-                          className="h-[34px] px-3 border border-[#E2E8F0] rounded-[8px] text-[12px] text-[#64748B] hover:bg-[#F4F6F9] transition-colors flex items-center gap-1">
-                          <i className="ti ti-download text-[13px]" />
-                        </button>
-                        <button onClick={() => deleteTemplate(t.id)} disabled={deletingId === t.id}
-                          className="h-[34px] px-3 border border-[#E2E8F0] rounded-[8px] text-[12px] text-[#A32D2D] hover:bg-[#FEF2F2] transition-colors flex items-center gap-1 disabled:opacity-40">
-                          <i className="ti ti-trash text-[13px]" />
-                        </button>
+                      {/* 이름 + 파트수 */}
+                      <div>
+                        <div className="text-[13px] font-semibold text-[#1A1A2E] line-clamp-2 leading-snug">{t.name}</div>
+                        <div className="text-[11px] text-[#A0AEC0] mt-0.5">파트 {parsed?.parts.length ?? '?'}개 · {new Date(t.savedAt).toLocaleDateString('ko-KR')}</div>
                       </div>
 
-                      {/* 파트 미리보기 */}
-                      {previewTmpl?.id === t.id && parsed && (
-                        <div className="mt-3 pt-3 border-t border-[#E2E8F0]">
-                          <div className="text-[11px] font-semibold text-[#64748B] mb-2">파트 구성</div>
-                          <div className="flex flex-col gap-1.5">
+                      {/* 펼침: 파트 미리보기 */}
+                      {isExpanded && parsed && (
+                        <div className="pt-2 border-t border-[#E2E8F0]">
+                          <div className="flex flex-col gap-1 mb-2">
                             {parsed.parts.map((p, i) => (
-                              <div key={i} className="flex items-center gap-2.5">
-                                <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: p.color }} />
-                                <span className="text-[12px] text-[#1A1A2E] flex-1">{p.name}</span>
-                                <span className="text-[11px] text-[#A0AEC0]">큐 {p.cueItems.length} · 체크 {p.checkItems.length}</span>
+                              <div key={i} className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: p.color }} />
+                                <span className="text-[12px] text-[#1A1A2E] flex-1 truncate">{p.name}</span>
+                                <span className="text-[11px] text-[#A0AEC0]">큐 {p.cueItems.length}</span>
                               </div>
                             ))}
                           </div>
-                          {parsed.description && (
-                            <p className="text-[12px] text-[#64748B] mt-2.5 leading-relaxed line-clamp-3">{parsed.description}</p>
-                          )}
+                          {parsed.description && <p className="text-[11px] text-[#64748B] line-clamp-2">{parsed.description}</p>}
                         </div>
                       )}
+
+                      {/* 액션 버튼 */}
+                      <div className="flex gap-1.5 mt-auto">
+                        <button onClick={() => useTemplate(t)}
+                          className="flex-1 h-[30px] bg-[#185FA5] text-white rounded-[7px] text-[11px] font-semibold flex items-center justify-center gap-1">
+                          <i className="ti ti-rocket text-[11px]" /> 시작
+                        </button>
+                        <button onClick={() => downloadTemplate(t)}
+                          className="h-[30px] w-[30px] border border-[#E2E8F0] rounded-[7px] text-[#64748B] hover:bg-[#F4F6F9] flex items-center justify-center">
+                          <i className="ti ti-download text-[12px]" />
+                        </button>
+                        <button onClick={() => deleteTemplate(t.id)} disabled={deletingId === t.id}
+                          className="h-[30px] w-[30px] border border-[#E2E8F0] rounded-[7px] text-[#A32D2D] hover:bg-[#FEF2F2] flex items-center justify-center disabled:opacity-40">
+                          <i className="ti ti-trash text-[12px]" />
+                        </button>
+                      </div>
                     </div>
                   )
                 })}
