@@ -63,7 +63,7 @@ export default function ProjectHomePage() {
 
   // 파트 편집 상태 - 파트별현황(상단)과 파트구성(하단) 분리
   const [editingPartsBottom, setEditingPartsBottom] = useState(false)
-  const [showNoPermission, setShowNoPermission] = useState<Part | null>(null)
+  const [showNoPermission, setShowNoPermission] = useState('')
   const [showMyRoleModal, setShowMyRoleModal] = useState(false)
   const [myNewPartId, setMyNewPartId] = useState('')
   const [showParts, setShowParts] = useState(true)
@@ -744,9 +744,9 @@ export default function ProjectHomePage() {
                         )}
                         {editingPartsBottom && (
                           <div className="flex gap-2 ml-2 flex-shrink-0">
-                            <button onClick={() => isOwner ? (setRoleChangeTarget(part), setRoleChangeRole((part as any).memberRole ?? 'staff')) : setShowNoPermission(part)} className="text-[#A0AEC0] hover:text-[#E8820C]"><i className="ti ti-shield text-[14px]"/></button>
-                            <button onClick={(e) => { e.stopPropagation(); (isOwner || part.id === myPartId) ? openPartEditModal(part) : setShowNoPermission(part) }} className="text-[#A0AEC0] hover:text-[#185FA5]"><i className="ti ti-pencil text-[14px]"/></button>
-                            <button onClick={() => (isOwner || part.id === myPartId) ? deletePart(part.id) : setShowNoPermission(part)} className="text-[#A0AEC0] hover:text-[#E24B4A]"><i className="ti ti-trash text-[14px]"/></button>
+                            <button onClick={() => isOwner ? (setRoleChangeTarget(part), setRoleChangeRole((part as any).memberRole ?? 'staff')) : setShowNoPermission(part.name)} className="text-[#A0AEC0] hover:text-[#E8820C]"><i className="ti ti-shield text-[14px]"/></button>
+                            <button onClick={(e) => { e.stopPropagation(); (isOwner || part.id === myPartId) ? openPartEditModal(part) : setShowNoPermission(part.name) }} className="text-[#A0AEC0] hover:text-[#185FA5]"><i className="ti ti-pencil text-[14px]"/></button>
+                            <button onClick={() => (isOwner || part.id === myPartId) ? deletePart(part.id) : setShowNoPermission(part.name)} className="text-[#A0AEC0] hover:text-[#E24B4A]"><i className="ti ti-trash text-[14px]"/></button>
                           </div>
                         )}
                       </div>
@@ -778,9 +778,9 @@ export default function ProjectHomePage() {
                         )}
                         {editingPartsBottom && (
                           <div className="flex gap-2 ml-2 flex-shrink-0">
-                            <button onClick={() => isOwner ? (setRoleChangeTarget(part), setRoleChangeRole((part as any).memberRole ?? 'participant')) : setShowNoPermission(part)} className="text-[#A0AEC0] hover:text-[#E8820C]"><i className="ti ti-shield text-[14px]"/></button>
-                            <button onClick={() => (isOwner || part.id === myPartId) ? openPartEditModal(part) : setShowNoPermission(part)} className="text-[#A0AEC0] hover:text-[#185FA5]"><i className="ti ti-pencil text-[14px]"/></button>
-                            <button onClick={() => (isOwner || part.id === myPartId) ? deletePart(part.id) : setShowNoPermission(part)} className="text-[#A0AEC0] hover:text-[#E24B4A]"><i className="ti ti-trash text-[13px]"/></button>
+                            <button onClick={() => isOwner ? (setRoleChangeTarget(part), setRoleChangeRole((part as any).memberRole ?? 'participant')) : setShowNoPermission(part.name)} className="text-[#A0AEC0] hover:text-[#E8820C]"><i className="ti ti-shield text-[14px]"/></button>
+                            <button onClick={() => (isOwner || part.id === myPartId) ? openPartEditModal(part) : setShowNoPermission(part.name)} className="text-[#A0AEC0] hover:text-[#185FA5]"><i className="ti ti-pencil text-[14px]"/></button>
+                            <button onClick={() => (isOwner || part.id === myPartId) ? deletePart(part.id) : setShowNoPermission(part.name)} className="text-[#A0AEC0] hover:text-[#E24B4A]"><i className="ti ti-trash text-[13px]"/></button>
                           </div>
                         )}
                       </div>
@@ -1267,15 +1267,17 @@ ${project?.name || '프로젝트'}에 초대합니다.
               <i className="ti ti-lock text-[#DC2626] text-[32px]"/>
             </div>
             <div>
-              <div className="text-[13px] text-[#64748B] mb-1">
-                <span className="font-bold text-[#1A1A2E]">{myPartName}</span> 팀이십니다.
-              </div>
+              {myPartName && (
+                <div className="text-[13px] text-[#64748B] mb-1">
+                  <span className="font-bold text-[#1A1A2E]">{myPartName}</span> 팀이십니다.
+                </div>
+              )}
               <div className="text-[17px] font-bold text-[#1A1A2E] mb-1">수정 권한이 없어요</div>
               <div className="text-[13px] text-[#64748B]">
-                <span className="font-bold text-[#1A1A2E]">{showNoPermission.name}</span> 팀에 문의해 주시길 바랍니다.
+                <span className="font-bold text-[#1A1A2E]">{showNoPermission}</span> 팀에 문의해 주시길 바랍니다.
               </div>
             </div>
-            <button onClick={() => setShowNoPermission(null)} className="w-full h-[44px] bg-[#185FA5] text-white rounded-[12px] text-[14px] font-semibold">확인</button>
+            <button onClick={() => setShowNoPermission('')} className="w-full h-[44px] bg-[#185FA5] text-white rounded-[12px] text-[14px] font-semibold">확인</button>
           </div>
         </div>
       )}
