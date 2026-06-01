@@ -72,6 +72,10 @@ export default function MyPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [previewTmpl, setPreviewTmpl] = useState<SavedTemplate | null>(null)
   const [fieldFilter, setFieldFilter] = useState<string>('all')
+  const [importing, setImporting] = useState(false)
+  const [importResult, setImportResult] = useState<{ success: number; fail: number; duplicate: number } | null>(null)
+  const [importing, setImporting] = useState(false)
+  const [importResult, setImportResult] = useState<{ success: number; fail: number; duplicate: number } | null>(null)
 
   // 탈퇴
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -181,25 +185,43 @@ export default function MyPage() {
 
   // ── .thanq 파일 가져와서 보관함에 저장 ──
   async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file || !user) return
-    if (!file.name.endsWith('.thanq')) { alert('.thanq 파일만 가져올 수 있어요'); return }
-    const text = await file.text()
-    try {
-      const parsed = JSON.parse(text) as TemplateFile
-      if (parsed.version !== '1.0' || !Array.isArray(parsed.parts)) throw new Error()
-      const newRef = push(ref(db, `userTemplates/${user.uid}`))
-      const saved: SavedTemplate = {
-        id: newRef.key!,
-        savedAt: new Date().toISOString(),
-        templateFile: text,
-        name: parsed.name,
-        fieldType: parsed.fieldType,
-        fieldLabel: parsed.fieldLabel,
-        authorName: parsed.authorName,
-      }
-      await set(newRef, saved)
-    } catch { alert('올바른 ThanQ 템플릿 파일이 아니에요') }
+    const files = Array.from(e.target.files ?? [])
+    if (!files.length || !user) return
+    setImporting(true)
+    setImportResult(null)
+    let success = 0, fail = 0
+    const existingKeys = new Set(
+      myTemplates.map((t) => {
+        try { const p = JSON.parse(t.templateFile); return `${p.name}__${p.authorName}__${p.createdAt}` } catch { return '' }
+      })
+    )
+    let duplicate = 0
+    for (const file of files) {
+      if (!file.name.endsWith('.thanq')) { fail++; continue }
+      try {
+        const text = await file.text()
+        const parsed = JSON.parse(text) as TemplateFile
+        if (parsed.version !== '1.0' || !Array.isArray(parsed.parts)) throw new Error()
+        const key = `${parsed.name}__${parsed.authorName}__${parsed.createdAt}`
+        if (existingKeys.has(key)) { duplicate++; continue }
+        existingKeys.add(key)
+        const newRef = push(ref(db, `userTemplates/${user.uid}`))
+        const saved: SavedTemplate = {
+          id: newRef.key!,
+          savedAt: new Date().toISOString(),
+          templateFile: text,
+          name: parsed.name,
+          fieldType: parsed.fieldType,
+          fieldLabel: parsed.fieldLabel,
+          authorName: parsed.authorName,
+        }
+        await set(newRef, saved)
+        success++
+      } catch { fail++ }
+    }
+    setImporting(false)
+    setImportResult({ success, fail, duplicate })
+    setTimeout(() => setImportResult(null), 3000)
     e.target.value = ''
   }
 
@@ -403,12 +425,40 @@ export default function MyPage() {
           <div className="pb-10">
             <div className="flex items-center justify-between mb-3">
               <p className="text-[13px] text-[#64748B]">저장한 템플릿 {myTemplates.length}개</p>
-              <button onClick={() => fileInputRef.current?.click()}
-                className="h-[34px] px-3 bg-[#185FA5] text-white rounded-[9px] text-[12px] font-semibold flex items-center gap-1.5">
-                <i className="ti ti-file-import text-[14px]" /> .thanq 가져오기
+              <button onClick={() => fileInputRef.current?.click()} disabled={importing}
+                className="h-[34px] px-3 bg-[#185FA5] text-white rounded-[9px] text-[12px] font-semibold flex items-center gap-1.5 disabled:opacity-60">
+                {importing
+                  ? <><i className="ti ti-loader-2 animate-spin text-[14px]" /> 가져오는 중...</>
+                  : <><i className="ti ti-file-import text-[14px]" /> .thanq 가져오기</>}
               </button>
-              <input ref={fileInputRef} type="file" accept=".thanq" className="hidden" onChange={handleImportFile} />
+              <input ref={fileInputRef} type="file" accept=".thanq" multiple className="hidden" onChange={handleImportFile} />
             </div>
+
+            {/* 가져오기 결과 토스트 */}
+            {importResult && (
+              <div className={`flex items-center gap-2 px-4 py-2.5 rounded-[10px] mb-3 text-[13px] font-semibold ${
+                importResult.success > 0 && importResult.fail === 0 ? 'bg-[#E1F5EE] text-[#0F6E56]'
+                : importResult.success === 0 && importResult.fail === 0 ? 'bg-[#EEF2FF] text-[#4338CA]'
+                : importResult.success === 0 ? 'bg-[#FEF2F2] text-[#A32D2D]'
+                : 'bg-[#FFF8E1] text-[#854F0B]'
+              }`}>
+                <i className={`ti ${
+                  importResult.success > 0 && importResult.fail === 0 ? 'ti-check'
+                  : importResult.success === 0 && importResult.fail === 0 ? 'ti-copy-off'
+                  : importResult.success === 0 ? 'ti-x' : 'ti-alert-triangle'
+                } text-[15px]`} />
+                {importResult.success === 0 && importResult.fail === 0
+                  ? `이미 저장된 템플릿이에요 (${importResult.duplicate}개 중복)`
+                  : importResult.fail === 0 && importResult.duplicate === 0
+                  ? `${importResult.success}개 템플릿을 가져왔어요!`
+                  : [
+                      importResult.success > 0 && `${importResult.success}개 저장`,
+                      importResult.duplicate > 0 && `${importResult.duplicate}개 중복 건너뜀`,
+                      importResult.fail > 0 && `${importResult.fail}개 실패`,
+                    ].filter(Boolean).join(' · ')
+                }
+              </div>
+            )}
 
             {/* 분야 필터 탭 */}
             {!tmplLoading && myTemplates.length > 0 && (() => {
