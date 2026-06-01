@@ -3,7 +3,6 @@ import { onAuthStateChanged } from 'firebase/auth'
 import { ref, get, update } from 'firebase/database'
 import { auth, db } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
-import type { User } from '@/types'
 
 export function useAuth() {
   const setUser = useAuthStore((s) => s.setUser)
