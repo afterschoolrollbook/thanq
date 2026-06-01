@@ -193,6 +193,7 @@ export interface TemplatePartDraft {
     }>
   }>
   checkItems: never[]      // 파트 레벨 체크리스트 미사용
+  manager?: { name: string; alias: string; phone: string; email: string } // 담당자 정보
 }
 
 export interface TemplateFile {
@@ -215,6 +216,8 @@ export interface TemplateFile {
   endTime?: string         // 행사 종료 시간 (HH:mm)
   location?: string        // 장소 예시
   contact?: string         // 연락처 예시
+  estimatedPeople?: number // 예상 인원
+  budget?: number          // 예산
 }
 
 // ─── 쿠폰 ────────────────────────────────────────────────
