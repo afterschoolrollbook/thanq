@@ -394,15 +394,12 @@ export function CueModal({ cue, projectId, onClose, isReadOnly = false, myPartNa
                       {item.title}
                     </span>
                   )}
-                  {/* 재료 카테고리면 쿠팡 링크 버튼 */}
+                  {/* 재료 카테고리면 재료 구매 버튼 */}
                   {item.category === 'prep' && (
                     <a href={getCoupangLink(item.title)} target="_blank" rel="noopener noreferrer"
-                      className="flex-shrink-0 w-6 h-6 rounded flex items-center justify-center hover:opacity-80 transition-opacity"
-                      title="쿠팡에서 구매하기">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="#E24B4A"/>
-                        <text x="12" y="16" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">C</text>
-                      </svg>
+                      className="flex-shrink-0 w-6 h-6 rounded flex items-center justify-center text-[#A0AEC0] hover:text-[#E24B4A] transition-colors"
+                      title="재료 구매 (쿠팡)">
+                      <i className="ti ti-shopping-cart text-[15px]"/>
                     </a>
                   )}
                   <button onClick={()=>{if(isReadOnly){showReadOnlyToast();return}setEditingCheckId(item.id);setEditingCheckTitle(item.title)}}
