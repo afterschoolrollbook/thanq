@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { ref, onValue } from 'firebase/database'
 import { db } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
-import { useAuth } from '@/hooks/useAuth'
 import type { Coupon } from '@/types'
 
 const FEATURES = [
@@ -229,8 +228,8 @@ export function UpgradeModal({ onClose }: { onClose: () => void }) {
 
 export default function LandingPage() {
   const navigate = useNavigate()
-  // LandingPage는 PrivateRoute 밖 → 여기서 직접 useAuth() 호출해 인증 상태 초기화
-  const { user, loading: authLoading } = useAuth()
+  const user = useAuthStore((s) => s.user)
+  const authLoading = useAuthStore((s) => s.loading)
   const heroRef = useRef<HTMLDivElement>(null)
   const [scrollY, setScrollY] = useState(0)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
