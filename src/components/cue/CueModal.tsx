@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { ref as dbRef, onValue, update, push, set } from 'firebase/database'
+import { ref as dbRef, onValue, update, push, set, get } from 'firebase/database'
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { db, storage } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
