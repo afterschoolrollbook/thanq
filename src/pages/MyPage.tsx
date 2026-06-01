@@ -623,8 +623,6 @@ export default function MyPage() {
           </div>
         )}
       </div>
-    </div>
-
       {/* ── 템플릿 삭제 확인 모달 ── */}
       {deleteConfirmId && (() => {
         const target = myTemplates.find((t) => t.id === deleteConfirmId)
@@ -658,6 +656,7 @@ export default function MyPage() {
           </div>
         )
       })()}
+    </div>
   )
 }
 
