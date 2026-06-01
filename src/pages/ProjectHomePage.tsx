@@ -32,6 +32,7 @@ export default function ProjectHomePage() {
   const [myPartName, setMyPartName] = useState<string>('')
   const [roleChangeTarget, setRoleChangeTarget] = useState<Part | null>(null)
   const [roleChangeRole, setRoleChangeRole] = useState<string>('staff')
+  const [showNoPermission, setShowNoPermission] = useState(false)
   const [showInviteModal, setShowInviteModal] = useState<Part | null>(null)
   const [inviteCopied, setInviteCopied] = useState(false)
   const [showBulkInvite, setShowBulkInvite] = useState(false)
@@ -213,7 +214,7 @@ export default function ProjectHomePage() {
     await update(ref(db, `projectMembers/${projectId}/${user.uid}`), {
       partId: isReturningToPlanner ? '' : partId,
       partName: isReturningToPlanner ? '기획자' : (selectedPart?.name ?? ''),
-      role: isReturningToPlanner ? 'planner' : (isOwner ? 'planner' : 'staff'),
+      role: isReturningToPlanner ? 'planner' : 'staff',
     })
     setMyPartId(isReturningToPlanner ? '' : partId)
     setMyPartName(isReturningToPlanner ? '' : (selectedPart?.name ?? ''))
@@ -744,7 +745,7 @@ export default function ProjectHomePage() {
                         {editingPartsBottom && (
                           <div className="flex gap-2 ml-2 flex-shrink-0">
                             {isOwner && <button onClick={() => setShowInviteModal(part)} className="text-[#A0AEC0] hover:text-[#185FA5]"><i className="ti ti-user-plus text-[14px]"/></button>}
-                            {isOwner && <button onClick={() => { setRoleChangeTarget(part); setRoleChangeRole((part as any).memberRole ?? 'staff') }} className="text-[#A0AEC0] hover:text-[#E8820C]"><i className="ti ti-shield text-[14px]"/></button>}
+                            <button onClick={() => { isOwner ? (setRoleChangeTarget(part), setRoleChangeRole((part as any).memberRole ?? 'staff')) : setShowNoPermission(true) }} className="text-[#A0AEC0] hover:text-[#E8820C]"><i className="ti ti-shield text-[14px]"/></button>
                             <button onClick={(e) => { e.stopPropagation(); openPartEditModal(part) }} className="text-[#A0AEC0] hover:text-[#185FA5]"><i className="ti ti-pencil text-[14px]"/></button>
                             <button onClick={() => deletePart(part.id)} className="text-[#A0AEC0] hover:text-[#E24B4A]"><i className="ti ti-trash text-[14px]"/></button>
                           </div>
@@ -779,7 +780,7 @@ export default function ProjectHomePage() {
                         {editingPartsBottom && (
                           <div className="flex gap-2 ml-2 flex-shrink-0">
                             {isOwner && <button onClick={() => setShowInviteModal(part)} className="text-[#A0AEC0] hover:text-[#185FA5]"><i className="ti ti-user-plus text-[14px]"/></button>}
-                            {isOwner && <button onClick={() => { setRoleChangeTarget(part); setRoleChangeRole((part as any).memberRole ?? 'participant') }} className="text-[#A0AEC0] hover:text-[#E8820C]"><i className="ti ti-shield text-[14px]"/></button>}
+                            <button onClick={() => { isOwner ? (setRoleChangeTarget(part), setRoleChangeRole((part as any).memberRole ?? 'participant')) : setShowNoPermission(true) }} className="text-[#A0AEC0] hover:text-[#E8820C]"><i className="ti ti-shield text-[14px]"/></button>
                             <button onClick={() => openPartEditModal(part)} className="text-[#A0AEC0] hover:text-[#185FA5]"><i className="ti ti-pencil text-[14px]"/></button>
                             <button onClick={() => deletePart(part.id)} className="text-[#A0AEC0] hover:text-[#E24B4A]"><i className="ti ti-trash text-[13px]"/></button>
                           </div>
@@ -1256,6 +1257,23 @@ ${project?.name || '프로젝트'}에 초대합니다.
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 권한 없음 모달 */}
+      {showNoPermission && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-5" onClick={() => setShowNoPermission(false)}>
+          <div className="bg-white rounded-[20px] p-6 w-full max-w-sm flex flex-col items-center" onClick={e => e.stopPropagation()}>
+            <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mb-4">
+              <i className="ti ti-lock text-[#DC2626] text-[32px]"/>
+            </div>
+            <div className="text-[13px] text-[#64748B] mb-1">
+              <span className="font-bold text-[#1A1A2E]">{myPartName}</span> 팀이십니다.
+            </div>
+            <div className="text-[17px] font-bold text-[#1A1A2E] mb-1">수정 권한이 없어요</div>
+            <div className="text-[13px] text-[#64748B] mb-5">기획자에게 문의해 주시길 바랍니다.</div>
+            <button onClick={() => setShowNoPermission(false)} className="w-full h-[42px] bg-[#185FA5] text-white rounded-[12px] text-[13px] font-semibold">확인</button>
           </div>
         </div>
       )}
