@@ -52,6 +52,11 @@ export default function MyPage() {
   const [savingPhone, setSavingPhone] = useState(false)
   const [phoneSaved, setPhoneSaved] = useState(false)
 
+  // 쿠팡 파트너스
+  const [partnersId, setPartnersId] = useState('')
+  const [savingPartners, setSavingPartners] = useState(false)
+  const [partnersSaved, setPartnersSaved] = useState(false)
+
   // 비밀번호
   const [currentPw, setCurrentPw] = useState('')
   const [newPw, setNewPw] = useState('')
@@ -90,6 +95,11 @@ export default function MyPage() {
       if (snap.exists()) setPhone(snap.val())
     }, { onlyOnce: true })
 
+    // 쿠팡 파트너스 ID
+    onValue(ref(db, `users/${user.uid}/partnersId`), (snap) => {
+      if (snap.exists()) setPartnersId(snap.val())
+    }, { onlyOnce: true })
+
     // Pro 만료일
     onValue(ref(db, `users/${user.uid}/proExpiresAt`), (snap) => {
       setProExpiresAt(snap.exists() ? snap.val() : null)
@@ -124,6 +134,16 @@ export default function MyPage() {
     setPhoneSaved(true)
     setSavingPhone(false)
     setTimeout(() => setPhoneSaved(false), 2000)
+  }
+
+  // ── 파트너스 ID 저장 ──
+  async function handleSavePartnersId() {
+    if (!user) return
+    setSavingPartners(true)
+    await update(ref(db, `users/${user.uid}`), { partnersId: partnersId.trim() })
+    setPartnersSaved(true)
+    setSavingPartners(false)
+    setTimeout(() => setPartnersSaved(false), 2000)
   }
 
   // ── 이름 저장 ──
@@ -371,6 +391,19 @@ export default function MyPage() {
               <button onClick={handleSavePhone} disabled={savingPhone || !phone.trim()}
                 className={`mt-2 ${btn}`}>
                 {phoneSaved ? <><i className="ti ti-check" /> 저장됐어요!</> : savingPhone ? '저장 중...' : '저장'}
+              </button>
+            </section>
+
+            {/* 쿠팡 파트너스 */}
+            <section className={card}>
+              <div className={sectionTitle}><i className="ti ti-brand-coupang text-[#E24B4A]" /> 쿠팡 파트너스 ID</div>
+              <p className="text-[12px] text-[#64748B] mb-2">등록하면 내 템플릿의 재료 링크에 파트너스 ID가 자동으로 포함돼요. 템플릿을 사용하는 사람이 재료를 구매하면 수익이 발생해요!</p>
+              <input className={inp} value={partnersId}
+                onChange={(e) => { setPartnersId(e.target.value); setPartnersSaved(false) }}
+                placeholder="파트너스 ID 입력 (예: thanqapp-20)" />
+              <button onClick={handleSavePartnersId} disabled={savingPartners || !partnersId.trim()}
+                className={`mt-2 ${btn}`}>
+                {partnersSaved ? <><i className="ti ti-check" /> 저장됐어요!</> : savingPartners ? '저장 중...' : '저장'}
               </button>
             </section>
 
