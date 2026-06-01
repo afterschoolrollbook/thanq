@@ -203,6 +203,7 @@ export interface TemplateFile {
   fieldLabel?: string      // 분야 표시 레이블 (예: '모임 / 클럽')
   description: string
   authorName: string
+  partnersId?: string      // 쿠팡 파트너스 ID (재료 링크 수익용)
   createdAt: string
   parts: TemplatePartDraft[]
   passwordHash?: string    // SHA-256 해시 (비밀번호 설정 시)
