@@ -31,8 +31,6 @@ import JoinPage from '@/pages/JoinPage'
 import TemplatePage from '@/pages/TemplatePage'
 import MyPage from '@/pages/MyPage'
 
-// 앱 최상단에서 딱 한 번 Firebase auth 구독
-// PrivateRoute 마운트 타이밍과 무관하게 항상 동작
 function AuthProvider() {
   const setUser = useAuthStore((s) => s.setUser)
   const setLoading = useAuthStore((s) => s.setLoading)
@@ -40,29 +38,32 @@ function AuthProvider() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        let isPro = false
-        try {
-          const [proSnap, adminSnap] = await Promise.all([
-            get(ref(db, `users/${firebaseUser.uid}/isPro`)),
-            get(ref(db, `admins/${firebaseUser.uid}`)),
-          ])
-          const isAdmin = adminSnap.exists() && adminSnap.val() === true
-          isPro = isAdmin || (proSnap.exists() ? Boolean(proSnap.val()) : false)
-        } catch { /* 조회 실패 시 false */ }
-
-        const user: User = {
+        // ✅ 핵심: DB 조회 전에 먼저 기본 user 세팅 + loading 해제
+        // → PrivateRoute가 즉시 통과됨
+        const basicUser: User = {
           uid: firebaseUser.uid,
           email: firebaseUser.email ?? '',
           displayName: firebaseUser.displayName ?? '',
           photoURL: firebaseUser.photoURL ?? undefined,
           emailVerified: firebaseUser.emailVerified,
           createdAt: firebaseUser.metadata.creationTime ?? '',
-          isPro,
+          isPro: false,
         }
-        setUser(user)
+        setUser(basicUser)
         setLoading(false)
 
-        // DB 저장 백그라운드
+        // DB 조회는 백그라운드로 (isPro 확인 후 업데이트)
+        try {
+          const [proSnap, adminSnap] = await Promise.all([
+            get(ref(db, `users/${firebaseUser.uid}/isPro`)),
+            get(ref(db, `admins/${firebaseUser.uid}`)),
+          ])
+          const isAdmin = adminSnap.exists() && adminSnap.val() === true
+          const isPro = isAdmin || (proSnap.exists() ? Boolean(proSnap.val()) : false)
+          if (isPro) setUser({ ...basicUser, isPro: true })
+        } catch { /* 조회 실패 시 false 유지 */ }
+
+        // lastLoginAt 저장 백그라운드
         get(ref(db, `users/${firebaseUser.uid}/createdAt`))
           .then((existingSnap) =>
             update(ref(db, `users/${firebaseUser.uid}`), {
