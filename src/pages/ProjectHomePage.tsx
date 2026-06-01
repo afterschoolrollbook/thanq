@@ -64,6 +64,7 @@ export default function ProjectHomePage() {
   // 파트 편집 상태 - 파트별현황(상단)과 파트구성(하단) 분리
   const [editingPartsBottom, setEditingPartsBottom] = useState(false)
   const [noPermissionToast, setNoPermissionToast] = useState('')
+  const [deleteConfirm, setDeleteConfirm] = useState<Part | null>(null)
   const [showMyRoleModal, setShowMyRoleModal] = useState(false)
   const [myNewPartId, setMyNewPartId] = useState('')
   const [showParts, setShowParts] = useState(true)
@@ -747,7 +748,7 @@ export default function ProjectHomePage() {
                             <button onClick={() => (isOwner || part.id === myPartId) ? setShowInviteModal(part) : setNoPermissionToast(part.name)} className="text-[#A0AEC0] hover:text-[#185FA5]"><i className="ti ti-user-plus text-[14px]"/></button>
                             <button onClick={() => (isOwner || part.id === myPartId) ? (setRoleChangeTarget(part), setRoleChangeRole((part as any).memberRole ?? 'staff')) : setNoPermissionToast(part.name)} className="text-[#A0AEC0] hover:text-[#E8820C]"><i className="ti ti-shield text-[14px]"/></button>
                             <button onClick={(e) => { e.stopPropagation(); (isOwner || part.id === myPartId) ? openPartEditModal(part) : setNoPermissionToast(part.name) }} className="text-[#A0AEC0] hover:text-[#185FA5]"><i className="ti ti-pencil text-[14px]"/></button>
-                            <button onClick={() => (isOwner || part.id === myPartId) ? deletePart(part.id) : setNoPermissionToast(part.name)} className="text-[#A0AEC0] hover:text-[#E24B4A]"><i className="ti ti-trash text-[14px]"/></button>
+                            <button onClick={() => (isOwner || part.id === myPartId) ? setDeleteConfirm(part) : setNoPermissionToast(part.name)} className="text-[#A0AEC0] hover:text-[#E24B4A]"><i className="ti ti-trash text-[14px]"/></button>
                           </div>
                         )}
                       </div>
@@ -782,7 +783,7 @@ export default function ProjectHomePage() {
                             <button onClick={() => (isOwner || part.id === myPartId) ? setShowInviteModal(part) : setNoPermissionToast(part.name)} className="text-[#A0AEC0] hover:text-[#185FA5]"><i className="ti ti-user-plus text-[14px]"/></button>
                             <button onClick={() => (isOwner || part.id === myPartId) ? (setRoleChangeTarget(part), setRoleChangeRole((part as any).memberRole ?? 'participant')) : setNoPermissionToast(part.name)} className="text-[#A0AEC0] hover:text-[#E8820C]"><i className="ti ti-shield text-[14px]"/></button>
                             <button onClick={() => (isOwner || part.id === myPartId) ? openPartEditModal(part) : setNoPermissionToast(part.name)} className="text-[#A0AEC0] hover:text-[#185FA5]"><i className="ti ti-pencil text-[14px]"/></button>
-                            <button onClick={() => (isOwner || part.id === myPartId) ? deletePart(part.id) : setNoPermissionToast(part.name)} className="text-[#A0AEC0] hover:text-[#E24B4A]"><i className="ti ti-trash text-[13px]"/></button>
+                            <button onClick={() => (isOwner || part.id === myPartId) ? setDeleteConfirm(part) : setNoPermissionToast(part.name)} className="text-[#A0AEC0] hover:text-[#E24B4A]"><i className="ti ti-trash text-[13px]"/></button>
                           </div>
                         )}
                       </div>
@@ -1256,6 +1257,26 @@ ${project?.name || '프로젝트'}에 초대합니다.
                   <i className="ti ti-send text-[14px]" /> 이대로 보내기
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-6">
+          <div className="bg-white rounded-[20px] p-6 w-full max-w-sm flex flex-col items-center text-center gap-4">
+            <div className="w-16 h-16 rounded-full bg-[#FEF2F2] flex items-center justify-center">
+              <i className="ti ti-trash text-[#DC2626] text-[32px]"/>
+            </div>
+            <div>
+              <div className="text-[17px] font-bold text-[#1A1A2E] mb-1">파트를 삭제할까요?</div>
+              <div className="text-[13px] text-[#64748B]">
+                <span className="font-bold text-[#1A1A2E]">{deleteConfirm.name}</span> 파트와 관련된 모든 데이터가 삭제됩니다.
+              </div>
+            </div>
+            <div className="flex gap-2 w-full">
+              <button onClick={() => setDeleteConfirm(null)} className="flex-1 h-[44px] border border-[#E2E8F0] rounded-[12px] text-[13px] text-[#64748B]">취소</button>
+              <button onClick={() => { deletePart(deleteConfirm.id); setDeleteConfirm(null) }} className="flex-1 h-[44px] bg-[#E24B4A] text-white rounded-[12px] text-[13px] font-semibold">삭제</button>
             </div>
           </div>
         </div>
