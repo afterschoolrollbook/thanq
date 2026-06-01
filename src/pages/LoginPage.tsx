@@ -26,8 +26,14 @@ export default function LoginPage() {
     getRedirectResult(auth)
       .then((result) => {
         if (result) {
-          // 구글 로그인 성공 → 대시보드로
-          goNext()
+          // 구글 로그인 성공 → 페이지 완전 새로고침으로 이동 (auth 상태 충돌 방지)
+          const joinRedirect = sessionStorage.getItem('join_redirect')
+          if (joinRedirect) {
+            sessionStorage.removeItem('join_redirect')
+            window.location.href = joinRedirect
+          } else {
+            window.location.href = '/dashboard'
+          }
         }
       })
       .catch((e) => {
@@ -46,7 +52,7 @@ export default function LoginPage() {
       window.location.href = joinRedirect
       return
     }
-    navigate('/dashboard')
+    window.location.href = '/dashboard'
   }
 
   async function handleSubmit() {
