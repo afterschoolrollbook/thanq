@@ -93,15 +93,15 @@ export default function ProjectHomePage() {
         setParts(l)
       } else setParts([])
     })
-    onValue(ref(db, `projectMembers/${projectId}/${user.uid}`), (s) => {
+    const u3 = onValue(ref(db, `projectMembers/${projectId}/${user.uid}`), (s) => {
       if (s.exists()) {
         const m = s.val()
         setMyRole(m.role ?? '')
         setMyPartId(m.partId ?? '')
         setMyPartName(m.partName ?? '')
       }
-    }, { onlyOnce: true })
-    return () => { u1(); u2() }
+    })
+    return () => { u1(); u2(); u3() }
   }, [projectId, user])
 
   useEffect(() => {
@@ -385,7 +385,7 @@ export default function ProjectHomePage() {
   const p = project as any
   const dday = getDday(project.date)
   const progress = parts.length ? Math.round(parts.reduce((s, p) => s + p.progress, 0) / parts.length) : 0
-  const isOwner = myRole === 'owner' || myRole === 'planner' || project.ownerId === user?.uid
+  const isOwner = (myRole === 'owner' || myRole === 'planner' || project.ownerId === user?.uid) && !myPartId
   const roleLabel = ROLE_LABEL[myRole] || (isOwner ? '기획자' : '팀원')
   const todoChecks = myChecks.filter(c => !c.isDone).slice(0, 5)
 
@@ -744,8 +744,8 @@ export default function ProjectHomePage() {
                         )}
                         {editingPartsBottom && (
                           <div className="flex gap-2 ml-2 flex-shrink-0">
-                            {(isOwner || part.id === myPartId) && <button onClick={() => setShowInviteModal(part)} className="text-[#A0AEC0] hover:text-[#185FA5]"><i className="ti ti-user-plus text-[14px]"/></button>}
-                            {(isOwner || part.id === myPartId) && <button onClick={() => { setRoleChangeTarget(part); setRoleChangeRole((part as any).memberRole ?? 'staff') }} className="text-[#A0AEC0] hover:text-[#E8820C]"><i className="ti ti-shield text-[14px]"/></button>}
+                            <button onClick={() => (isOwner || part.id === myPartId) ? setShowInviteModal(part) : setNoPermissionToast(part.name)} className="text-[#A0AEC0] hover:text-[#185FA5]"><i className="ti ti-user-plus text-[14px]"/></button>
+                            <button onClick={() => (isOwner || part.id === myPartId) ? (setRoleChangeTarget(part), setRoleChangeRole((part as any).memberRole ?? 'staff')) : setNoPermissionToast(part.name)} className="text-[#A0AEC0] hover:text-[#E8820C]"><i className="ti ti-shield text-[14px]"/></button>
                             <button onClick={(e) => { e.stopPropagation(); (isOwner || part.id === myPartId) ? openPartEditModal(part) : setNoPermissionToast(part.name) }} className="text-[#A0AEC0] hover:text-[#185FA5]"><i className="ti ti-pencil text-[14px]"/></button>
                             <button onClick={() => (isOwner || part.id === myPartId) ? deletePart(part.id) : setNoPermissionToast(part.name)} className="text-[#A0AEC0] hover:text-[#E24B4A]"><i className="ti ti-trash text-[14px]"/></button>
                           </div>
@@ -779,8 +779,8 @@ export default function ProjectHomePage() {
                         )}
                         {editingPartsBottom && (
                           <div className="flex gap-2 ml-2 flex-shrink-0">
-                            {(isOwner || part.id === myPartId) && <button onClick={() => setShowInviteModal(part)} className="text-[#A0AEC0] hover:text-[#185FA5]"><i className="ti ti-user-plus text-[14px]"/></button>}
-                            {(isOwner || part.id === myPartId) && <button onClick={() => { setRoleChangeTarget(part); setRoleChangeRole((part as any).memberRole ?? 'participant') }} className="text-[#A0AEC0] hover:text-[#E8820C]"><i className="ti ti-shield text-[14px]"/></button>}
+                            <button onClick={() => (isOwner || part.id === myPartId) ? setShowInviteModal(part) : setNoPermissionToast(part.name)} className="text-[#A0AEC0] hover:text-[#185FA5]"><i className="ti ti-user-plus text-[14px]"/></button>
+                            <button onClick={() => (isOwner || part.id === myPartId) ? (setRoleChangeTarget(part), setRoleChangeRole((part as any).memberRole ?? 'participant')) : setNoPermissionToast(part.name)} className="text-[#A0AEC0] hover:text-[#E8820C]"><i className="ti ti-shield text-[14px]"/></button>
                             <button onClick={() => (isOwner || part.id === myPartId) ? openPartEditModal(part) : setNoPermissionToast(part.name)} className="text-[#A0AEC0] hover:text-[#185FA5]"><i className="ti ti-pencil text-[14px]"/></button>
                             <button onClick={() => (isOwner || part.id === myPartId) ? deletePart(part.id) : setNoPermissionToast(part.name)} className="text-[#A0AEC0] hover:text-[#E24B4A]"><i className="ti ti-trash text-[13px]"/></button>
                           </div>
@@ -795,26 +795,26 @@ export default function ProjectHomePage() {
                 <p className="text-[12px] text-[#A0AEC0] text-center py-2">파트가 없어요</p>
               )}
 
-              {isOwner && (
-                <div className="flex flex-col gap-2 mt-2 pt-3 border-t border-[#F4F6F9]">
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => setEditingPartsBottom(v => !v)}
-                      className={`flex-1 h-[32px] rounded-[8px] text-[12px] font-semibold border transition-colors ${editingPartsBottom ? 'bg-[#185FA5] text-white border-[#185FA5]' : 'border-[#E2E8F0] text-[#64748B]'}`}>
-                      {editingPartsBottom ? '편집 완료' : '파트 편집'}
+              <div className="flex flex-col gap-2 mt-2 pt-3 border-t border-[#F4F6F9]">
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setEditingPartsBottom(v => !v)}
+                    className={`flex-1 h-[32px] rounded-[8px] text-[12px] font-semibold border transition-colors ${editingPartsBottom ? 'bg-[#185FA5] text-white border-[#185FA5]' : 'border-[#E2E8F0] text-[#64748B]'}`}>
+                    {editingPartsBottom ? '편집 완료' : '파트 편집'}
+                  </button>
+                  {editingPartsBottom && isOwner && (
+                    <button onClick={addPart}
+                      className="flex-1 h-[32px] rounded-[8px] text-[12px] font-semibold border border-dashed border-[#E2E8F0] text-[#A0AEC0] hover:border-[#185FA5] hover:text-[#185FA5] transition-colors flex items-center justify-center gap-1">
+                      <i className="ti ti-plus text-[12px]" /> 파트 추가
                     </button>
-                    {editingPartsBottom && (
-                      <button onClick={addPart}
-                        className="flex-1 h-[32px] rounded-[8px] text-[12px] font-semibold border border-dashed border-[#E2E8F0] text-[#A0AEC0] hover:border-[#185FA5] hover:text-[#185FA5] transition-colors flex items-center justify-center gap-1">
-                        <i className="ti ti-plus text-[12px]" /> 파트 추가
-                      </button>
-                    )}
-                  </div>
+                  )}
+                </div>
+                {isOwner && (
                   <button onClick={() => { setBulkSelected(new Set()); setShowBulkInvite(true) }}
                     className="w-full h-[32px] border border-[#E2E8F0] rounded-[8px] text-[12px] font-semibold text-[#185FA5] flex items-center justify-center gap-1.5 hover:bg-[#E6F1FB] transition-colors">
                     <i className="ti ti-send text-[12px]" /> 단체 초대
                   </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           )}
         </div>
