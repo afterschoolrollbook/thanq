@@ -122,6 +122,7 @@ export function CueModal({ cue, projectId, onClose, isReadOnly = false, myPartNa
   const [editingCheckId, setEditingCheckId] = useState<string|null>(null)
   const [editingCheckTitle, setEditingCheckTitle] = useState('')
   const [toast, setToast] = useState('')
+  const [confirmDelete, setConfirmDelete] = useState<CheckItem | null>(null)
   const [uploading, setUploading] = useState(false)
   const [photos, setPhotos] = useState<{url:string;name:string;uploadedAt:string}[]>(
     cue.photos ? Object.values(cue.photos) : []
@@ -181,7 +182,13 @@ export function CueModal({ cue, projectId, onClose, isReadOnly = false, myPartNa
 
   async function deleteCheck(item: CheckItem) {
     if (isReadOnly) { showReadOnlyToast(); return }
-    await set(dbRef(db, `checkItems/${projectId}/${cue.partId}/${item.id}`), null)
+    setConfirmDelete(item)
+  }
+
+  async function confirmDeleteCheck() {
+    if (!confirmDelete) return
+    await set(dbRef(db, `checkItems/${projectId}/${cue.partId}/${confirmDelete.id}`), null)
+    setConfirmDelete(null)
   }
     async function saveMemo() {
     if (isReadOnly) { showReadOnlyToast(); return }
@@ -429,6 +436,33 @@ export function CueModal({ cue, projectId, onClose, isReadOnly = false, myPartNa
             </div>
           )}
         </div>
+
+        {/* 삭제 확인 모달 */}
+        {confirmDelete && (
+          <div className="fixed inset-0 bg-black/50 z-[70] flex items-center justify-center px-6">
+            <div className="bg-white rounded-[20px] p-6 w-full max-w-sm flex flex-col items-center text-center gap-4">
+              <div className="w-16 h-16 rounded-full bg-[#FEF2F2] flex items-center justify-center">
+                <i className="ti ti-trash text-[#DC2626] text-[32px]"/>
+              </div>
+              <div>
+                <div className="text-[17px] font-bold text-[#1A1A2E] mb-1">정말 삭제할까요?</div>
+                <div className="text-[13px] text-[#64748B]">
+                  <span className="font-bold text-[#1A1A2E]">{confirmDelete.title}</span> 항목이 삭제됩니다.
+                </div>
+              </div>
+              <div className="flex gap-2 w-full">
+                <button onClick={() => setConfirmDelete(null)}
+                  className="flex-1 h-[44px] border border-[#E2E8F0] text-[#64748B] rounded-[12px] text-[14px] font-semibold">
+                  취소
+                </button>
+                <button onClick={confirmDeleteCheck}
+                  className="flex-1 h-[44px] bg-[#DC2626] text-white rounded-[12px] text-[14px] font-semibold">
+                  삭제
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* 읽기전용 경고 모달 */}
         {toast && (
