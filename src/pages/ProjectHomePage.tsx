@@ -218,6 +218,7 @@ export default function ProjectHomePage() {
     })
     setMyPartId(isReturningToPlanner ? '' : partId)
     setMyPartName(isReturningToPlanner ? '' : (selectedPart?.name ?? ''))
+    setMyRole(isReturningToPlanner ? 'planner' : 'staff')
     setMyNewPartId('')
     setShowMyRoleModal(false)
   }
