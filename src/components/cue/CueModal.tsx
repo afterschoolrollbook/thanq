@@ -188,6 +188,7 @@ export function CueModal({ cue, projectId, onClose, isReadOnly = false, myPartNa
   async function confirmDeleteCheck() {
     if (!confirmDelete) return
     await set(dbRef(db, `checkItems/${projectId}/${cue.partId}/${confirmDelete.id}`), null)
+    await writeCueAlert('deleted', `체크리스트 삭제: "${confirmDelete.title}" — "${cue.title}"`)
     setConfirmDelete(null)
   }
     async function saveMemo() {
