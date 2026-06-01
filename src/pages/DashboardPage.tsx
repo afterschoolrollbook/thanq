@@ -225,9 +225,15 @@ export default function DashboardPage() {
 
         {/* ── 헤더 + 날짜/시간 ── */}
         <div className="flex items-start justify-between mb-4">
-          <div>
-            <div className="text-[18px] font-semibold text-[#1A1A2E]">본부 대시보드</div>
-            <div className="text-[12px] text-[#64748B]">전체 현황 모니터링</div>
+          <div className="flex items-center gap-2">
+            <div>
+              <div className="text-[18px] font-semibold text-[#1A1A2E]">본부 대시보드</div>
+              <div className="text-[12px] text-[#64748B]">전체 현황 모니터링</div>
+            </div>
+            <button onClick={() => window.open(window.location.href, 'dashboard_' + projectId, 'width=1280,height=900')}
+              className="flex-shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-[6px] border border-[#E2E8F0] text-[11px] text-[#64748B] hover:border-[#185FA5] hover:text-[#185FA5] transition-colors">
+              <i className="ti ti-external-link text-[11px]"/> 새 창
+            </button>
           </div>
           {/* 날짜/시간 + D-day */}
           <div className="text-right">
