@@ -588,35 +588,51 @@ export default function ProjectHomePage() {
             </div>
             <button onClick={() => navigate(`/p/${projectId}/timeline`)} className="text-[12px] text-[#185FA5]">전체 보기</button>
           </div>
-          {/* 타임라인 미리보기 */}
           {(() => {
-            const allCues = Object.values(cuesByPart).flat().sort((a, b) => a.startTime.localeCompare(b.startTime))
-            const preview = allCues.slice(0, 5)
-            if (preview.length === 0) return (
-              <button onClick={() => navigate(`/p/${projectId}/timeline`)}
-                className="w-full h-[72px] bg-[#F4F6F9] rounded-[10px] flex flex-col items-center justify-center gap-1 hover:bg-[#E6F1FB] transition-colors">
-                <i className="ti ti-layout-columns text-[#185FA5] text-[22px]" />
-                <span className="text-[11px] text-[#185FA5] font-semibold">타임라인 열기</span>
-              </button>
-            )
+            const allCues = Object.values(cuesByPart).flat()
+
+            // 시간대 추출
+            const times = [...new Set(allCues.map(c => c.startTime))].sort()
+            const previewTimes = times.length > 0 ? times.slice(0, 6) : []
+            const previewParts = parts.slice(0, 5)
             return (
               <button onClick={() => navigate(`/p/${projectId}/timeline`)}
-                className="w-full text-left hover:bg-[#F4F6F9] rounded-[10px] transition-colors p-1">
-                <div className="flex flex-col gap-1">
-                  {preview.map((cue, i) => {
-                    const part = parts.find(p => p.id === cue.partId)
+                className="w-full text-left" style={{ overflowX: 'auto' }}>
+                <div style={{ minWidth: 0 }}>
+                  {/* 헤더 — 시간 */}
+                  <div className="flex mb-1">
+                    <div className="w-[56px] flex-shrink-0" />
+                    {previewTimes.map(t => (
+                      <div key={t} className="flex-1 text-[10px] text-[#A0AEC0] text-center font-mono">{t}</div>
+                    ))}
+                  </div>
+                  {/* 파트별 행 */}
+                  {previewParts.map(part => {
+                    const partCues = (cuesByPart[part.id] ?? []).filter(c => previewTimes.includes(c.startTime))
                     return (
-                      <div key={i} className="flex items-center gap-2 px-2 py-1 rounded-[6px]">
-                        <span className="text-[11px] text-[#64748B] w-[36px] flex-shrink-0 font-mono">{cue.startTime}</span>
-                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: part?.color ?? '#A0AEC0' }} />
-                        <span className="text-[12px] text-[#1A1A2E] flex-1 truncate">{cue.title}</span>
-                        <span className="text-[10px] text-[#A0AEC0] truncate max-w-[60px]">{part?.name ?? ''}</span>
+                      <div key={part.id} className="flex items-center mb-1">
+                        <div className="w-[56px] flex-shrink-0 flex items-center gap-1 pr-1">
+                          <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: part.color }} />
+                          <span className="text-[10px] text-[#64748B] truncate">{part.name}</span>
+                        </div>
+                        {previewTimes.map(t => {
+                          const cue = partCues.find(c => c.startTime === t)
+                          return (
+                            <div key={t} className="flex-1 px-0.5">
+                              {cue ? (
+                                <div className="h-[22px] rounded-[4px] flex items-center px-1.5 overflow-hidden"
+                                  style={{ background: part.color + '33', border: `1px solid ${part.color}88` }}>
+                                  <span className="text-[9px] truncate font-medium" style={{ color: part.color }}>{cue.title}</span>
+                                </div>
+                              ) : (
+                                <div className="h-[22px]" />
+                              )}
+                            </div>
+                          )
+                        })}
                       </div>
                     )
                   })}
-                  {allCues.length > 5 && (
-                    <div className="text-center text-[11px] text-[#A0AEC0] py-1">+{allCues.length - 5}개 더보기</div>
-                  )}
                 </div>
               </button>
             )
