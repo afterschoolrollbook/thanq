@@ -65,14 +65,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#185FA5] to-[#0d3f6e] flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white tracking-tight">ThanQ</h1>
-          <p className="text-[#B5D4F4] text-sm mt-1">현장 운영 통합 플랫폼</p>
-        </div>
-        <div className="bg-white rounded-[14px] p-6 shadow-xl">
-          <h2 className="text-[20px] font-semibold text-[#1A1A2E] mb-1">
+    <>
+      <h2 className="text-[20px] font-semibold text-[#1A1A2E] mb-1">
             {isSignUp ? '회원가입' : '시작하기'}
           </h2>
           <p className="text-[13px] text-[#64748B] mb-5">
@@ -153,9 +147,7 @@ export default function LoginPage() {
               {isSignUp ? '로그인' : '회원가입'}
             </button>
           </p>
-        </div>
-      </div>
-    </div>
+    </>
   )
 }
 
