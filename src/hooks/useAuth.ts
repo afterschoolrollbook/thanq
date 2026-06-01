@@ -11,8 +11,6 @@ let _unsubscribe: (() => void) | null = null
 function initAuth() {
   if (_unsubscribe) return // 이미 등록됨 → 재등록 방지
 
-  const { setUser, setLoading } = useAuthStore.getState()
-
   _unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
     if (firebaseUser) {
       let isPro = false
