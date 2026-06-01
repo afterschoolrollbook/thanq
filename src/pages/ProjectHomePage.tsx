@@ -935,7 +935,7 @@ export default function ProjectHomePage() {
             <p className="text-[12px] text-[#64748B] mb-4">어느 파트로 보고 싶으신가요? 선택한 파트의 시각으로 확인할 수 있어요.</p>
             <div className="flex flex-col gap-2 mb-4 max-h-[300px] overflow-y-auto">
               {/* 기획자(전체) 옵션 - 오너/플래너만 */}
-              {isOwner && (
+              {(myRole === 'planner' || myRole === 'owner' || project?.ownerId === user?.uid) && (
                 <button onClick={() => setMyNewPartId('__planner__')}
                   className={`flex items-center gap-3 p-3 rounded-[10px] border-2 text-left transition-colors ${myNewPartId === '__planner__' || (!myNewPartId && !myPartId) ? 'border-[#185FA5] bg-[#E6F1FB]' : 'border-[#E2E8F0]'}`}>
                   <div className="w-5 h-5 rounded-full bg-[#E6F1FB] flex items-center justify-center flex-shrink-0">
