@@ -1,66 +1,69 @@
+import { useEffect } from 'react'
 import { onAuthStateChanged } from 'firebase/auth'
 import { ref, get, update } from 'firebase/database'
 import { auth, db } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
 import type { User } from '@/types'
 
-// ── 앱 전체에서 단 한 번만 onAuthStateChanged 등록 ──
-// 모듈 레벨 변수: 컴포넌트 마운트/언마운트에 영향받지 않음
-let _unsubscribe: (() => void) | null = null
+let isInitialized = false
 
-function initAuth() {
-  if (_unsubscribe) return // 이미 등록됨 → 재등록 방지
+export function useAuth() {
+  const setUser = useAuthStore((s) => s.setUser)
+  const setLoading = useAuthStore((s) => s.setLoading)
+  const user = useAuthStore((s) => s.user)
+  const loading = useAuthStore((s) => s.loading)
 
-  _unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-    if (firebaseUser) {
-      let isPro = false
-      try {
-        const [proSnap, adminSnap] = await Promise.all([
-          get(ref(db, `users/${firebaseUser.uid}/isPro`)),
-          get(ref(db, `admins/${firebaseUser.uid}`)),
-        ])
-        const isAdmin = adminSnap.exists() && adminSnap.val() === true
-        isPro = isAdmin || (proSnap.exists() ? Boolean(proSnap.val()) : false)
-      } catch { /* 조회 실패 시 false */ }
+  useEffect(() => {
+    if (isInitialized) return
+    isInitialized = true
 
-      const user: User = {
-        uid: firebaseUser.uid,
-        email: firebaseUser.email ?? '',
-        displayName: firebaseUser.displayName ?? '',
-        photoURL: firebaseUser.photoURL ?? undefined,
-        emailVerified: firebaseUser.emailVerified,
-        createdAt: firebaseUser.metadata.creationTime ?? '',
-        isPro,
-      }
-      useAuthStore.getState().setUser(user)
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        let isPro = false
+        try {
+          const [proSnap, adminSnap] = await Promise.all([
+            get(ref(db, `users/${firebaseUser.uid}/isPro`)),
+            get(ref(db, `admins/${firebaseUser.uid}`)),
+          ])
+          const isAdmin = adminSnap.exists() && adminSnap.val() === true
+          isPro = isAdmin || (proSnap.exists() ? Boolean(proSnap.val()) : false)
+        } catch { /* 조회 실패 시 false */ }
 
-      try {
-        const existingSnap = await get(ref(db, `users/${firebaseUser.uid}/createdAt`))
-        await update(ref(db, `users/${firebaseUser.uid}`), {
+        const user: User = {
           uid: firebaseUser.uid,
           email: firebaseUser.email ?? '',
           displayName: firebaseUser.displayName ?? '',
-          photoURL: firebaseUser.photoURL ?? null,
-          createdAt: existingSnap.exists()
-            ? existingSnap.val()
-            : (firebaseUser.metadata.creationTime ?? new Date().toISOString()),
-          lastLoginAt: new Date().toISOString(),
-        })
-      } catch { /* DB 저장 실패해도 로그인은 계속 */ }
+          photoURL: firebaseUser.photoURL ?? undefined,
+          emailVerified: firebaseUser.emailVerified,
+          createdAt: firebaseUser.metadata.creationTime ?? '',
+          isPro,
+        }
+        setUser(user)
 
-    } else {
-      useAuthStore.getState().setUser(null)
-    }
-    useAuthStore.getState().setLoading(false)
-  })
-}
+        try {
+          const existingSnap = await get(ref(db, `users/${firebaseUser.uid}/createdAt`))
+          await update(ref(db, `users/${firebaseUser.uid}`), {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email ?? '',
+            displayName: firebaseUser.displayName ?? '',
+            photoURL: firebaseUser.photoURL ?? null,
+            createdAt: existingSnap.exists()
+              ? existingSnap.val()
+              : (firebaseUser.metadata.creationTime ?? new Date().toISOString()),
+            lastLoginAt: new Date().toISOString(),
+          })
+        } catch { /* DB 저장 실패해도 로그인은 계속 */ }
 
-// 앱 시작 시 즉시 초기화 (모듈 로드 시점)
-initAuth()
+      } else {
+        setUser(null)
+      }
+      setLoading(false)
+    })
 
-// useAuth: store에서 상태만 읽어옴 — 구독은 위에서 이미 완료
-export function useAuth() {
-  const user = useAuthStore((s) => s.user)
-  const loading = useAuthStore((s) => s.loading)
+    // cleanup: 구독만 해제, isInitialized는 리셋하지 않음
+    // → 리셋하면 LandingPage 언마운트 시 구독이 끊겨 loading이 영원히 true가 됨
+    return () => { unsubscribe() }
+  }, [setUser, setLoading])
+
   return { user, loading }
 }
