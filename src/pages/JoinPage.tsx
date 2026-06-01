@@ -8,6 +8,7 @@ export default function JoinPage() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const user = useAuthStore((s) => s.user)
+  const authLoading = useAuthStore((s) => s.loading) // ← 추가: Firebase 인증 확인 중 여부
 
   const code = (params.get('code') ?? '').toUpperCase()
   const partKey = params.get('partKey') ?? ''
@@ -22,6 +23,11 @@ export default function JoinPage() {
 
   useEffect(() => {
     if (!code) { setStatus('error'); setErrorMsg('유효하지 않은 초대 링크예요'); return }
+
+    // Firebase 인증 상태 확인이 끝날 때까지 대기
+    // authLoading=true 동안은 user=null이 "비로그인"이 아니라 "확인 중"을 의미함
+    if (authLoading) return
+
     if (!user) {
       // 로그인 후 돌아오도록 저장
       sessionStorage.setItem('join_redirect', window.location.href)
@@ -29,11 +35,10 @@ export default function JoinPage() {
       return
     }
     findProject()
-  }, [user, code])
+  }, [user, code, authLoading]) // ← authLoading 의존성 추가
 
   async function findProject() {
     try {
-      // joinCode로 프로젝트 찾기
       const snap = await get(ref(db, 'projects'))
       if (!snap.exists()) { setStatus('error'); setErrorMsg('프로젝트를 찾을 수 없어요'); return }
 
@@ -45,7 +50,6 @@ export default function JoinPage() {
       setProjectId(project.id)
       setProjectName(project.name)
 
-      // partKey로 실제 partId 찾기
       if (partKey) {
         const pkSnap = await get(ref(db, `partKeyMap/${project.id}/${partKey}`))
         if (pkSnap.exists()) {
@@ -55,7 +59,7 @@ export default function JoinPage() {
       }
 
       setStatus('joining')
-    } catch (e) {
+    } catch {
       setStatus('error')
       setErrorMsg('오류가 발생했어요. 다시 시도해주세요.')
     }
@@ -69,7 +73,6 @@ export default function JoinPage() {
       let finalRole = rolePram
       let finalPartName = partName
 
-      // partKey → partId 변환
       if (partKey) {
         const pkSnap = await get(ref(db, `partKeyMap/${projectId}/${partKey}`))
         if (pkSnap.exists()) {
@@ -80,7 +83,6 @@ export default function JoinPage() {
         }
       }
 
-      // projectMembers에 저장
       await set(ref(db, `projectMembers/${projectId}/${user.uid}`), {
         uid: user.uid,
         displayName: user.displayName ?? '익명',
@@ -90,7 +92,6 @@ export default function JoinPage() {
         joinedAt: new Date().toISOString(),
       })
 
-      // parts에도 managerId 업데이트 (팀장 역할일 때)
       if (finalPartId && finalRole === 'staff') {
         await update(ref(db, `parts/${projectId}/${finalPartId}`), {
           managerId: user.uid,
@@ -100,7 +101,7 @@ export default function JoinPage() {
 
       setStatus('done')
       setTimeout(() => navigate(`/p/${projectId}/home`), 1500)
-    } catch (e) {
+    } catch {
       setStatus('error')
       setErrorMsg('참여 중 오류가 발생했어요.')
     }
@@ -117,7 +118,6 @@ export default function JoinPage() {
     <div className="min-h-screen bg-[#F4F6F9] flex items-center justify-center px-5">
       <div className="bg-white rounded-[20px] w-full max-w-sm p-6 shadow-sm">
 
-        {/* 로딩 */}
         {status === 'loading' && (
           <div className="flex flex-col items-center py-8 gap-3">
             <i className="ti ti-loader-2 animate-spin text-[#185FA5] text-[32px]"/>
@@ -125,7 +125,6 @@ export default function JoinPage() {
           </div>
         )}
 
-        {/* 참여 확인 */}
         {status === 'joining' && (
           <>
             <div className="flex flex-col items-center mb-5">
@@ -182,7 +181,6 @@ export default function JoinPage() {
           </>
         )}
 
-        {/* 완료 */}
         {status === 'done' && (
           <div className="flex flex-col items-center py-8 gap-3">
             <div className="w-16 h-16 rounded-full bg-[#EAF3DE] flex items-center justify-center">
@@ -193,7 +191,6 @@ export default function JoinPage() {
           </div>
         )}
 
-        {/* 오류 */}
         {status === 'error' && (
           <div className="flex flex-col items-center py-8 gap-3">
             <div className="w-16 h-16 rounded-full bg-[#FEF2F2] flex items-center justify-center">

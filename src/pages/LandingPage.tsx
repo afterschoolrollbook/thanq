@@ -12,6 +12,7 @@ const FEATURES = [
   { icon: 'ti-checkbox', title: '체크리스트 관리', desc: '파트별 준비 항목을 실시간으로 체크해요.', color: '#534AB7', bg: '#EEEDFE' },
   { icon: 'ti-chart-bar', title: '진행 현황 대시보드', desc: '전체 파트의 진행률을 한눈에 확인해요.', color: '#993C1D', bg: '#FAECE7' },
   { icon: 'ti-users', title: '분야별 자동 세팅', desc: '분야를 선택하면 용어와 구성이 자동으로 맞춰져요.', color: '#185FA5', bg: '#E6F1FB' },
+  { icon: 'ti-player-play', title: '사전 시뮬레이션', desc: '행사 전 큐시트 충돌·지연을 미리 점검하고 문제를 찾아요.', color: '#534AB7', bg: '#EEEDFE' },
 ]
 
 const USE_CASES = [
@@ -21,8 +22,8 @@ const USE_CASES = [
   { icon: '👗', label: '패션쇼' },
   { icon: '⚽', label: '스포츠/대회' },
   { icon: '📺', label: '방송/생방송' },
-  { icon: '🏔', label: '등산/모임' },
-  { icon: '✏️', label: '직접 설정' },
+  { icon: '🏔', label: '모임/클럽' },
+  { icon: '✏️', label: '직접 입력' },
 ]
 
 const PLANS = [
@@ -282,6 +283,11 @@ export default function LandingPage() {
                     <i className="ti ti-shield text-[13px]" /> 관리자
                   </button>
                 )}
+                <button onClick={() => navigate('/my')}
+                  className="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center hover:bg-white/20 transition-colors"
+                  title="마이페이지">
+                  <i className="ti ti-user text-white text-[14px]" />
+                </button>
                 <button onClick={() => navigate('/dashboard')}
                   className="px-4 py-2 bg-[#185FA5] rounded-[8px] text-[13px] font-semibold hover:bg-[#1470BE] transition-colors">
                   대시보드
@@ -322,6 +328,10 @@ export default function LandingPage() {
                     <i className="ti ti-shield text-[15px]" /> 관리자 콘솔
                   </button>
                 )}
+                <button onClick={() => { navigate('/my'); setMobileMenuOpen(false) }}
+                  className="w-full h-[44px] bg-white/8 border border-white/15 rounded-[10px] text-[14px] font-bold flex items-center justify-center gap-2 text-white/80">
+                  <i className="ti ti-user text-[15px]" /> 마이페이지
+                </button>
                 <button onClick={() => { navigate('/dashboard'); setMobileMenuOpen(false) }}
                   className="w-full h-[44px] bg-[#185FA5] rounded-[10px] text-[14px] font-bold flex items-center justify-center gap-2">
                   <i className="ti ti-layout-dashboard text-[15px]" /> 대시보드

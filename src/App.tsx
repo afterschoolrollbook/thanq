@@ -1,5 +1,4 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { useAuth } from '@/hooks/useAuth'
 import AuthLayout from '@/components/layout/AuthLayout'
 import AppLayout from '@/components/layout/AppLayout'
 import PrivateRoute from '@/components/auth/PrivateRoute'
@@ -26,10 +25,10 @@ import JoinPage from '@/pages/JoinPage'
 import TemplatePage from '@/pages/TemplatePage'
 import MyPage from '@/pages/MyPage'
 
+// ⚠️ useAuth()는 PrivateRoute 내부에서만 호출합니다.
+// App 최상단에서 중복 호출하면 onAuthStateChanged가 이중 구독되어
+// 로그인 직후 loading 타이밍이 꼬여 /login으로 튕기는 버그가 발생합니다.
 export default function App() {
-  // 앱 최상단에서 Firebase 인증 상태 감지 → 모든 페이지에서 user 사용 가능
-  useAuth()
-
   return (
     <BrowserRouter>
       <Routes>
