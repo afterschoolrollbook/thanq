@@ -51,13 +51,9 @@ function AuthProvider() {
         setUser(basicUser)
         setLoading(false)
 
-        // isPro 백그라운드 조회
-        Promise.all([
-          get(ref(db, `users/${firebaseUser.uid}/isPro`)),
-          get(ref(db, `admins/${firebaseUser.uid}`)),
-        ]).then(([proSnap, adminSnap]) => {
-          const isAdmin = adminSnap.exists() && adminSnap.val() === true
-          const isPro = isAdmin || (proSnap.exists() ? Boolean(proSnap.val()) : false)
+        // isPro 백그라운드 조회 (admins는 각 페이지에서 별도 확인)
+        get(ref(db, `users/${firebaseUser.uid}/isPro`)).then((proSnap) => {
+          const isPro = proSnap.exists() ? Boolean(proSnap.val()) : false
           if (isPro) setUser({ ...basicUser, isPro: true })
         }).catch(() => {})
 
