@@ -492,26 +492,36 @@ export default function MyPage() {
               const usedTypes = ['all', ...Array.from(new Set(myTemplates.map((t) => t.fieldType)))]
               return (
                 <div className="flex gap-1.5 flex-wrap mb-4">
-                  {usedTypes.map((type) => {
-                    const matchedTmpl = myTemplates.find((t) => t.fieldType === type)
-                    const fl = type === 'all' ? { label: '전체', color: '#185FA5' } : (FIELD_LABELS[type] ?? (matchedTmpl?.fieldLabel ? { label: matchedTmpl.fieldLabel, color: '#64748B' } : FIELD_LABELS.custom))
-                    const count = type === 'all' ? myTemplates.length : myTemplates.filter((t) => t.fieldType === type).length
-                    const isActive = fieldFilter === type
-                    return (
-                      <button
-                        key={type}
-                        onClick={() => setFieldFilter(type)}
-                        className="h-[30px] px-3 rounded-full text-[12px] font-semibold transition-all border"
-                        style={{
-                          background: isActive ? fl.color : fl.color + '12',
-                          color: isActive ? '#fff' : fl.color,
-                          borderColor: isActive ? fl.color : fl.color + '30',
-                        }}
-                      >
-                        {fl.label} {count}
-                      </button>
-                    )
-                  })}
+                  {(() => {
+                    const projectNames = new Set(projects.map((p) => p.name))
+                    const inProjectCount = myTemplates.filter((t) => projectNames.has(t.name)).length
+                    const tabs = [
+                      ...usedTypes.map((type) => {
+                        const matchedTmpl = myTemplates.find((t) => t.fieldType === type)
+                        const fl = type === 'all' ? { label: '전체', color: '#185FA5' } : (FIELD_LABELS[type] ?? (matchedTmpl?.fieldLabel ? { label: matchedTmpl.fieldLabel, color: '#64748B' } : FIELD_LABELS.custom))
+                        const count = type === 'all' ? myTemplates.length : myTemplates.filter((t) => t.fieldType === type).length
+                        return { type, label: fl.label, color: fl.color, count }
+                      }),
+                      ...(inProjectCount > 0 ? [{ type: '__inproject__', label: '프로젝트에 있음', color: '#0F6E56', count: inProjectCount }] : []),
+                    ]
+                    return tabs.map(({ type, label, color, count }) => {
+                      const isActive = fieldFilter === type
+                      return (
+                        <button
+                          key={type}
+                          onClick={() => setFieldFilter(type)}
+                          className="h-[30px] px-3 rounded-full text-[12px] font-semibold transition-all border"
+                          style={{
+                            background: isActive ? color : color + '12',
+                            color: isActive ? '#fff' : color,
+                            borderColor: isActive ? color : color + '30',
+                          }}
+                        >
+                          {label} {count}
+                        </button>
+                      )
+                    })
+                  })()}
                 </div>
               )
             })()}
@@ -525,7 +535,12 @@ export default function MyPage() {
                 <p className="text-[12px] text-[#A0AEC0] mt-1">.thanq 파일을 가져오거나 프로젝트를 템플릿으로 내보내보세요</p>
               </div>
             ) : (() => {
-              const filtered = fieldFilter === 'all' ? myTemplates : myTemplates.filter((t) => t.fieldType === fieldFilter)
+              const projectNames = new Set(projects.map((p) => p.name))
+              const filtered = fieldFilter === 'all'
+                ? myTemplates
+                : fieldFilter === '__inproject__'
+                ? myTemplates.filter((t) => projectNames.has(t.name))
+                : myTemplates.filter((t) => t.fieldType === fieldFilter)
               if (filtered.length === 0) return (
                 <div className="text-center py-14">
                   <i className="ti ti-filter-off text-[48px] text-[#A0AEC0] block mb-3 opacity-40" />
@@ -547,6 +562,11 @@ export default function MyPage() {
                           {fl.label}
                         </span>
                         <div className="flex items-center gap-1 flex-shrink-0">
+                          {projectNames.has(t.name) && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#E1F5EE] text-[#0F6E56] whitespace-nowrap">
+                              프로젝트 ✓
+                            </span>
+                          )}
                           {t.templateFile.includes('"passwordHash"') && <i className="ti ti-lock text-[11px] text-[#B45309]" />}
                           {t.templateFile.includes('"allowedEmail"') && <i className="ti ti-mail text-[11px] text-[#185FA5]" />}
                           <button onClick={() => setPreviewTmpl(isExpanded ? null : t)}
