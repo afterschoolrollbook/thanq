@@ -31,7 +31,15 @@ const FIELD_LABELS: Record<string, string> = {
   event: '행사/축제', film: '드라마/영화', concert: '콘서트/공연',
   fashion: '패션쇼', sports: '스포츠/대회', broadcast: '방송/생방송',
   club: '모임/클럽', party: '기념일/파티', cooking: '요리/클래스',
+  recipe: '요리/클래스',
   study: '스터디/독서', travel: '여행/캠핑', social: '소셜다이닝/미팅', custom: '직접 입력',
+}
+
+const FIELD_COLORS: Record<string, string> = {
+  party: '#C2185B', cooking: '#F57F17', recipe: '#F57F17',
+  study: '#2E7D32', travel: '#1565C0', club: '#2E7D32', social: '#C2185B',
+  event: '#185FA5', concert: '#0F6E56', sports: '#854F0B',
+  film: '#534AB7', fashion: '#993556', broadcast: '#993C1D', custom: '#64748B',
 }
 
 export default function FieldSelectPage() {
@@ -52,6 +60,7 @@ export default function FieldSelectPage() {
   // 내 저장 템플릿
   const [myTemplates, setMyTemplates] = useState<{id:string; name:string; templateFile:string; createdAt:string}[]>([])
   const [tmplSubTab, setTmplSubTab] = useState<'file'|'mine'>('file')
+  const [fieldFilter, setFieldFilter] = useState<string>('all')
 
   // 비밀번호
   const [needPw, setNeedPw] = useState(false)
@@ -330,37 +339,86 @@ export default function FieldSelectPage() {
 
             {/* 내 저장 템플릿 */}
             {!tmplPreview && !needPw && tmplSubTab === 'mine' && (
-              <div className="flex flex-col gap-2 max-h-[280px] overflow-y-auto">
+              <div className="flex flex-col gap-2">
                 {myTemplates.length === 0 ? (
                   <div className="text-center py-8 text-[#A0AEC0]">
                     <i className="ti ti-bookmark-off text-[32px] block mb-2 opacity-40"/>
                     <div className="text-[13px]">저장된 템플릿이 없어요</div>
                     <div className="text-[11px] mt-1">프로젝트에서 템플릿으로 저장해보세요</div>
                   </div>
-                ) : myTemplates.map(t => {
-                  const parsed = (() => { try { return JSON.parse(t.templateFile) } catch { return null } })()
+                ) : (() => {
+                  const usedTypes = ['all', ...Array.from(new Set(myTemplates.map((t) => {
+                    try { return JSON.parse(t.templateFile).fieldType ?? 'custom' } catch { return 'custom' }
+                  })))]
+                  const filtered = fieldFilter === 'all'
+                    ? myTemplates
+                    : myTemplates.filter((t) => {
+                        try { return JSON.parse(t.templateFile).fieldType === fieldFilter } catch { return false }
+                      })
                   return (
-                    <button key={t.id} onClick={() => {
-                      try {
-                        const tmpl = JSON.parse(t.templateFile)
-                        sessionStorage.setItem('oncue_template', t.templateFile)
-                        sessionStorage.setItem('oncue_field', tmpl.fieldType ?? 'event')
-                        sessionStorage.setItem('oncue_terms', JSON.stringify(tmpl.fieldTerms ?? {}))
-                        navigate('/onboarding/create')
-                      } catch {}
-                    }}
-                      className="flex items-center gap-3 p-3 rounded-[12px] border border-[#E2E8F0] hover:border-[#185FA5] hover:bg-[#F0F7FF] text-left transition-colors">
-                      <div className="w-9 h-9 rounded-[8px] bg-[#E6F1FB] flex items-center justify-center flex-shrink-0">
-                        <i className="ti ti-file-description text-[#185FA5] text-[16px]"/>
+                    <>
+                      {/* 분야 필터 탭 */}
+                      <div className="flex gap-1.5 flex-wrap mb-1">
+                        {usedTypes.map((type) => {
+                          const fl = type === 'all'
+                            ? { label: '전체', color: '#185FA5' }
+                            : (FIELD_LABELS[type] ? { label: FIELD_LABELS[type], color: FIELD_COLORS[type] ?? '#64748B' } : { label: type, color: '#64748B' })
+                          const count = type === 'all' ? myTemplates.length : myTemplates.filter((t) => {
+                            try { return JSON.parse(t.templateFile).fieldType === type } catch { return false }
+                          }).length
+                          const isActive = fieldFilter === type
+                          return (
+                            <button key={type} onClick={() => setFieldFilter(type)}
+                              className="h-[26px] px-2.5 rounded-full text-[11px] font-semibold transition-all border"
+                              style={{
+                                background: isActive ? fl.color : fl.color + '12',
+                                color: isActive ? '#fff' : fl.color,
+                                borderColor: isActive ? fl.color : fl.color + '30',
+                              }}>
+                              {fl.label} {count}
+                            </button>
+                          )
+                        })}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[13px] font-semibold text-[#1A1A2E] truncate">{parsed?.name ?? t.name ?? '템플릿'}</div>
-                        <div className="text-[11px] text-[#A0AEC0]">파트 {parsed?.parts?.length ?? 0}개 · {new Date(t.createdAt).toLocaleDateString('ko-KR')}</div>
+                      {/* 템플릿 목록 */}
+                      <div className="flex flex-col gap-2 max-h-[220px] overflow-y-auto">
+                        {filtered.map(t => {
+                          const parsed = (() => { try { return JSON.parse(t.templateFile) } catch { return null } })()
+                          const fieldType = parsed?.fieldType ?? 'custom'
+                          const fl = FIELD_LABELS[fieldType] ? { label: FIELD_LABELS[fieldType], color: FIELD_COLORS[fieldType] ?? '#64748B' } : { label: fieldType, color: '#64748B' }
+                          return (
+                            <button key={t.id} onClick={() => {
+                              try {
+                                const tmpl = JSON.parse(t.templateFile)
+                                sessionStorage.setItem('oncue_template', t.templateFile)
+                                sessionStorage.setItem('oncue_field', tmpl.fieldType ?? 'event')
+                                sessionStorage.setItem('oncue_terms', JSON.stringify(tmpl.fieldTerms ?? {}))
+                                navigate('/onboarding/create')
+                              } catch {}
+                            }}
+                              className="flex items-center gap-3 p-3 rounded-[12px] border border-[#E2E8F0] hover:border-[#185FA5] hover:bg-[#F0F7FF] text-left transition-colors">
+                              <div className="w-9 h-9 rounded-[8px] flex items-center justify-center flex-shrink-0"
+                                style={{ background: fl.color + '18' }}>
+                                <i className="ti ti-file-description text-[16px]" style={{ color: fl.color }}/>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5 mb-0.5">
+                                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                                    style={{ background: fl.color + '18', color: fl.color }}>
+                                    {fl.label}
+                                  </span>
+                                </div>
+                                <div className="text-[13px] font-semibold text-[#1A1A2E] truncate">{parsed?.name ?? t.name ?? '템플릿'}</div>
+                                <div className="text-[11px] text-[#A0AEC0]">파트 {parsed?.parts?.length ?? 0}개</div>
+                              </div>
+                              <i className="ti ti-chevron-right text-[#A0AEC0] text-[14px] flex-shrink-0"/>
+                            </button>
+                          )
+                        })}
                       </div>
-                      <i className="ti ti-chevron-right text-[#A0AEC0] text-[14px] flex-shrink-0"/>
-                    </button>
+                    </>
                   )
-                })}
+                })()}
               </div>
             )}
 
