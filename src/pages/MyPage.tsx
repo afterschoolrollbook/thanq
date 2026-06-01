@@ -74,8 +74,10 @@ export default function MyPage() {
   const [fieldFilter, setFieldFilter] = useState<string>('all')
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState<{ success: number; fail: number; duplicate: number } | null>(null)
+  const [dragOver, setDragOver] = useState(false)
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState<{ success: number; fail: number; duplicate: number } | null>(null)
+  const [dragOver, setDragOver] = useState(false)
 
   // 탈퇴
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -192,7 +194,10 @@ export default function MyPage() {
     let success = 0, fail = 0
     const existingKeys = new Set(
       myTemplates.map((t) => {
-        try { const p = JSON.parse(t.templateFile); return `${p.name}__${p.authorName}__${p.createdAt}` } catch { return '' }
+        try {
+          const p = JSON.parse(t.templateFile)
+          return p.templateId ?? `${p.name}__${p.authorName}__${p.createdAt}`
+        } catch { return '' }
       })
     )
     let duplicate = 0
@@ -202,7 +207,7 @@ export default function MyPage() {
         const text = await file.text()
         const parsed = JSON.parse(text) as TemplateFile
         if (parsed.version !== '1.0' || !Array.isArray(parsed.parts)) throw new Error()
-        const key = `${parsed.name}__${parsed.authorName}__${parsed.createdAt}`
+        const key = parsed.templateId ?? `${parsed.name}__${parsed.authorName}__${parsed.createdAt}`
         if (existingKeys.has(key)) { duplicate++; continue }
         existingKeys.add(key)
         const newRef = push(ref(db, `userTemplates/${user.uid}`))
@@ -432,6 +437,31 @@ export default function MyPage() {
                   : <><i className="ti ti-file-import text-[14px]" /> .thanq 가져오기</>}
               </button>
               <input ref={fileInputRef} type="file" accept=".thanq" multiple className="hidden" onChange={handleImportFile} />
+            </div>
+
+            {/* 드래그 앤 드롭 존 */}
+            <div
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={(e) => {
+                e.preventDefault()
+                setDragOver(false)
+                const files = Array.from(e.dataTransfer.files)
+                if (!files.length) return
+                const fakeEvent = { target: { files: e.dataTransfer.files, value: '' } } as unknown as React.ChangeEvent<HTMLInputElement>
+                handleImportFile(fakeEvent)
+              }}
+              onClick={() => fileInputRef.current?.click()}
+              className={`mb-4 border-2 border-dashed rounded-[14px] py-5 flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-all ${
+                dragOver
+                  ? 'border-[#185FA5] bg-[#E6F1FB]'
+                  : 'border-[#E2E8F0] bg-[#F8FAFC] hover:border-[#185FA5] hover:bg-[#F0F6FF]'
+              }`}>
+              <i className={`ti ti-cloud-upload text-[28px] ${dragOver ? 'text-[#185FA5]' : 'text-[#A0AEC0]'}`} />
+              <p className={`text-[13px] font-semibold ${dragOver ? 'text-[#185FA5]' : 'text-[#64748B]'}`}>
+                {dragOver ? '여기에 놓으세요!' : '.thanq 파일을 드래그하거나 클릭해서 가져오기'}
+              </p>
+              <p className="text-[11px] text-[#A0AEC0]">여러 파일 동시에 가능</p>
             </div>
 
             {/* 가져오기 결과 토스트 */}
