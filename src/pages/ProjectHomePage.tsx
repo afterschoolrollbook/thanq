@@ -1134,37 +1134,84 @@ export default function ProjectHomePage() {
       )}
 
       {/* 팀원 초대 모달 */}
-      {showInviteModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-5" onClick={() => setShowInviteModal(null)}>
-          <div className="bg-white rounded-[20px] p-5 w-full max-w-sm" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <div className="text-[16px] font-semibold">팀원 초대</div>
-              <button onClick={() => setShowInviteModal(null)}><i className="ti ti-x text-[18px] text-[#A0AEC0]"/></button>
-            </div>
-            <div className="flex items-center gap-2 mb-4 p-3 bg-[#F4F6F9] rounded-[10px]">
-              <span className="w-2.5 h-2.5 rounded-full" style={{ background: showInviteModal.color }}/>
-              <span className="text-[13px] font-semibold">{showInviteModal.name}</span>
-            </div>
-            <p className="text-[12px] text-[#64748B] mb-4">초대 링크를 복사해서 팀원에게 공유하세요. 링크로 입장하면 이 파트에 자동 배정돼요.</p>
-            <div className="bg-[#F4F6F9] rounded-[10px] p-3 mb-4 flex items-center gap-2">
-              <span className="text-[11px] text-[#64748B] flex-1 truncate">{getInviteLink(showInviteModal, (showInviteModal as any).isParticipant ? 'participant' : 'staff')}</span>
-            </div>
-            <div className="flex flex-col gap-2">
-              <button onClick={() => copyInviteLink(showInviteModal, (showInviteModal as any).isParticipant ? 'participant' : 'staff')}
-                className={`w-full h-[44px] rounded-[12px] text-[13px] font-semibold flex items-center justify-center gap-2 transition-colors ${inviteCopied ? 'bg-[#3B6D11] text-white' : 'bg-[#185FA5] text-white'}`}>
-                <i className={`ti ${inviteCopied ? 'ti-check' : 'ti-copy'} text-[14px]`}/>
-                {inviteCopied ? '복사됐어요!' : '링크 복사'}
-              </button>
-              {navigator.share && (
-                <button onClick={() => navigator.share({ title: 'ThanQ 초대', url: getInviteLink(showInviteModal, (showInviteModal as any).isParticipant ? 'participant' : 'staff') })}
-                  className="w-full h-[44px] border border-[#E2E8F0] rounded-[12px] text-[13px] text-[#64748B] flex items-center justify-center gap-2">
-                  <i className="ti ti-share text-[14px]"/> 공유하기
-                </button>
-              )}
+      {showInviteModal && (() => {
+        const role = (showInviteModal as any).isParticipant ? 'participant' : 'staff'
+        const inviteLink = getInviteLink(showInviteModal, role)
+        const mgr = partManagers[showInviteModal.id] ?? {}
+        const joinCode = project?.joinCode ?? projectId?.slice(-6).toUpperCase() ?? ''
+        const subject = `[ThanQ] ${project?.name || '프로젝트'} 참여 초대`
+        const msgBody = `안녕하세요, ${mgr.name || '담당자'}님!
+
+${project?.name || '프로젝트'}에 초대합니다.
+담당 파트: ${showInviteModal.name}
+
+참여 코드: ${joinCode}
+참여 링크: ${inviteLink}
+
+위 링크를 클릭하거나 참여 코드를 입력하시면 바로 합류할 수 있어요.`
+        return (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center" onClick={() => setShowInviteModal(null)}>
+            <div className="bg-white rounded-t-[20px] w-full max-w-2xl pb-8" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-5 py-4 border-b border-[#F4F6F9]">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ background: showInviteModal.color }}/>
+                  <div className="text-[16px] font-semibold">{showInviteModal.name} 초대</div>
+                </div>
+                <button onClick={() => setShowInviteModal(null)}><i className="ti ti-x text-[18px] text-[#A0AEC0]"/></button>
+              </div>
+              <div className="px-5 pt-4">
+                {/* 초대 링크 */}
+                <div className="bg-[#F4F6F9] rounded-[10px] p-3 mb-4 flex items-center gap-2">
+                  <span className="text-[11px] text-[#64748B] flex-1 truncate">{inviteLink}</span>
+                  <button onClick={() => copyInviteLink(showInviteModal, role)}
+                    className="text-[11px] font-semibold text-[#185FA5] flex-shrink-0">
+                    {inviteCopied ? '✓ 복사됨' : '복사'}
+                  </button>
+                </div>
+                {/* 초대 방법 */}
+                <div className="text-[12px] font-semibold text-[#64748B] mb-2">초대 방법</div>
+                <div className="grid grid-cols-4 gap-2 mb-4">
+                  {[
+                    { label: '문자', icon: 'ti-message', color: '#3B6D11',
+                      fn: () => {
+                        const phone = mgr.phone?.replace(/-/g, '')
+                        if (!phone) { alert('전화번호가 없어요. 담당자 정보를 먼저 입력해주세요.'); return }
+                        window.location.href = `sms:${phone}?body=${encodeURIComponent(msgBody)}`
+                        setShowInviteModal(null)
+                      }
+                    },
+                    { label: '카카오톡', icon: 'ti-message-2', color: '#854F0B',
+                      fn: () => {
+                        if (navigator.share) navigator.share({ title: 'ThanQ 초대', text: msgBody, url: inviteLink })
+                        else window.open(`https://story.kakao.com/share?url=${encodeURIComponent(inviteLink)}`)
+                        setShowInviteModal(null)
+                      }
+                    },
+                    { label: '이메일', icon: 'ti-mail', color: '#185FA5',
+                      fn: () => {
+                        if (!mgr.email) { alert('이메일이 없어요. 담당자 정보를 먼저 입력해주세요.'); return }
+                        window.location.href = `mailto:${mgr.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(msgBody)}`
+                        setShowInviteModal(null)
+                      }
+                    },
+                    { label: '링크 복사', icon: 'ti-link', color: '#64748B',
+                      fn: () => { copyInviteLink(showInviteModal, role); }
+                    },
+                  ].map(btn => (
+                    <button key={btn.label} onClick={btn.fn}
+                      className="flex flex-col items-center gap-1.5 py-3 border border-[#E2E8F0] rounded-[12px] hover:bg-[#F4F6F9] transition-colors">
+                      <i className={`ti ${btn.icon} text-[20px]`} style={{ color: btn.color }} />
+                      <span className="text-[11px] text-[#64748B]">{btn.label}</span>
+                    </button>
+                  ))}
+                </div>
+                <button onClick={() => setShowInviteModal(null)}
+                  className="w-full h-[44px] border border-[#E2E8F0] rounded-[12px] text-[13px] text-[#64748B]">닫기</button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* 역할 변경 모달 */}
       {roleChangeTarget && (
