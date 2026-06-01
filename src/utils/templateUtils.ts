@@ -162,7 +162,8 @@ export async function exportProjectAsTemplateJson(
   authorName: string,
   fieldType: FieldType,
   password?: string,
-  allowedEmail?: string
+  allowedEmail?: string,
+  partnersId?: string
 ): Promise<string> {
   const [templateParts, projectMeta] = await Promise.all([
     buildTemplateParts(projectId),
@@ -175,6 +176,7 @@ export async function exportProjectAsTemplateJson(
     fieldType,
     description,
     authorName,
+    ...(partnersId ? { partnersId } : {}),
     createdAt: new Date().toISOString(),
     parts: templateParts,
     ...projectMeta,
