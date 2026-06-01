@@ -15,7 +15,7 @@ interface SiteUser {
 interface PTTRecord { id: string; senderName: string; senderColor: string; target: string; targetLabel: string; duration: number; createdAt: string }
 interface TargetItem { id: string; label: string; sublabel: string; icon?: string; color?: string; tier: 'owner' | 'manager' | 'all'; shortcutNum: number }
 type ListenState = 'idle' | 'listening' | 'processing' | 'connected'
-type AdminTab = 'dashboard' | 'users' | 'ptt' | 'coupons' | 'plans' | 'notice'
+type AdminTab = 'dashboard' | 'users' | 'ptt' | 'coupons' | 'plans' | 'notice' | 'email'
 
 
 export default function SiteAdminPage() {
@@ -58,6 +58,15 @@ export default function SiteAdminPage() {
   const [noticeText, setNoticeText] = useState('')
   const [noticeSent, setNoticeSent] = useState(false)
 
+  // 이메일 설정
+  const [emailApiKey, setEmailApiKey] = useState('')
+  const [emailFrom, setEmailFrom] = useState('')
+  const [emailEnabled, setEmailEnabled] = useState(false)
+  const [emailSaving, setEmailSaving] = useState(false)
+  const [emailMsg, setEmailMsg] = useState('')
+  const [emailError, setEmailError] = useState('')
+  const [showApiKey, setShowApiKey] = useState(false)
+
   // ─── 관리자 권한 확인 ─────────────────────────────────────
   useEffect(() => {
     if (!user) { setChecking(false); return }
@@ -87,6 +96,19 @@ export default function SiteAdminPage() {
       const list: Coupon[] = Object.values(s.val())
       list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       setCoupons(list)
+    })
+  }, [isAdmin])
+
+  // 이메일 설정 불러오기
+  useEffect(() => {
+    if (!isAdmin) return
+    onValue(ref(db, 'siteSettings/email'), (s) => {
+      if (s.exists()) {
+        const d = s.val()
+        setEmailApiKey(d.apiKey ?? '')
+        setEmailFrom(d.from ?? '')
+        setEmailEnabled(d.enabled ?? false)
+      }
     })
   }, [isAdmin])
 
@@ -231,6 +253,20 @@ export default function SiteAdminPage() {
     await set(ref(db, `users/${uid}/plan`), plan)
   }
 
+
+  async function saveEmailSettings() {
+    setEmailError(''); setEmailMsg('')
+    if (emailEnabled && !emailApiKey.trim()) { setEmailError('API Key를 입력해주세요'); return }
+    if (emailEnabled && !emailFrom.trim()) { setEmailError('발신 이메일을 입력해주세요'); return }
+    if (emailEnabled && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailFrom.trim())) { setEmailError('올바른 이메일 형식이 아니에요'); return }
+    setEmailSaving(true)
+    try {
+      await set(ref(db, 'siteSettings/email'), { apiKey: emailApiKey.trim(), from: emailFrom.trim(), enabled: emailEnabled, updatedAt: new Date().toISOString() })
+      setEmailMsg('저장됐어요!')
+      setTimeout(() => setEmailMsg(''), 3000)
+    } catch { setEmailError('저장 중 오류가 발생했어요') }
+    setEmailSaving(false)
+  }
   async function sendNotice() {
     if (!noticeText.trim()) return
     const r = push(ref(db, 'siteNotices'))
@@ -271,6 +307,7 @@ export default function SiteAdminPage() {
     { key: 'coupons',   icon: 'ti-ticket',            label: '쿠폰 발행' },
     { key: 'plans',     icon: 'ti-credit-card',       label: '요금제' },
     { key: 'notice',    icon: 'ti-speakerphone',      label: '공지' },
+    { key: 'email',     icon: 'ti-mail',              label: '이메일' },
   ]
 
   return (
@@ -733,6 +770,61 @@ export default function SiteAdminPage() {
                   <i className="ti ti-speakerphone" /> 전체 발송
                 </button>
                 {noticeSent && <div className="mt-2 text-[12px] text-[#3B6D11]">✓ 공지가 발송되었어요</div>}
+              </div>
+            </div>
+          )}
+
+          {/* ─── 이메일 설정 ─── */}
+          {tab === 'email' && (
+            <div>
+              <div className="text-[18px] font-bold mb-5">이메일 발송 (Resend)</div>
+              <p className="text-[12px] text-[#64748B] mb-5">팀원 · 참가자 초대 이메일 발송에 사용됩니다. 무료로 사용 가능합니다.</p>
+              <div className="bg-[#1E293B] border border-[#334155] rounded-[14px] p-5">
+                <div className="flex items-center justify-between mb-5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 bg-[#334155] rounded-[10px] flex items-center justify-center">
+                      <i className="ti ti-mail text-[18px] text-[#94A3B8]" />
+                    </div>
+                    <div>
+                      <div className="text-[14px] font-semibold">Resend</div>
+                      <div className="text-[11px] text-[#64748B]">월 3,000건 무료</div>
+                    </div>
+                  </div>
+                  <button onClick={() => setEmailEnabled(!emailEnabled)}
+                    className={`relative w-12 h-6 rounded-full transition-colors ${emailEnabled ? 'bg-[#185FA5]' : 'bg-[#334155]'}`}>
+                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${emailEnabled ? 'left-7' : 'left-1'}`} />
+                  </button>
+                </div>
+                <div className="mb-4">
+                  <label className={lbl}>API Key</label>
+                  <div className="relative">
+                    <input type={showApiKey ? 'text' : 'password'} value={emailApiKey}
+                      onChange={(e) => setEmailApiKey(e.target.value)}
+                      placeholder="re_xxxxxxxxxxxxxxxxxxxxxxxx"
+                      className={inp + ' pr-10'} />
+                    <button onClick={() => setShowApiKey(!showApiKey)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B] hover:text-white">
+                      <i className={`ti ${showApiKey ? 'ti-eye-off' : 'ti-eye'} text-[14px]`} />
+                    </button>
+                  </div>
+                  <a href="https://resend.com/api-keys" target="_blank" rel="noreferrer"
+                    className="mt-1.5 text-[11px] text-[#3B9EE8] flex items-center gap-1 hover:underline">
+                    <i className="ti ti-external-link text-[11px]" /> Resend API 키 발급 방법 보기
+                  </a>
+                </div>
+                <div className="mb-5">
+                  <label className={lbl}>발신 이메일</label>
+                  <input type="email" value={emailFrom}
+                    onChange={(e) => setEmailFrom(e.target.value)}
+                    placeholder="noreply@yourdomain.com"
+                    className={inp} />
+                </div>
+                {emailError && <div className="mb-3 text-[12px] text-red-400">{emailError}</div>}
+                {emailMsg && <div className="mb-3 text-[12px] text-[#3B6D11]">✓ {emailMsg}</div>}
+                <button onClick={saveEmailSettings} disabled={emailSaving}
+                  className="h-[40px] px-5 bg-[#185FA5] text-white rounded-[10px] text-[13px] font-semibold flex items-center gap-2 disabled:opacity-40">
+                  <i className="ti ti-device-floppy" /> {emailSaving ? '저장 중...' : '저장'}
+                </button>
               </div>
             </div>
           )}
