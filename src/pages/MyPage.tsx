@@ -19,14 +19,19 @@ interface SavedTemplate {
 }
 
 const FIELD_LABELS: Record<string, { label: string; color: string }> = {
-  event:     { label: '행사/축제',   color: '#185FA5' },
-  film:      { label: '드라마/영화', color: '#7C3AED' },
-  concert:   { label: '콘서트/공연', color: '#BE185D' },
-  fashion:   { label: '패션쇼',      color: '#B45309' },
-  sports:    { label: '스포츠/대회', color: '#16A34A' },
-  broadcast: { label: '방송/생방송', color: '#0891B2' },
-  club:      { label: '모임/클럽',   color: '#EA580C' },
-  custom:    { label: '기타',        color: '#64748B' },
+  party:     { label: '기념일/파티',     color: '#C2185B' },
+  cooking:   { label: '요리/클래스',     color: '#F57F17' },
+  study:     { label: '스터디/독서',     color: '#2E7D32' },
+  travel:    { label: '여행/캠핑',       color: '#1565C0' },
+  club:      { label: '모임/클럽',       color: '#2E7D32' },
+  social:    { label: '소셜다이닝/미팅', color: '#C2185B' },
+  event:     { label: '행사/축제',       color: '#185FA5' },
+  concert:   { label: '콘서트/공연',     color: '#0F6E56' },
+  sports:    { label: '스포츠/대회',     color: '#854F0B' },
+  film:      { label: '드라마/영화',     color: '#534AB7' },
+  fashion:   { label: '패션쇼',          color: '#993556' },
+  broadcast: { label: '방송/생방송',     color: '#993C1D' },
+  custom:    { label: '기타',            color: '#64748B' },
 }
 
 export default function MyPage() {
@@ -65,6 +70,7 @@ export default function MyPage() {
   const [tmplLoading, setTmplLoading] = useState(true)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [previewTmpl, setPreviewTmpl] = useState<SavedTemplate | null>(null)
+  const [fieldFilter, setFieldFilter] = useState<string>('all')
 
   // 탈퇴
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -403,6 +409,34 @@ export default function MyPage() {
               <input ref={fileInputRef} type="file" accept=".thanq" className="hidden" onChange={handleImportFile} />
             </div>
 
+            {/* 분야 필터 탭 */}
+            {!tmplLoading && myTemplates.length > 0 && (() => {
+              const usedTypes = ['all', ...Array.from(new Set(myTemplates.map((t) => t.fieldType)))]
+              return (
+                <div className="flex gap-1.5 flex-wrap mb-4">
+                  {usedTypes.map((type) => {
+                    const fl = type === 'all' ? { label: '전체', color: '#185FA5' } : (FIELD_LABELS[type] ?? FIELD_LABELS.custom)
+                    const count = type === 'all' ? myTemplates.length : myTemplates.filter((t) => t.fieldType === type).length
+                    const isActive = fieldFilter === type
+                    return (
+                      <button
+                        key={type}
+                        onClick={() => setFieldFilter(type)}
+                        className="h-[30px] px-3 rounded-full text-[12px] font-semibold transition-all border"
+                        style={{
+                          background: isActive ? fl.color : fl.color + '12',
+                          color: isActive ? '#fff' : fl.color,
+                          borderColor: isActive ? fl.color : fl.color + '30',
+                        }}
+                      >
+                        {fl.label} {count}
+                      </button>
+                    )
+                  })}
+                </div>
+              )
+            })()}
+
             {tmplLoading ? (
               <div className="text-center py-10 text-[#64748B] text-[13px]">불러오는 중...</div>
             ) : myTemplates.length === 0 ? (
@@ -411,9 +445,17 @@ export default function MyPage() {
                 <p className="text-[13px] text-[#64748B]">저장된 템플릿이 없어요</p>
                 <p className="text-[12px] text-[#A0AEC0] mt-1">.thanq 파일을 가져오거나 프로젝트를 템플릿으로 내보내보세요</p>
               </div>
-            ) : (
+            ) : (() => {
+              const filtered = fieldFilter === 'all' ? myTemplates : myTemplates.filter((t) => t.fieldType === fieldFilter)
+              if (filtered.length === 0) return (
+                <div className="text-center py-14">
+                  <i className="ti ti-filter-off text-[48px] text-[#A0AEC0] block mb-3 opacity-40" />
+                  <p className="text-[13px] text-[#64748B]">해당 분야의 템플릿이 없어요</p>
+                </div>
+              )
+              return (
               <div className="flex flex-col gap-3">
-                {myTemplates.map((t) => {
+                {filtered.map((t) => {
                   const fl = FIELD_LABELS[t.fieldType] ?? FIELD_LABELS.custom
                   const parsed = (() => { try { return JSON.parse(t.templateFile) as TemplateFile } catch { return null } })()
                   return (
@@ -487,7 +529,8 @@ export default function MyPage() {
                   )
                 })}
               </div>
-            )}
+              )
+            })()}
           </div>
         )}
       </div>
