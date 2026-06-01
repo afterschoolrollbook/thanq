@@ -21,15 +21,23 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
 
   function goNext() {
-    // /join 초대 링크에서 로그인으로 온 경우 원래 링크로 복귀
     const joinRedirect = sessionStorage.getItem('join_redirect')
     if (joinRedirect) {
       sessionStorage.removeItem('join_redirect')
       window.location.href = joinRedirect
       return
     }
-    navigate('/dashboard')
+    window.location.replace('/dashboard')
   }
+
+  // Google 리다이렉트 결과 처리
+  useEffect(() => {
+    getRedirectResult(auth).then((result) => {
+      if (result?.user) goNext()
+    }).catch(() => {
+      setError('Google 로그인에 실패했습니다.')
+    })
+  }, [])
 
   async function handleSubmit() {
     setError('')
@@ -56,20 +64,10 @@ export default function LoginPage() {
     } finally { setLoading(false) }
   }
 
-  // 컴포넌트 마운트 시 리다이렉트 결과 처리
-  useEffect(() => {
-    getRedirectResult(auth).then((result) => {
-      if (result?.user) goNext()
-    }).catch(() => {
-      setError('Google 로그인에 실패했습니다.')
-    })
-  }, [])
-
   async function handleGoogle() {
     setLoading(true)
     try {
       await signInWithRedirect(auth, new GoogleAuthProvider())
-      // 리다이렉트 후 돌아오면 위 useEffect에서 처리
     } catch {
       setError('Google 로그인에 실패했습니다.')
       setLoading(false)
@@ -77,13 +75,22 @@ export default function LoginPage() {
   }
 
   return (
-    <>
-      <h2 className="text-[20px] font-semibold text-[#1A1A2E] mb-1">
+    <div className="min-h-screen bg-gradient-to-br from-[#185FA5] to-[#0d3f6e] flex items-center justify-center p-4">
+      <div className="w-full max-w-sm">
+        {/* 로고 — 클릭 시 메인으로 */}
+        <button onClick={() => navigate('/')} className="w-full text-center mb-8 hover:opacity-80 transition-opacity">
+          <h1 className="text-3xl font-bold text-white tracking-tight">ThanQ</h1>
+          <p className="text-[#B5D4F4] text-sm mt-1">현장 운영 통합 플랫폼</p>
+        </button>
+
+        <div className="bg-white rounded-[14px] p-6 shadow-xl">
+          <h2 className="text-[20px] font-semibold text-[#1A1A2E] mb-1">
             {isSignUp ? '회원가입' : '시작하기'}
           </h2>
           <p className="text-[13px] text-[#64748B] mb-5">
             {isSignUp ? '계정을 만들고 ThanQ를 시작하세요' : '이메일 또는 소셜 계정으로 로그인하세요'}
           </p>
+
           <div className="space-y-3">
             {isSignUp && (
               <div>
@@ -113,11 +120,8 @@ export default function LoginPage() {
             </label>
           )}
 
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="w-full h-[42px] bg-[#185FA5] text-white rounded-[10px] flex items-center justify-center gap-2 text-[14px] font-semibold mt-5 disabled:opacity-50"
-          >
+          <button onClick={handleSubmit} disabled={loading}
+            className="w-full h-[42px] bg-[#185FA5] text-white rounded-[10px] flex items-center justify-center gap-2 text-[14px] font-semibold mt-5 disabled:opacity-50">
             <i className="ti ti-arrow-right" />
             {loading ? '처리 중...' : isSignUp ? '회원가입' : '로그인 / 회원가입'}
           </button>
@@ -129,10 +133,8 @@ export default function LoginPage() {
           </div>
 
           <div className="grid grid-cols-3 gap-2">
-            <button
-              onClick={handleGoogle}
-              className="h-[40px] border border-[#E2E8F0] rounded-[10px] flex items-center justify-center gap-1.5 text-[12px] text-[#64748B]"
-            >
+            <button onClick={handleGoogle}
+              className="h-[40px] border border-[#E2E8F0] rounded-[10px] flex items-center justify-center gap-1.5 text-[12px] text-[#64748B]">
               <i className="ti ti-brand-google text-[15px]" /> Google
             </button>
             <button disabled className="h-[40px] border border-[#E2E8F0] rounded-[10px] flex items-center justify-center gap-1.5 text-[12px] text-[#A0AEC0] opacity-40">
@@ -159,7 +161,18 @@ export default function LoginPage() {
               {isSignUp ? '로그인' : '회원가입'}
             </button>
           </p>
-    </>
+        </div>
+
+        {/* 메인으로 돌아가기 */}
+        <div className="text-center mt-5">
+          <button onClick={() => navigate('/')}
+            className="text-[13px] text-[#B5D4F4]/70 hover:text-white transition-colors flex items-center gap-1.5 mx-auto">
+            <i className="ti ti-arrow-left text-[13px]" />
+            메인으로 돌아가기
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
 
