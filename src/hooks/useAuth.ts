@@ -4,6 +4,9 @@ import { ref, get, update } from 'firebase/database'
 import { auth, db } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
 
+// 앱 전체에서 단 한 번만 구독 등록
+let unsubscribeFn: (() => void) | null = null
+
 export function useAuth() {
   const setUser = useAuthStore((s) => s.setUser)
   const setLoading = useAuthStore((s) => s.setLoading)
@@ -11,7 +14,10 @@ export function useAuth() {
   const loading = useAuthStore((s) => s.loading)
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    // 이미 구독 중이면 재등록 안 함
+    if (unsubscribeFn) return
+
+    unsubscribeFn = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         let isPro = false
         try {
@@ -32,10 +38,9 @@ export function useAuth() {
           createdAt: firebaseUser.metadata.creationTime ?? '',
           isPro,
         })
-        // DB 쓰기와 무관하게 즉시 loading 해제
         setLoading(false)
 
-        // 관리자 페이지 회원 목록 저장 — 백그라운드 처리 (로그인 흐름 차단 안 함)
+        // DB 저장은 백그라운드 처리
         get(ref(db, `users/${firebaseUser.uid}/createdAt`))
           .then((existingSnap) =>
             update(ref(db, `users/${firebaseUser.uid}`), {
@@ -49,15 +54,13 @@ export function useAuth() {
               lastLoginAt: new Date().toISOString(),
             })
           )
-          .catch(() => { /* 저장 실패해도 무관 */ })
+          .catch(() => {})
 
       } else {
         setUser(null)
         setLoading(false)
       }
     })
-
-    return () => unsubscribe()
   }, [])
 
   return { user, loading }
