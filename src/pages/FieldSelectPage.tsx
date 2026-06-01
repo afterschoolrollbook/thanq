@@ -389,9 +389,11 @@ export default function FieldSelectPage() {
                           return (
                             <button key={t.id} onClick={() => {
                               try {
+                                const ALIAS: Record<string, string> = { recipe: 'cooking' }
                                 const tmpl = JSON.parse(t.templateFile)
+                                const fieldType = ALIAS[tmpl.fieldType] ?? tmpl.fieldType ?? 'event'
                                 sessionStorage.setItem('oncue_template', t.templateFile)
-                                sessionStorage.setItem('oncue_field', tmpl.fieldType ?? 'event')
+                                sessionStorage.setItem('oncue_field', fieldType)
                                 sessionStorage.setItem('oncue_terms', JSON.stringify(tmpl.fieldTerms ?? {}))
                                 navigate('/onboarding/create')
                               } catch {}

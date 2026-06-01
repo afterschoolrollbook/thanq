@@ -168,10 +168,14 @@ export default function MyPage() {
   }
 
   // ── 탬플릿으로 프로젝트 시작 ──
+  // legacy fieldType → 현재 유효한 fieldType으로 변환
+  const FIELD_TYPE_ALIAS: Record<string, string> = { recipe: 'cooking' }
+
   function useTemplate(t: SavedTemplate) {
     sessionStorage.setItem('oncue_template', t.templateFile)
     const parsed = JSON.parse(t.templateFile) as TemplateFile
-    sessionStorage.setItem('oncue_field', parsed.fieldType)
+    const fieldType = FIELD_TYPE_ALIAS[parsed.fieldType] ?? parsed.fieldType
+    sessionStorage.setItem('oncue_field', fieldType)
     navigate('/onboarding/field')
   }
 
