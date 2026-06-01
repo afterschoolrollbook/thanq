@@ -647,32 +647,29 @@ export default function ProjectHomePage() {
                   </div>
                   <div className="flex flex-col gap-2">
                     {parts.filter(p => !(p as any).isParticipant).map(part => (
-                      <div key={part.id} className="flex items-center gap-2 py-1">
-                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: part.color }} />
-                        <span className="text-[13px] flex-1 truncate">{part.name}</span>
-                        <span className="w-[44px] flex-shrink-0"><StatusBadge status={part.status} /></span>
-                        <span className="text-[11px] text-[#A0AEC0] w-[28px] flex-shrink-0 text-center">{part.progress}%</span>
-                        <span className="text-[11px] text-[#A0AEC0] w-[64px] flex-shrink-0 text-right truncate">{partManagers[part.id]?.name ?? part.managerName ?? '담당자 없음'}</span>
-                        {part.id === myPartId && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#E6F1FB] text-[#185FA5]">나</span>
-                        )}
-                        {(isOwner || part.id === myPartId) && !editingPartsBottom && (
-                          <button onClick={() => setShowInviteModal(part)}
-                            className="text-[#A0AEC0] hover:text-[#185FA5] transition-colors">
-                            <i className="ti ti-user-plus text-[13px]"/>
-                          </button>
-                        )}
+                      <div key={part.id} className="flex items-center px-3 py-2.5 rounded-[10px] hover:bg-[#F4F6F9] transition-colors">
+                        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: part.color }} />
+                        <span className="text-[13px] font-medium text-[#1A1A2E] flex-1 ml-2.5">{part.name}</span>
+                        {part.id === myPartId && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#E6F1FB] text-[#185FA5] mr-1">나</span>}
                         {(part as any).memberRole && (
-                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full mr-2"
                             style={{ background: ROLE_BG[(part as any).memberRole] ?? '#F4F6F9', color: ROLE_COLOR[(part as any).memberRole] ?? '#64748B' }}>
                             {ROLE_LABEL[(part as any).memberRole] ?? (part as any).memberRole}
                           </span>
                         )}
+                        <span className="w-[44px] flex-shrink-0 flex justify-center"><StatusBadge status={part.status} /></span>
+                        <span className="text-[12px] text-[#A0AEC0] w-[32px] flex-shrink-0 text-center">{part.progress}%</span>
+                        <span className="text-[12px] text-[#64748B] w-[72px] flex-shrink-0 text-right truncate">{partManagers[part.id]?.name ?? part.managerName ?? '담당자 없음'}</span>
+                        {!editingPartsBottom && (isOwner || part.id === myPartId) && (
+                          <button onClick={() => setShowInviteModal(part)} className="ml-2 text-[#A0AEC0] hover:text-[#185FA5] flex-shrink-0">
+                            <i className="ti ti-user-plus text-[14px]"/>
+                          </button>
+                        )}
                         {editingPartsBottom && (
-                          <div className="flex gap-1.5">
-                            {isOwner && <button onClick={() => { setRoleChangeTarget(part); setRoleChangeRole((part as any).memberRole ?? 'staff') }} className="text-[#A0AEC0] hover:text-[#E8820C]"><i className="ti ti-shield text-[13px]"/></button>}
-                            <button onClick={(e) => { e.stopPropagation(); openPartEditModal(part) }} className="text-[#A0AEC0] hover:text-[#185FA5]"><i className="ti ti-pencil text-[13px]"/></button>
-                            <button onClick={() => deletePart(part.id)} className="text-[#A0AEC0] hover:text-[#E24B4A]"><i className="ti ti-trash text-[13px]"/></button>
+                          <div className="flex gap-2 ml-2 flex-shrink-0">
+                            {isOwner && <button onClick={() => { setRoleChangeTarget(part); setRoleChangeRole((part as any).memberRole ?? 'staff') }} className="text-[#A0AEC0] hover:text-[#E8820C]"><i className="ti ti-shield text-[14px]"/></button>}
+                            <button onClick={(e) => { e.stopPropagation(); openPartEditModal(part) }} className="text-[#A0AEC0] hover:text-[#185FA5]"><i className="ti ti-pencil text-[14px]"/></button>
+                            <button onClick={() => deletePart(part.id)} className="text-[#A0AEC0] hover:text-[#E24B4A]"><i className="ti ti-trash text-[14px]"/></button>
                           </div>
                         )}
                       </div>
@@ -690,19 +687,17 @@ export default function ProjectHomePage() {
                   </div>
                   <div className="flex flex-col gap-2">
                     {parts.filter(p => (p as any).isParticipant).map(part => (
-                      <div key={part.id} className="flex items-center gap-2 py-1">
-                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: part.color }} />
-                        <span className="text-[13px] flex-1 truncate">{part.name}</span>
-                        <span className="w-[44px] flex-shrink-0"><StatusBadge status={part.status} /></span>
-                        <span className="text-[11px] text-[#A0AEC0] w-[28px] flex-shrink-0 text-center">{part.progress}%</span>
-                        <span className="text-[11px] text-[#A0AEC0] w-[64px] flex-shrink-0 text-right truncate">{partManagers[part.id]?.name ?? part.managerName ?? '담당자 없음'}</span>
-                        {part.id === myPartId && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FFF8F0] text-[#854F0B]">나</span>
-                        )}
+                      <div key={part.id} className="flex items-center px-3 py-2.5 rounded-[10px] hover:bg-[#F4F6F9] transition-colors">
+                        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: part.color }} />
+                        <span className="text-[13px] font-medium text-[#1A1A2E] flex-1 ml-2.5">{part.name}</span>
+                        {part.id === myPartId && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#FFF8F0] text-[#854F0B] mr-1">나</span>}
+                        <span className="w-[44px] flex-shrink-0 flex justify-center"><StatusBadge status={part.status} /></span>
+                        <span className="text-[12px] text-[#A0AEC0] w-[32px] flex-shrink-0 text-center">{part.progress}%</span>
+                        <span className="text-[12px] text-[#64748B] w-[72px] flex-shrink-0 text-right truncate">{partManagers[part.id]?.name ?? part.managerName ?? '담당자 없음'}</span>
                         {editingPartsBottom && (
-                          <div className="flex gap-1.5">
-                            {isOwner && <button onClick={() => { setRoleChangeTarget(part); setRoleChangeRole((part as any).memberRole ?? 'participant') }} className="text-[#A0AEC0] hover:text-[#E8820C]"><i className="ti ti-shield text-[13px]"/></button>}
-                            <button onClick={() => openPartEditModal(part)} className="text-[#A0AEC0] hover:text-[#185FA5]"><i className="ti ti-pencil text-[13px]"/></button>
+                          <div className="flex gap-2 ml-2 flex-shrink-0">
+                            {isOwner && <button onClick={() => { setRoleChangeTarget(part); setRoleChangeRole((part as any).memberRole ?? 'participant') }} className="text-[#A0AEC0] hover:text-[#E8820C]"><i className="ti ti-shield text-[14px]"/></button>}
+                            <button onClick={() => openPartEditModal(part)} className="text-[#A0AEC0] hover:text-[#185FA5]"><i className="ti ti-pencil text-[14px]"/></button>
                             <button onClick={() => deletePart(part.id)} className="text-[#A0AEC0] hover:text-[#E24B4A]"><i className="ti ti-trash text-[13px]"/></button>
                           </div>
                         )}
