@@ -128,6 +128,25 @@ export function CueModal({ cue, projectId, onClose, isReadOnly = false, myPartNa
     cue.photos ? Object.values(cue.photos) : []
   )
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [partnersId, setPartnersId] = useState('')
+  const COMPANY_PARTNERS_ID = 'thanqapp-20'
+
+  // 프로젝트 오너의 파트너스 ID 로드
+  useEffect(() => {
+    get(dbRef(db, `projects/${projectId}/ownerId`)).then((snap) => {
+      if (!snap.exists()) return
+      const ownerId = snap.val()
+      get(dbRef(db, `users/${ownerId}/partnersId`)).then((pSnap) => {
+        setPartnersId(pSnap.exists() ? pSnap.val() : COMPANY_PARTNERS_ID)
+      })
+    })
+  }, [projectId])
+
+  function getCoupangLink(keyword: string) {
+    const pid = partnersId || COMPANY_PARTNERS_ID
+    const q = encodeURIComponent(keyword.replace(/(완료|준비|계량|체크|확인).*$/,'').trim())
+    return `https://www.coupang.com/np/search?q=${q}&partnersCls=A&partnersTag=${pid}&subId=thanq`
+  }
 
   // 체크리스트 실시간
   useEffect(() => {
@@ -374,6 +393,17 @@ export function CueModal({ cue, projectId, onClose, isReadOnly = false, myPartNa
                       onDoubleClick={()=>{if(!isReadOnly){setEditingCheckId(item.id);setEditingCheckTitle(item.title)}}}>
                       {item.title}
                     </span>
+                  )}
+                  {/* 재료 카테고리면 쿠팡 링크 버튼 */}
+                  {item.category === 'prep' && (
+                    <a href={getCoupangLink(item.title)} target="_blank" rel="noopener noreferrer"
+                      className="flex-shrink-0 w-6 h-6 rounded flex items-center justify-center hover:opacity-80 transition-opacity"
+                      title="쿠팡에서 구매하기">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="#E24B4A"/>
+                        <text x="12" y="16" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">C</text>
+                      </svg>
+                    </a>
                   )}
                   <button onClick={()=>{if(isReadOnly){showReadOnlyToast();return}setEditingCheckId(item.id);setEditingCheckTitle(item.title)}}
                     className="text-[#E2E8F0] hover:text-[#185FA5]">
