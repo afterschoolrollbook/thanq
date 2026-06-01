@@ -19,7 +19,9 @@ function loadTemplate(): TemplateFile | null {
 export default function CreateProjectPage() {
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
-  const fieldType = (sessionStorage.getItem('oncue_field') ?? 'event') as FieldType
+  const FIELD_TYPE_ALIAS: Record<string, string> = { recipe: 'cooking' }
+  const rawFieldType = sessionStorage.getItem('oncue_field') ?? 'event'
+  const fieldType = (FIELD_TYPE_ALIAS[rawFieldType] ?? rawFieldType) as FieldType
 
   const [templateData, setTemplateData] = useState<TemplateFile | null>(loadTemplate)
 
