@@ -330,14 +330,14 @@ export default function ProjectHomePage() {
     const targets = getBulkSelectedParts()
     if (bulkPreview.type === 'sms') {
       const phones = targets.filter(p => partManagers[p.id]?.phone).map(p => partManagers[p.id].phone.replace(/-/g, '')).join(',')
-      if (!phones) { alert('전화번호가 없어요'); return }
+      if (!phones) { setBulkPreview({ ...bulkPreview!, _error: '선택한 담당자 중 전화번호가 없어요' } as any); return }
       window.location.href = `sms:${phones}?body=${encodeURIComponent(bulkPreview.msg)}`
     } else if (bulkPreview.type === 'kakao') {
       if (navigator.share) navigator.share({ title: 'ThanQ 초대', text: bulkPreview.msg, url: joinLink })
       else window.open(`https://story.kakao.com/share?url=${encodeURIComponent(joinLink)}`)
     } else if (bulkPreview.type === 'email') {
       const emails = targets.filter(p => partManagers[p.id]?.email).map(p => partManagers[p.id].email).join(',')
-      if (!emails) { alert('이메일이 없어요'); return }
+      if (!emails) { setBulkPreview({ ...bulkPreview!, _error: '선택한 담당자 중 이메일이 없어요' } as any); return }
       window.location.href = `mailto:${emails}?subject=${encodeURIComponent(bulkPreview.subject || '')}&body=${encodeURIComponent(bulkPreview.msg)}`
     }
     setBulkPreview(null)
@@ -1118,6 +1118,11 @@ export default function ProjectHomePage() {
                 <textarea value={bulkPreview.msg} onChange={e => setBulkPreview({ ...bulkPreview, msg: e.target.value })}
                   rows={7} className="w-full border border-[#E2E8F0] rounded-[10px] px-3 py-2.5 text-[13px] outline-none focus:border-[#185FA5] resize-none leading-relaxed" />
               </div>
+              {(bulkPreview as any)?._error && (
+                <div className="mb-3 px-3 py-2 bg-[#FEF2F2] border border-[#FCA5A5] rounded-[10px] text-[12px] text-[#B91C1C]">
+                  ⚠️ {(bulkPreview as any)._error}
+                </div>
+              )}
               <div className="flex gap-2">
                 <button onClick={() => setBulkPreview(null)} className="flex-1 h-[44px] border border-[#E2E8F0] rounded-[12px] text-[13px] text-[#64748B]">취소</button>
                 <button onClick={doBulkSend} className="flex-1 h-[44px] bg-[#185FA5] text-white rounded-[12px] text-[13px] font-semibold flex items-center justify-center gap-2">
@@ -1169,10 +1174,7 @@ ${project?.name || '프로젝트'}에 초대합니다.
                 <div className="grid grid-cols-4 gap-2 mb-4">
                   {[
                     { label: '문자', icon: 'ti-message', color: '#3B6D11',
-                      fn: () => {
-                        if (!mgr.phone) { alert('전화번호가 없어요. 담당자 정보를 먼저 입력해주세요.'); return }
-                        setIndividualPreview({ type: 'sms', msg: msgBody, phone: mgr.phone.replace(/-/g, ''), inviteLink })
-                      }
+                      fn: () => setIndividualPreview({ type: 'sms', msg: msgBody, phone: mgr.phone?.replace(/-/g, '') ?? '', inviteLink })
                     },
                     { label: '카카오톡', icon: 'ti-message-2', color: '#854F0B',
                       fn: () => {
@@ -1180,10 +1182,7 @@ ${project?.name || '프로젝트'}에 초대합니다.
                       }
                     },
                     { label: '이메일', icon: 'ti-mail', color: '#185FA5',
-                      fn: () => {
-                        if (!mgr.email) { alert('이메일이 없어요. 담당자 정보를 먼저 입력해주세요.'); return }
-                        setIndividualPreview({ type: 'email', msg: msgBody, subject, email: mgr.email, inviteLink })
-                      }
+                      fn: () => setIndividualPreview({ type: 'email', msg: msgBody, subject, email: mgr.email ?? '', inviteLink })
                     },
                     { label: '링크 복사', icon: 'ti-link', color: '#64748B',
                       fn: () => { copyInviteLink(showInviteModal, role); }
@@ -1231,16 +1230,23 @@ ${project?.name || '프로젝트'}에 초대합니다.
                 <textarea value={individualPreview.msg} onChange={e => setIndividualPreview({ ...individualPreview, msg: e.target.value })}
                   rows={7} className="w-full border border-[#E2E8F0] rounded-[10px] px-3 py-2.5 text-[13px] outline-none focus:border-[#185FA5] resize-none leading-relaxed" />
               </div>
+              {(individualPreview as any)?._error && (
+                <div className="mb-3 px-3 py-2 bg-[#FEF2F2] border border-[#FCA5A5] rounded-[10px] text-[12px] text-[#B91C1C]">
+                  ⚠️ {(individualPreview as any)._error}
+                </div>
+              )}
               <div className="flex gap-2">
                 <button onClick={() => setIndividualPreview(null)}
                   className="flex-1 h-[44px] border border-[#E2E8F0] rounded-[12px] text-[13px] text-[#64748B]">취소</button>
                 <button onClick={() => {
                   if (individualPreview.type === 'sms') {
+                    if (!individualPreview.phone) { setIndividualPreview({ ...individualPreview, _error: '전화번호가 없어요. 담당자 수정에서 입력해주세요.' } as any); return }
                     window.location.href = `sms:${individualPreview.phone}?body=${encodeURIComponent(individualPreview.msg)}`
                   } else if (individualPreview.type === 'kakao') {
                     if (navigator.share) navigator.share({ title: 'ThanQ 초대', text: individualPreview.msg, url: individualPreview.inviteLink || '' })
                     else window.open(`https://story.kakao.com/share?url=${encodeURIComponent(individualPreview.inviteLink || '')}`)
                   } else if (individualPreview.type === 'email') {
+                    if (!individualPreview.email) { setIndividualPreview({ ...individualPreview, _error: '이메일이 없어요. 담당자 수정에서 입력해주세요.' } as any); return }
                     window.location.href = `mailto:${individualPreview.email}?subject=${encodeURIComponent(individualPreview.subject || '')}&body=${encodeURIComponent(individualPreview.msg)}`
                   }
                   setIndividualPreview(null)

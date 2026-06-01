@@ -147,14 +147,12 @@ ${projectName || '프로젝트'}에 초대합니다.${part?.name ? `
     setIndividualPreview({ type: 'kakao', msg: body })
   }
   function shareSMS() {
-    if (!manager.phone) { alert('전화번호를 먼저 입력해주세요'); return }
     const { body } = getIndividualMsg()
-    setIndividualPreview({ type: 'sms', msg: body, phone: manager.phone.replace(/-/g, '') })
+    setIndividualPreview({ type: 'sms', msg: body, phone: manager.phone?.replace(/-/g, '') ?? '' })
   }
   function shareEmail() {
-    if (!manager.email) { alert('이메일 주소를 먼저 입력해주세요'); return }
     const { subject, body } = getIndividualMsg()
-    setIndividualPreview({ type: 'email', msg: body, subject, email: manager.email })
+    setIndividualPreview({ type: 'email', msg: body, subject, email: manager.email ?? '' })
   }
   async function copyLink() { await navigator.clipboard.writeText(joinLink); alert('링크가 복사됐어요!') }
 
@@ -200,14 +198,14 @@ ${projectName || '프로젝트'} 현장 운영 앱에 초대합니다.
     const targets = getSelectedParts()
     if (bulkPreview.type === 'sms') {
       const phones = targets.filter(p => p.manager?.phone).map(p => p.manager!.phone.replace(/-/g, '')).join(',')
-      if (!phones) { alert('전화번호가 없어요'); return }
+      if (!phones) { setBulkPreview({ ...bulkPreview!, _error: '선택한 담당자 중 전화번호가 없어요' } as any); return }
       window.location.href = `sms:${phones}?body=${encodeURIComponent(bulkPreview.msg)}`
     } else if (bulkPreview.type === 'kakao') {
       if (navigator.share) navigator.share({ title: 'ThanQ 초대', text: bulkPreview.msg, url: baseJoinLink })
       else window.open(`https://story.kakao.com/share?url=${encodeURIComponent(baseJoinLink)}`)
     } else if (bulkPreview.type === 'email') {
       const emails = targets.filter(p => p.manager?.email).map(p => p.manager!.email).join(',')
-      if (!emails) { alert('이메일이 없어요'); return }
+      if (!emails) { setBulkPreview({ ...bulkPreview!, _error: '선택한 담당자 중 이메일이 없어요' } as any); return }
       window.location.href = `mailto:${emails}?subject=${encodeURIComponent(bulkPreview.subject || '')}&body=${encodeURIComponent(bulkPreview.msg)}`
     }
     setBulkPreview(null)
@@ -667,16 +665,23 @@ ${projectName || '프로젝트'} 현장 운영 앱에 초대합니다.
                 <textarea value={individualPreview.msg} onChange={e => setIndividualPreview({ ...individualPreview, msg: e.target.value })}
                   rows={7} className="w-full border border-[#E2E8F0] rounded-[10px] px-3 py-2.5 text-[13px] outline-none focus:border-[#185FA5] resize-none leading-relaxed" />
               </div>
+              {(individualPreview as any)?._error && (
+                <div className="mb-3 px-3 py-2 bg-[#FEF2F2] border border-[#FCA5A5] rounded-[10px] text-[12px] text-[#B91C1C]">
+                  ⚠️ {(individualPreview as any)._error}
+                </div>
+              )}
               <div className="flex gap-2">
                 <button onClick={() => setIndividualPreview(null)}
                   className="flex-1 h-[44px] border border-[#E2E8F0] rounded-[12px] text-[13px] text-[#64748B]">취소</button>
                 <button onClick={() => {
                   if (individualPreview.type === 'sms') {
+                    if (!individualPreview.phone) { setIndividualPreview({ ...individualPreview, _error: '전화번호가 없어요. 담당자 정보를 먼저 입력해주세요.' } as any); return }
                     window.location.href = `sms:${individualPreview.phone}?body=${encodeURIComponent(individualPreview.msg)}`
                   } else if (individualPreview.type === 'kakao') {
                     if (navigator.share) navigator.share({ title: 'ThanQ 초대', text: individualPreview.msg, url: joinLink })
                     else window.open(`https://story.kakao.com/share?url=${encodeURIComponent(joinLink)}`)
                   } else if (individualPreview.type === 'email') {
+                    if (!individualPreview.email) { setIndividualPreview({ ...individualPreview, _error: '이메일이 없어요. 담당자 정보를 먼저 입력해주세요.' } as any); return }
                     window.location.href = `mailto:${individualPreview.email}?subject=${encodeURIComponent(individualPreview.subject || '')}&body=${encodeURIComponent(individualPreview.msg)}`
                   }
                   setIndividualPreview(null)
