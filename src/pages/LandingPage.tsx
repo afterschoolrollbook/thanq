@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { ref, onValue } from 'firebase/database'
 import { db } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
+import { useAuth } from '@/hooks/useAuth'
 import type { Coupon } from '@/types'
 
 const FEATURES = [
@@ -228,7 +229,8 @@ export function UpgradeModal({ onClose }: { onClose: () => void }) {
 
 export default function LandingPage() {
   const navigate = useNavigate()
-  const user = useAuthStore((s) => s.user)
+  // LandingPage는 PrivateRoute 밖 → 여기서 직접 useAuth() 호출해 인증 상태 초기화
+  const { user, loading: authLoading } = useAuth()
   const heroRef = useRef<HTMLDivElement>(null)
   const [scrollY, setScrollY] = useState(0)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -280,7 +282,10 @@ export default function LandingPage() {
               className="px-4 py-2 text-[13px] text-white/70 hover:text-white transition-colors rounded-[8px] hover:bg-white/5">
               요금제
             </button>
-            {user ? (
+            {authLoading ? (
+              // Firebase 인증 확인 중 — 깜빡임 방지용 스켈레톤
+              <div className="ml-2 w-24 h-8 rounded-[8px] bg-white/10 animate-pulse" />
+            ) : user ? (
               <div className="flex items-center gap-2 ml-2">
                 {isAdmin && (
                   <button onClick={() => navigate('/admin')}
@@ -325,7 +330,9 @@ export default function LandingPage() {
               <i className="ti ti-credit-card text-[16px] text-[#3B9EE8]" /> 요금제
             </button>
             <div className="h-px bg-white/10 my-1" />
-            {user ? (
+            {authLoading ? (
+              <div className="w-full h-[44px] rounded-[10px] bg-white/10 animate-pulse" />
+            ) : user ? (
               <div className="flex flex-col gap-2">
                 {isAdmin && (
                   <button onClick={() => { navigate('/admin'); setMobileMenuOpen(false) }}
@@ -365,17 +372,17 @@ export default function LandingPage() {
         <div className="relative z-10 text-center max-w-2xl mx-auto w-full">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-white/15 bg-white/5 text-[12px] text-white/70 mb-6">
             <span className="w-1.5 h-1.5 rounded-full bg-[#4ADE80] animate-pulse" />
-            일상 소모임부터 전문 현장까지, 모두의 협업 도구
+            생일, 설날, 소풍, 콘서트… 사람이 모이는 모든 곳에서
           </div>
           <h1 className="text-[38px] sm:text-[56px] font-black leading-[1.1] tracking-tight mb-5">
-            모든 모임을 하나로<br />
+            사람이 모이는<br />
             <span style={{ background: 'linear-gradient(135deg, #3B9EE8, #4ADE80)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              연결하세요
+              모든 순간에
             </span>
           </h1>
           <p className="text-[15px] sm:text-[16px] text-white/60 leading-relaxed mb-8 max-w-lg mx-auto px-2">
-            생일파티부터 콘서트 현장까지, 사람이 모이는 모든 곳에서
-            일정·역할·소통을 앱 하나로 해결해요.
+            생일, 설날, 추석, 여행, 소풍, 콘서트까지
+            사람이 모이면 ThanQ 하나로 준비부터 마무리까지.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 px-4 sm:px-0">
             <button onClick={handleStart}
@@ -411,8 +418,8 @@ export default function LandingPage() {
       <section className="px-5 py-16 sm:py-20 max-w-5xl mx-auto">
         <div className="text-center mb-10 sm:mb-12">
           <div className="text-[11px] font-semibold text-[#3B9EE8] uppercase tracking-widest mb-3">Features</div>
-          <h2 className="text-[26px] sm:text-[36px] font-black tracking-tight">현장 운영의 모든 것</h2>
-          <p className="text-[13px] sm:text-[14px] text-white/50 mt-3 max-w-md mx-auto">생일파티 호스트부터 콘서트 감독까지, 필요한 기능을 한곳에 모았어요</p>
+          <h2 className="text-[26px] sm:text-[36px] font-black tracking-tight">모임의 모든 순간을 함께</h2>
+          <p className="text-[13px] sm:text-[14px] text-white/50 mt-3 max-w-md mx-auto">두 명이 모이든, 2000명이 모이든 — 필요한 기능을 한곳에 모았어요</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {FEATURES.map((f) => (
@@ -487,13 +494,13 @@ export default function LandingPage() {
       <section className="px-5 py-14 sm:py-16">
         <div className="max-w-3xl mx-auto text-center mb-10">
           <div className="text-[11px] font-semibold text-[#4ADE80] uppercase tracking-widest mb-3">How it works</div>
-          <h2 className="text-[26px] sm:text-[30px] font-black tracking-tight">3분이면 시작해요</h2>
+          <h2 className="text-[26px] sm:text-[30px] font-black tracking-tight">3분이면 준비 끝</h2>
         </div>
         <div className="max-w-3xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-8 sm:gap-6">
           {[
-            { step: '01', icon: 'ti-plus', title: '프로젝트 생성', desc: '파티, 스터디, 여행, 행사 등 분야를 고르면 용어와 구성이 자동으로 세팅돼요.', color: '#3B9EE8' },
-            { step: '02', icon: 'ti-users-plus', title: '멤버 초대', desc: '초대 링크를 공유하면 끝! 친구, 동료, 팀원이 역할별로 참여해요.', color: '#4ADE80' },
-            { step: '03', icon: 'ti-player-play', title: '함께 진행', desc: '일정 확인, 체크리스트 체크, 실시간 소통까지 앱 하나로 해결해요.', color: '#FBBF24' },
+            { step: '01', icon: 'ti-plus', title: '모임 만들기', desc: '생일파티, 설날 가족 모임, 여행, 행사 등 분야를 고르면 모든 게 자동으로 세팅돼요.', color: '#3B9EE8' },
+            { step: '02', icon: 'ti-users-plus', title: '같이 할 사람 초대', desc: '링크 하나 보내면 끝! 가족, 친구, 동료가 각자 역할을 맡아요.', color: '#4ADE80' },
+            { step: '03', icon: 'ti-player-play', title: '같이 즐기기', desc: '할 일 확인, 준비물 체크, 실시간 소통까지 — 앱 하나로 걱정 없이 즐겨요.', color: '#FBBF24' },
           ].map((s) => (
             <div key={s.step} className="text-center flex sm:flex-col items-center sm:items-center gap-5 sm:gap-0">
               <div className="w-14 h-14 sm:mb-4 rounded-full border-2 flex items-center justify-center flex-shrink-0"
@@ -537,8 +544,8 @@ export default function LandingPage() {
       {/* ── 최종 CTA ── */}
       <section className="px-5 py-16 sm:py-20 text-center">
         <div className="max-w-lg mx-auto">
-          <h2 className="text-[28px] sm:text-[40px] font-black tracking-tight mb-4">지금 바로 시작해요</h2>
-          <p className="text-[13px] sm:text-[14px] text-white/50 mb-8">파티 준비부터 콘서트 운영까지, 무료로 시작할 수 있어요.</p>
+          <h2 className="text-[28px] sm:text-[40px] font-black tracking-tight mb-4">다음 모임, ThanQ로 시작해요</h2>
+          <p className="text-[13px] sm:text-[14px] text-white/50 mb-8">생일이든, 설날이든, 번개 모임이든 — 무료로 바로 시작해요.</p>
           <button onClick={handleStart}
             className="w-full sm:w-auto px-8 py-4 bg-[#185FA5] hover:bg-[#1470BE] rounded-[14px] text-[16px] font-black transition-colors inline-flex items-center justify-center gap-2">
             <i className="ti ti-rocket text-[17px]" /> 무료로 시작하기

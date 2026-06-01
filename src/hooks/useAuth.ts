@@ -5,16 +5,21 @@ import { auth, db } from '@/lib/firebase'
 import { useAuthStore } from '@/store/authStore'
 import type { User } from '@/types'
 
+// 앱 전체에서 onAuthStateChanged는 딱 한 번만 등록
+// useAuth()를 여러 컴포넌트(LandingPage, PrivateRoute 등)에서 호출해도 중복 구독 없음
+let isInitialized = false
+
 export function useAuth() {
-  // setUser, setLoading은 zustand가 stable reference를 보장하므로
-  // 의존성 배열에 넣어도 무한루프 없음. 단, useEffect는 한 번만 실행되도록 [] 사용
   const setUser = useAuthStore((s) => s.setUser)
   const setLoading = useAuthStore((s) => s.setLoading)
-  // 반환용
   const user = useAuthStore((s) => s.user)
   const loading = useAuthStore((s) => s.loading)
 
   useEffect(() => {
+    // 이미 초기화된 경우 재구독하지 않음
+    if (isInitialized) return
+    isInitialized = true
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         let isPro = false
@@ -59,8 +64,12 @@ export function useAuth() {
       setLoading(false)
     })
 
-    return () => unsubscribe()
-  }, []) // ← 빈 배열: 마운트 시 딱 한 번만 구독, StrictMode 이중 실행 방어
+    // 앱이 언마운트되면 구독 해제 + 플래그 리셋
+    return () => {
+      unsubscribe()
+      isInitialized = false
+    }
+  }, [])
 
   return { user, loading }
 }
