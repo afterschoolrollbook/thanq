@@ -793,26 +793,26 @@ export default function ProjectHomePage() {
                 <p className="text-[12px] text-[#A0AEC0] text-center py-2">파트가 없어요</p>
               )}
 
-              {isOwner && (
-                <div className="flex flex-col gap-2 mt-2 pt-3 border-t border-[#F4F6F9]">
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => setEditingPartsBottom(v => !v)}
-                      className={`flex-1 h-[32px] rounded-[8px] text-[12px] font-semibold border transition-colors ${editingPartsBottom ? 'bg-[#185FA5] text-white border-[#185FA5]' : 'border-[#E2E8F0] text-[#64748B]'}`}>
-                      {editingPartsBottom ? '편집 완료' : '파트 편집'}
+              <div className="flex flex-col gap-2 mt-2 pt-3 border-t border-[#F4F6F9]">
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setEditingPartsBottom(v => !v)}
+                    className={`flex-1 h-[32px] rounded-[8px] text-[12px] font-semibold border transition-colors ${editingPartsBottom ? 'bg-[#185FA5] text-white border-[#185FA5]' : 'border-[#E2E8F0] text-[#64748B]'}`}>
+                    {editingPartsBottom ? '편집 완료' : '파트 편집'}
+                  </button>
+                  {editingPartsBottom && isOwner && (
+                    <button onClick={addPart}
+                      className="flex-1 h-[32px] rounded-[8px] text-[12px] font-semibold border border-dashed border-[#E2E8F0] text-[#A0AEC0] hover:border-[#185FA5] hover:text-[#185FA5] transition-colors flex items-center justify-center gap-1">
+                      <i className="ti ti-plus text-[12px]" /> 파트 추가
                     </button>
-                    {editingPartsBottom && (
-                      <button onClick={addPart}
-                        className="flex-1 h-[32px] rounded-[8px] text-[12px] font-semibold border border-dashed border-[#E2E8F0] text-[#A0AEC0] hover:border-[#185FA5] hover:text-[#185FA5] transition-colors flex items-center justify-center gap-1">
-                        <i className="ti ti-plus text-[12px]" /> 파트 추가
-                      </button>
-                    )}
-                  </div>
+                  )}
+                </div>
+                {isOwner && (
                   <button onClick={() => { setBulkSelected(new Set()); setShowBulkInvite(true) }}
                     className="w-full h-[32px] border border-[#E2E8F0] rounded-[8px] text-[12px] font-semibold text-[#185FA5] flex items-center justify-center gap-1.5 hover:bg-[#E6F1FB] transition-colors">
                     <i className="ti ti-send text-[12px]" /> 단체 초대
                   </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           )}
         </div>
