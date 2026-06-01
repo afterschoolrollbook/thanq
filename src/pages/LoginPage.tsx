@@ -20,7 +20,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
 
   function goNext() {
-    // /join 초대 링크에서 로그인으로 온 경우 원래 링크로 복귀
     const joinRedirect = sessionStorage.getItem('join_redirect')
     if (joinRedirect) {
       sessionStorage.removeItem('join_redirect')
@@ -56,12 +55,23 @@ export default function LoginPage() {
   }
 
   async function handleGoogle() {
+    setError('')
     setLoading(true)
     try {
-      await signInWithPopup(auth, new GoogleAuthProvider())
+      const provider = new GoogleAuthProvider()
+      await signInWithPopup(auth, provider)
       goNext()
-    } catch { setError('Google 로그인에 실패했습니다.') }
-    finally { setLoading(false) }
+    } catch (e: unknown) {
+      const code = (e as { code?: string }).code
+      // 사용자가 팝업을 직접 닫은 경우 에러 표시 안 함
+      if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
+        // 아무것도 안 함
+      } else {
+        setError('Google 로그인에 실패했습니다.')
+      }
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -125,7 +135,8 @@ export default function LoginPage() {
           <div className="grid grid-cols-3 gap-2">
             <button
               onClick={handleGoogle}
-              className="h-[40px] border border-[#E2E8F0] rounded-[10px] flex items-center justify-center gap-1.5 text-[12px] text-[#64748B]"
+              disabled={loading}
+              className="h-[40px] border border-[#E2E8F0] rounded-[10px] flex items-center justify-center gap-1.5 text-[12px] text-[#64748B] disabled:opacity-50"
             >
               <i className="ti ti-brand-google text-[15px]" /> Google
             </button>
