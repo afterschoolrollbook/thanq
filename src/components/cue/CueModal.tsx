@@ -177,6 +177,7 @@ export function CueModal({ cue, projectId, onClose, isReadOnly = false, myPartNa
     if (isReadOnly) { showReadOnlyToast(); return }
     if (!title.trim()) { setEditingCheckId(null); return }
     await update(dbRef(db, `checkItems/${projectId}/${cue.partId}/${item.id}`), { title: title.trim() })
+    await writeCueAlert('edited', `체크리스트 수정: "${item.title}" → "${title.trim()}" — "${cue.title}"`)
     setEditingCheckId(null)
   }
 
