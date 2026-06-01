@@ -21,6 +21,7 @@ interface SavedTemplate {
 const FIELD_LABELS: Record<string, { label: string; color: string }> = {
   party:     { label: '기념일/파티',     color: '#C2185B' },
   cooking:   { label: '요리/클래스',     color: '#F57F17' },
+  recipe:    { label: '요리/클래스',     color: '#F57F17' },  // legacy alias
   study:     { label: '스터디/독서',     color: '#2E7D32' },
   travel:    { label: '여행/캠핑',       color: '#1565C0' },
   club:      { label: '모임/클럽',       color: '#2E7D32' },
@@ -415,7 +416,8 @@ export default function MyPage() {
               return (
                 <div className="flex gap-1.5 flex-wrap mb-4">
                   {usedTypes.map((type) => {
-                    const fl = type === 'all' ? { label: '전체', color: '#185FA5' } : (FIELD_LABELS[type] ?? FIELD_LABELS.custom)
+                    const matchedTmpl = myTemplates.find((t) => t.fieldType === type)
+                    const fl = type === 'all' ? { label: '전체', color: '#185FA5' } : (FIELD_LABELS[type] ?? (matchedTmpl?.fieldLabel ? { label: matchedTmpl.fieldLabel, color: '#64748B' } : FIELD_LABELS.custom))
                     const count = type === 'all' ? myTemplates.length : myTemplates.filter((t) => t.fieldType === type).length
                     const isActive = fieldFilter === type
                     return (
@@ -456,7 +458,7 @@ export default function MyPage() {
               return (
               <div className="flex flex-col gap-3">
                 {filtered.map((t) => {
-                  const fl = FIELD_LABELS[t.fieldType] ?? FIELD_LABELS.custom
+                  const fl = FIELD_LABELS[t.fieldType] ?? (t.fieldLabel ? { label: t.fieldLabel, color: '#64748B' } : FIELD_LABELS.custom)
                   const parsed = (() => { try { return JSON.parse(t.templateFile) as TemplateFile } catch { return null } })()
                   return (
                     <div key={t.id} className="bg-white border border-[#E2E8F0] rounded-[14px] p-4">
