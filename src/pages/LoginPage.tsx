@@ -1,16 +1,16 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
-  signInWithRedirect,
-  getRedirectResult,
+  signInWithPopup,
   updateProfile,
 } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
-import { useAuthStore } from '@/store/authStore'
 
 export default function LoginPage() {
+  const navigate = useNavigate()
   const [isSignUp, setIsSignUp] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -18,46 +18,6 @@ export default function LoginPage() {
   const [agreed, setAgreed] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [debugLog, setDebugLog] = useState<string[]>([])
-
-  const authUser = useAuthStore((s) => s.user)
-  const authLoading = useAuthStore((s) => s.loading)
-
-  function log(msg: string) {
-    const t = new Date().toLocaleTimeString()
-    setDebugLog((p) => [...p.slice(-8), `${t} ${msg}`])
-  }
-
-  // authStore에 유저가 세팅되면 바로 이동
-  useEffect(() => {
-    log(`authUser=${authUser?.uid ?? 'null'} authLoading=${authLoading}`)
-    if (authUser && !authLoading) {
-      log('유저 확인됨 → /dashboard 이동')
-      window.location.href = '/dashboard'
-    }
-  }, [authUser, authLoading])
-
-  // 구글 리다이렉트 결과 처리
-  useEffect(() => {
-    log('getRedirectResult 호출')
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result) {
-          log(`getRedirectResult 성공 uid=${result.user.uid}`)
-          // authStore의 onAuthStateChanged가 자동으로 user를 세팅하고
-          // 위의 useEffect가 /dashboard로 이동시킴
-        } else {
-          log('getRedirectResult: 리다이렉트 결과 없음 (일반 접속)')
-        }
-      })
-      .catch((e) => {
-        const code = (e as { code?: string }).code ?? ''
-        log(`getRedirectResult 에러: ${code}`)
-        if (code && code !== 'auth/no-redirect-operation') {
-          setError(`Google 로그인 실패: ${code}`)
-        }
-      })
-  }, [])
 
   function goNext() {
     const joinRedirect = sessionStorage.getItem('join_redirect')
@@ -66,7 +26,7 @@ export default function LoginPage() {
       window.location.href = joinRedirect
       return
     }
-    window.location.href = '/dashboard'
+    navigate('/dashboard')
   }
 
   async function handleSubmit() {
@@ -75,21 +35,17 @@ export default function LoginPage() {
     if (isSignUp && !name) { setError('이름을 입력해주세요.'); return }
     if (isSignUp && !agreed) { setError('약관에 동의해주세요.'); return }
     setLoading(true)
-    log('이메일 로그인 시도')
     try {
       if (isSignUp) {
         const { user } = await createUserWithEmailAndPassword(auth, email, password)
         await updateProfile(user, { displayName: name })
-        log('회원가입 성공')
         goNext()
       } else {
         await signInWithEmailAndPassword(auth, email, password)
-        log('이메일 로그인 성공')
         goNext()
       }
     } catch (e: unknown) {
       const code = (e as { code?: string }).code
-      log(`이메일 로그인 에러: ${code}`)
       if (code === 'auth/wrong-password' || code === 'auth/user-not-found' || code === 'auth/invalid-credential')
         setError('이메일 또는 비밀번호가 올바르지 않습니다.')
       else if (code === 'auth/email-already-in-use') setError('이미 사용 중인 이메일입니다.')
@@ -101,13 +57,15 @@ export default function LoginPage() {
   async function handleGoogle() {
     setError('')
     setLoading(true)
-    log('Google 리다이렉트 시작')
     try {
-      await signInWithRedirect(auth, new GoogleAuthProvider())
-    } catch {
-      setError('Google 로그인에 실패했습니다.')
-      setLoading(false)
-    }
+      await signInWithPopup(auth, new GoogleAuthProvider())
+      goNext()
+    } catch (e: unknown) {
+      const code = (e as { code?: string }).code
+      if (code !== 'auth/popup-closed-by-user' && code !== 'auth/cancelled-popup-request') {
+        setError('Google 로그인에 실패했습니다.')
+      }
+    } finally { setLoading(false) }
   }
 
   return (
@@ -142,13 +100,6 @@ export default function LoginPage() {
           </div>
 
           {error && <p className="text-[#A32D2D] text-[12px] mt-3">{error}</p>}
-
-          {/* 디버그 로그 */}
-          {debugLog.length > 0 && (
-            <div className="mt-3 p-2 bg-gray-100 rounded-lg text-[10px] font-mono text-gray-500 space-y-0.5 break-all">
-              {debugLog.map((l, i) => <div key={i}>{l}</div>)}
-            </div>
-          )}
 
           {isSignUp && (
             <label className="flex items-start gap-2 mt-4 cursor-pointer">
