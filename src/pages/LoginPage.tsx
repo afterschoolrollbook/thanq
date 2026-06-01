@@ -1,11 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
-  signInWithRedirect,
-  getRedirectResult,
+  signInWithPopup,
   updateProfile,
 } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
@@ -27,17 +26,8 @@ export default function LoginPage() {
       window.location.href = joinRedirect
       return
     }
-    window.location.replace('/dashboard')
+    navigate('/dashboard')
   }
-
-  // Google 리다이렉트 결과 처리
-  useEffect(() => {
-    getRedirectResult(auth).then((result) => {
-      if (result?.user) goNext()
-    }).catch(() => {
-      setError('Google 로그인에 실패했습니다.')
-    })
-  }, [])
 
   async function handleSubmit() {
     setError('')
@@ -67,11 +57,10 @@ export default function LoginPage() {
   async function handleGoogle() {
     setLoading(true)
     try {
-      await signInWithRedirect(auth, new GoogleAuthProvider())
-    } catch {
-      setError('Google 로그인에 실패했습니다.')
-      setLoading(false)
-    }
+      await signInWithPopup(auth, new GoogleAuthProvider())
+      goNext()
+    } catch { setError('Google 로그인에 실패했습니다.') }
+    finally { setLoading(false) }
   }
 
   return (
@@ -90,7 +79,6 @@ export default function LoginPage() {
           <p className="text-[13px] text-[#64748B] mb-5">
             {isSignUp ? '계정을 만들고 ThanQ를 시작하세요' : '이메일 또는 소셜 계정으로 로그인하세요'}
           </p>
-
           <div className="space-y-3">
             {isSignUp && (
               <div>
