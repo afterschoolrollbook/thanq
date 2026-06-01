@@ -935,7 +935,7 @@ export default function ProjectHomePage() {
             <p className="text-[12px] text-[#64748B] mb-4">어느 파트로 보고 싶으신가요? 선택한 파트의 시각으로 확인할 수 있어요.</p>
             <div className="flex flex-col gap-2 mb-4 max-h-[300px] overflow-y-auto">
               {/* 기획자(전체) 옵션 - 오너/플래너만 */}
-              {(myRole === 'planner' || myRole === 'owner' || project?.ownerId === user?.uid) && (
+              {isOwner && (
                 <button onClick={() => setMyNewPartId('__planner__')}
                   className={`flex items-center gap-3 p-3 rounded-[10px] border-2 text-left transition-colors ${myNewPartId === '__planner__' || (!myNewPartId && !myPartId) ? 'border-[#185FA5] bg-[#E6F1FB]' : 'border-[#E2E8F0]'}`}>
                   <div className="w-5 h-5 rounded-full bg-[#E6F1FB] flex items-center justify-center flex-shrink-0">
@@ -1297,10 +1297,10 @@ ${project?.name || '프로젝트'}에 초대합니다.
             </div>
             <div className="flex flex-col gap-2 mb-5">
               {[
-                { value: 'planner', label: '기획자', desc: '모든 팀 수정 가능', icon: 'ti-shield-check', color: '#185FA5' },
+                { value: 'planner', label: '기획자', desc: '모든 팀 수정 가능', icon: 'ti-shield-check', color: '#185FA5', ownerOnly: true },
                 { value: 'staff',   label: '스태프',  desc: '내 팀만 수정 가능', icon: 'ti-user-check', color: '#E8820C' },
                 { value: 'participant', label: '참가자', desc: '보기만 가능', icon: 'ti-eye', color: '#854F0B' },
-              ].map(r => (
+              ].filter(r => !r.ownerOnly || isOwner).map(r => (
                 <button key={r.value} onClick={() => setRoleChangeRole(r.value)}
                   className={`flex items-center gap-3 p-3 rounded-[12px] border-2 transition-colors text-left ${roleChangeRole === r.value ? 'border-[#185FA5] bg-[#E6F1FB]' : 'border-[#E2E8F0]'}`}>
                   <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: r.color + '20' }}>
