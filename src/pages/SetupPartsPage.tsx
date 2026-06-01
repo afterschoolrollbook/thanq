@@ -33,6 +33,7 @@ export default function SetupPartsPage() {
   const [showQR, setShowQR] = useState(false)
   const [showBulkInvite, setShowBulkInvite] = useState(false)
   const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set())
+  const [bulkPreview, setBulkPreview] = useState<{ type: 'sms' | 'kakao' | 'email'; msg: string; subject?: string } | null>(null)
   const [projectName, setProjectName] = useState('')
 
   const joinCode = projectId?.slice(-6).toUpperCase() ?? 'AB3X7F'
@@ -158,29 +159,52 @@ ${projectName || '프로젝트'}에 초대합니다.${part?.name ? `
   }
 
   function bulkSendSMS() {
-    const targets = getSelectedParts().filter(p => p.manager?.phone)
-    if (targets.length === 0) { alert('선택한 담당자 중 전화번호가 없어요'); return }
-    const phones = targets.map(p => p.manager!.phone.replace(/-/g, '')).join(',')
-    const body = `[ThanQ] ${projectName || '프로젝트'} 현장 운영 앱에 초대합니다!\n참여 코드: ${joinCode}\n참여 링크: ${baseJoinLink}`
-    window.location.href = `sms:${phones}?body=${encodeURIComponent(body)}`
+    if (bulkSelected.size === 0) { alert('담당자를 선택해주세요'); return }
+    const msg = `[ThanQ] ${projectName || '프로젝트'} 현장 운영 앱에 초대합니다!
+참여 코드: ${joinCode}
+참여 링크: ${baseJoinLink}`
+    setBulkPreview({ type: 'sms', msg })
   }
 
   function bulkSendKakao() {
-    const body = `[ThanQ] ${projectName || '프로젝트'} 현장 운영 앱에 초대합니다!\n참여 코드: ${joinCode}\n참여 링크: ${baseJoinLink}`
-    if (navigator.share) {
-      navigator.share({ title: 'ThanQ 초대', text: body, url: baseJoinLink })
-    } else {
-      window.open(`https://story.kakao.com/share?url=${encodeURIComponent(baseJoinLink)}`)
-    }
+    if (bulkSelected.size === 0) { alert('담당자를 선택해주세요'); return }
+    const msg = `[ThanQ] ${projectName || '프로젝트'} 현장 운영 앱에 초대합니다!
+참여 코드: ${joinCode}
+참여 링크: ${baseJoinLink}`
+    setBulkPreview({ type: 'kakao', msg })
   }
 
   function bulkSendEmail() {
-    const targets = getSelectedParts().filter(p => p.manager?.email)
-    if (targets.length === 0) { alert('선택한 담당자 중 이메일이 없어요'); return }
-    const emails = targets.map(p => p.manager!.email).join(',')
+    if (bulkSelected.size === 0) { alert('담당자를 선택해주세요'); return }
     const subject = `[ThanQ] ${projectName || '프로젝트'} 참여 초대`
-    const body = `안녕하세요!\n\n${projectName || '프로젝트'} 현장 운영 앱에 초대합니다.\n\n참여 코드: ${joinCode}\n참여 링크: ${baseJoinLink}\n\n위 링크를 클릭하거나 참여 코드를 입력하시면 바로 합류할 수 있어요.`
-    window.location.href = `mailto:${emails}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+    const msg = `안녕하세요!
+
+${projectName || '프로젝트'} 현장 운영 앱에 초대합니다.
+
+참여 코드: ${joinCode}
+참여 링크: ${baseJoinLink}
+
+위 링크를 클릭하거나 참여 코드를 입력하시면 바로 합류할 수 있어요.`
+    setBulkPreview({ type: 'email', msg, subject })
+  }
+
+  function doSend() {
+    if (!bulkPreview) return
+    const targets = getSelectedParts()
+    if (bulkPreview.type === 'sms') {
+      const phones = targets.filter(p => p.manager?.phone).map(p => p.manager!.phone.replace(/-/g, '')).join(',')
+      if (!phones) { alert('전화번호가 없어요'); return }
+      window.location.href = `sms:${phones}?body=${encodeURIComponent(bulkPreview.msg)}`
+    } else if (bulkPreview.type === 'kakao') {
+      if (navigator.share) navigator.share({ title: 'ThanQ 초대', text: bulkPreview.msg, url: baseJoinLink })
+      else window.open(`https://story.kakao.com/share?url=${encodeURIComponent(baseJoinLink)}`)
+    } else if (bulkPreview.type === 'email') {
+      const emails = targets.filter(p => p.manager?.email).map(p => p.manager!.email).join(',')
+      if (!emails) { alert('이메일이 없어요'); return }
+      window.location.href = `mailto:${emails}?subject=${encodeURIComponent(bulkPreview.subject || '')}&body=${encodeURIComponent(bulkPreview.msg)}`
+    }
+    setBulkPreview(null)
+    setShowBulkInvite(false)
   }
 
   async function handleSave() {
@@ -541,17 +565,17 @@ ${projectName || '프로젝트'}에 초대합니다.${part?.name ? `
 
                 {/* 발송 방법 버튼들 */}
                 <div className="grid grid-cols-3 gap-2">
-                  <button onClick={() => { if (bulkSelected.size === 0) { alert('담당자를 선택해주세요'); return } bulkSendSMS(); setShowBulkInvite(false) }}
+                  <button onClick={bulkSendSMS}
                     className="flex flex-col items-center gap-1.5 py-3 border border-[#E2E8F0] rounded-[12px] hover:border-[#3B6D11] hover:bg-[#F0FDF4] transition-colors">
                     <i className="ti ti-message text-[#3B6D11] text-[20px]" />
                     <span className="text-[11px] text-[#64748B]">문자</span>
                   </button>
-                  <button onClick={() => { if (bulkSelected.size === 0) { alert('담당자를 선택해주세요'); return } bulkSendKakao(); setShowBulkInvite(false) }}
+                  <button onClick={bulkSendKakao}
                     className="flex flex-col items-center gap-1.5 py-3 border border-[#E2E8F0] rounded-[12px] hover:border-[#854F0B] hover:bg-[#FFFBF0] transition-colors">
                     <i className="ti ti-message-2 text-[#854F0B] text-[20px]" />
                     <span className="text-[11px] text-[#64748B]">카카오톡</span>
                   </button>
-                  <button onClick={() => { if (bulkSelected.size === 0) { alert('담당자를 선택해주세요'); return } bulkSendEmail(); setShowBulkInvite(false) }}
+                  <button onClick={bulkSendEmail}
                     className="flex flex-col items-center gap-1.5 py-3 border border-[#E2E8F0] rounded-[12px] hover:border-[#185FA5] hover:bg-[#E6F1FB] transition-colors">
                     <i className="ti ti-mail text-[#185FA5] text-[20px]" />
                     <span className="text-[11px] text-[#64748B]">이메일</span>
@@ -562,6 +586,52 @@ ${projectName || '프로젝트'}에 초대합니다.${part?.name ? `
           </div>
         )
       })()}
+
+
+      {/* 메시지 미리보기 모달 */}
+      {bulkPreview && (
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-end justify-center" onClick={() => setBulkPreview(null)}>
+          <div className="bg-white rounded-t-[20px] w-full max-w-2xl pb-8" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#F4F6F9]">
+              <div className="flex items-center gap-2">
+                <i className={`ti ${bulkPreview.type === 'sms' ? 'ti-message' : bulkPreview.type === 'kakao' ? 'ti-message-2' : 'ti-mail'} text-[16px] text-[#185FA5]`} />
+                <div className="text-[16px] font-semibold">
+                  {bulkPreview.type === 'sms' ? '문자 미리보기' : bulkPreview.type === 'kakao' ? '카카오톡 미리보기' : '이메일 미리보기'}
+                </div>
+              </div>
+              <button onClick={() => setBulkPreview(null)}><i className="ti ti-x text-[18px] text-[#A0AEC0]" /></button>
+            </div>
+            <div className="px-5 pt-4">
+              {bulkPreview.type === 'email' && (
+                <div className="mb-3">
+                  <label className="text-[11px] font-semibold text-[#64748B] block mb-1.5">제목</label>
+                  <input value={bulkPreview.subject} onChange={e => setBulkPreview({ ...bulkPreview, subject: e.target.value })}
+                    className="w-full h-[42px] border border-[#E2E8F0] rounded-[10px] px-3 text-[13px] outline-none focus:border-[#185FA5]" />
+                </div>
+              )}
+              <div className="mb-4">
+                <label className="text-[11px] font-semibold text-[#64748B] block mb-1.5">내용 (수정 가능)</label>
+                <textarea value={bulkPreview.msg} onChange={e => setBulkPreview({ ...bulkPreview, msg: e.target.value })}
+                  rows={7}
+                  className="w-full border border-[#E2E8F0] rounded-[10px] px-3 py-2.5 text-[13px] outline-none focus:border-[#185FA5] resize-none leading-relaxed" />
+              </div>
+              <div className="text-[11px] text-[#A0AEC0] mb-4">
+                {bulkPreview.type === 'sms' && `전화번호 입력된 ${getSelectedParts().filter(p => p.manager?.phone).length}명에게 발송`}
+                {bulkPreview.type === 'kakao' && '카카오톡 공유 창이 열려요'}
+                {bulkPreview.type === 'email' && `이메일 입력된 ${getSelectedParts().filter(p => p.manager?.email).length}명에게 발송`}
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => setBulkPreview(null)}
+                  className="flex-1 h-[44px] border border-[#E2E8F0] rounded-[12px] text-[13px] text-[#64748B]">취소</button>
+                <button onClick={doSend}
+                  className="flex-1 h-[44px] bg-[#185FA5] text-white rounded-[12px] text-[13px] font-semibold flex items-center justify-center gap-2">
+                  <i className="ti ti-send text-[14px]" /> 이대로 보내기
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* QR 코드 모달 */}
       {showQR && (
