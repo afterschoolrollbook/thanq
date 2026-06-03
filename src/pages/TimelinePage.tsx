@@ -637,13 +637,13 @@ export default function TimelinePage() {
   if (filteredCues.length > 0) {
     const starts = filteredCues.map(c=>timeToMinutes(c.startTime)).filter(m=>!isNaN(m))
     const ends = filteredCues.map(c=>timeToMinutes(c.startTime)+(c.durationMin||30)).filter(m=>!isNaN(m))
-    const minT = Math.floor(Math.min(...starts)/30)*30, maxT = Math.ceil(Math.max(...ends)/30)*30
-    for (let m=minT; m<=maxT; m+=30) timeSlots.push(minutesToTime(m))
+    const minT = Math.floor(Math.min(...starts)/5)*5, maxT = Math.ceil(Math.max(...ends)/5)*5
+    for (let m=minT; m<=maxT; m+=5) timeSlots.push(minutesToTime(m))
   }
 
   const partSlotCues = new Map<string, CueWithPart[]>()
   for (const cue of filteredCues) {
-    const k = `${cue.partId}__${minutesToTime(Math.floor(timeToMinutes(cue.startTime)/30)*30)}`
+    const k = `${cue.partId}__${minutesToTime(Math.floor(timeToMinutes(cue.startTime)/5)*5)}`
     if (!partSlotCues.has(k)) partSlotCues.set(k, [])
     partSlotCues.get(k)!.push(cue)
   }
@@ -870,8 +870,8 @@ export default function TimelinePage() {
               <div className="flex">
                 <div style={{width:TIME_W,minWidth:TIME_W}} className="flex-shrink-0">
                   {timeSlots.map(slot=>(
-                    <div key={slot} style={{height:getSlotH(slot)}} className={`flex items-start justify-end pr-2 pt-2 ${slot.endsWith(':00') ? 'border-b-2 border-[#CBD5E1]' : 'border-b border-[#F1F5F9]'}`}>
-                      <span className={`text-[11px] font-bold ${slot.endsWith(':00') ? 'text-[#64748B]' : 'text-[#A0AEC0]'}`}>{slot}</span>
+                    <div key={slot} style={{height:getSlotH(slot)}} className={`flex items-start justify-end pr-2 pt-2 ${slot.endsWith(':00') ? 'border-b-2 border-[#CBD5E1]' : slot.endsWith(':30') ? 'border-b border-[#E2E8F0]' : 'border-b border-[#F8FAFC]'}`}>
+                      <span className={`text-[11px] font-bold ${slot.endsWith(':00') ? 'text-[#64748B]' : slot.endsWith(':30') ? 'text-[#B0BEC5]' : 'text-[#D1D5DB]'}`}>{slot}</span>
                     </div>
                   ))}
                 </div>
@@ -879,7 +879,7 @@ export default function TimelinePage() {
                 {visibleParts.map(part=>(
                   <div key={part.id} style={{width:COL_W,minWidth:COL_W,height:totalH}} className="flex-shrink-0 relative border-l border-[#E2E8F0]">
                     {timeSlots.map(slot=>(
-                      <div key={slot} style={{top:slotTops.get(slot)??0,height:getSlotH(slot)}} className={`absolute left-0 right-0 ${slot.endsWith(':00') ? 'border-b-2 border-[#CBD5E1]' : 'border-b border-[#F1F5F9]'}`}/>
+                      <div key={slot} style={{top:slotTops.get(slot)??0,height:getSlotH(slot)}} className={`absolute left-0 right-0 ${slot.endsWith(':00') ? 'border-b-2 border-[#CBD5E1]' : slot.endsWith(':30') ? 'border-b border-[#E2E8F0]' : 'border-b border-[#F8FAFC]'}`}/>
                     ))}
                     {timeSlots.map(slot=>{
                       const cues = (partSlotCues.get(`${part.id}__${slot}`)??[]).sort((a,b)=>timeToMinutes(a.startTime)-timeToMinutes(b.startTime))
