@@ -381,15 +381,15 @@ export function CueModal({ cue, projectId, onClose, isReadOnly = false, myPartNa
                     {item.isDone&&<i className="ti ti-check text-white text-[11px]"/>}
                   </button>
                   {editingCheckId === item.id ? (
-                    <input
-                      className="flex-1 text-[13px] border-b border-[#185FA5] outline-none bg-transparent"
-                      value={editingCheckTitle} autoFocus
+                    <textarea
+                      className="flex-1 text-[13px] border-b border-[#185FA5] outline-none bg-transparent resize-none"
+                      value={editingCheckTitle} autoFocus rows={2}
                       onChange={e=>setEditingCheckTitle(e.target.value)}
                       onBlur={()=>updateCheckTitle(item, editingCheckTitle)}
-                      onKeyDown={e=>{if(e.key==='Enter')updateCheckTitle(item,editingCheckTitle);if(e.key==='Escape')setEditingCheckId(null)}}
+                      onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();updateCheckTitle(item,editingCheckTitle)}if(e.key==='Escape')setEditingCheckId(null)}}
                     />
                   ) : (
-                    <span className={`text-[13px] flex-1 ${item.isDone?'line-through text-[#A0AEC0]':'text-[#1A1A2E]'}`}
+                    <span className={`text-[13px] flex-1 whitespace-pre-wrap ${item.isDone?'line-through text-[#A0AEC0]':'text-[#1A1A2E]'}`}
                       onDoubleClick={()=>{if(!isReadOnly){setEditingCheckId(item.id);setEditingCheckTitle(item.title)}}}>
                       {item.title}
                     </span>
