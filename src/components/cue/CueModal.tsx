@@ -246,6 +246,21 @@ export function CueModal({ cue, projectId, onClose, isReadOnly = false, myPartNa
     } finally { setUploading(false) }
   }
 
+  async function uploadCheckPhoto(file: File, item: CheckItem) {
+    setUploading(true)
+    try {
+      const path = `projects/${projectId}/checks/${item.id}/${Date.now()}_${file.name}`
+      const snap = await uploadBytes(storageRef(storage, path), file)
+      const url = await getDownloadURL(snap.ref)
+      const r = push(dbRef(db, `checkItems/${projectId}/${cue.partId}/${item.id}/photos`))
+      await set(r, { url, name: file.name, uploadedAt: new Date().toISOString() })
+    } finally { setUploading(false) }
+  }
+
+  async function deleteCheckPhoto(item: CheckItem, photoKey: string) {
+    await set(dbRef(db, `checkItems/${projectId}/${cue.partId}/${item.id}/photos/${photoKey}`), null)
+  }
+
   const doneCount = checks.filter(c => c.isDone).length
   const allDone = checks.length > 0 && doneCount === checks.length
   const assignee = cue.assigneeName || cue.assignee || cue.partName
@@ -368,49 +383,82 @@ export function CueModal({ cue, projectId, onClose, isReadOnly = false, myPartNa
           {/* 체크리스트 탭 */}
           {tab === 'check' && (
             <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2">
               {checks.length === 0 && (
                 <div className="text-center py-6 text-[#A0AEC0]">
                   <i className="ti ti-checklist text-[32px] block mb-2 opacity-30"/>
                   <p className="text-[12px]">체크리스트를 추가해보세요</p>
                 </div>
               )}
-              {checks.map(item=>(
-                <div key={item.id} className={`flex items-center gap-3 p-3 rounded-[10px] border ${item.isDone?'border-[#E2E8F0] bg-[#F8FBF8]':'border-[#E2E8F0] bg-white'}`}>
-                  <button onClick={()=>toggleCheck(item)}
-                    className={`w-5 h-5 rounded flex items-center justify-center border-2 flex-shrink-0 ${item.isDone?'bg-[#3B6D11] border-[#3B6D11]':'border-[#E2E8F0] hover:border-[#185FA5]'}`}>
-                    {item.isDone&&<i className="ti ti-check text-white text-[11px]"/>}
-                  </button>
-                  {editingCheckId === item.id ? (
-                    <textarea
-                      className="flex-1 text-[13px] border-b border-[#185FA5] outline-none bg-transparent resize-none"
-                      value={editingCheckTitle} autoFocus rows={2}
-                      onChange={e=>setEditingCheckTitle(e.target.value)}
-                      onBlur={()=>updateCheckTitle(item, editingCheckTitle)}
-                      onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();updateCheckTitle(item,editingCheckTitle)}if(e.key==='Escape')setEditingCheckId(null)}}
-                    />
-                  ) : (
-                    <span className={`text-[13px] flex-1 whitespace-pre-wrap ${item.isDone?'line-through text-[#A0AEC0]':'text-[#1A1A2E]'}`}
-                      onDoubleClick={()=>{if(!isReadOnly){setEditingCheckId(item.id);setEditingCheckTitle(item.title)}}}>
-                      {item.title}
-                    </span>
+              {checks.map(item=>{
+                const checkPhotos = item.photos ? Object.entries(item.photos) : []
+                const checkPhotoInputId = `check-photo-${item.id}`
+                return (
+                <div key={item.id} className={`flex flex-col rounded-[10px] border ${item.isDone?'border-[#E2E8F0] bg-[#F8FBF8]':'border-[#E2E8F0] bg-white'}`}>
+                  {/* 체크항목 행 */}
+                  <div className="flex items-center gap-3 p-3">
+                    <button onClick={()=>toggleCheck(item)}
+                      className={`w-5 h-5 rounded flex items-center justify-center border-2 flex-shrink-0 ${item.isDone?'bg-[#3B6D11] border-[#3B6D11]':'border-[#E2E8F0] hover:border-[#185FA5]'}`}>
+                      {item.isDone&&<i className="ti ti-check text-white text-[11px]"/>}
+                    </button>
+                    {editingCheckId === item.id ? (
+                      <textarea
+                        className="flex-1 text-[13px] border-b border-[#185FA5] outline-none bg-transparent resize-none"
+                        value={editingCheckTitle} autoFocus rows={2}
+                        onChange={e=>setEditingCheckTitle(e.target.value)}
+                        onBlur={()=>updateCheckTitle(item, editingCheckTitle)}
+                        onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();updateCheckTitle(item,editingCheckTitle)}if(e.key==='Escape')setEditingCheckId(null)}}
+                      />
+                    ) : (
+                      <span className={`text-[13px] flex-1 whitespace-pre-wrap ${item.isDone?'line-through text-[#A0AEC0]':'text-[#1A1A2E]'}`}
+                        onDoubleClick={()=>{if(!isReadOnly){setEditingCheckId(item.id);setEditingCheckTitle(item.title)}}}>
+                        {item.title}
+                      </span>
+                    )}
+                    {/* 재료 카테고리면 재료 구매 버튼 */}
+                    {(item.category === 'prep' || item.category === 'setup') && (
+                      <a href={getCoupangLink(item.title)} target="_blank" rel="noopener noreferrer"
+                        className="flex-shrink-0 w-6 h-6 rounded flex items-center justify-center text-[#A0AEC0] hover:text-[#E24B4A] transition-colors"
+                        title="재료 구매 (쿠팡)">
+                        <i className="ti ti-shopping-cart text-[15px]"/>
+                      </a>
+                    )}
+                    {/* 사진 추가 버튼 */}
+                    {!isReadOnly && (
+                      <label htmlFor={checkPhotoInputId} className="cursor-pointer text-[#E2E8F0] hover:text-[#185FA5]">
+                        <i className="ti ti-camera text-[13px]"/>
+                      </label>
+                    )}
+                    <input id={checkPhotoInputId} type="file" accept="image/*" className="hidden"
+                      onChange={async e=>{ if(e.target.files?.[0]) await uploadCheckPhoto(e.target.files[0], item) }}/>
+                    <button onClick={()=>{if(isReadOnly){showReadOnlyToast();return}setEditingCheckId(item.id);setEditingCheckTitle(item.title)}}
+                      className="text-[#E2E8F0] hover:text-[#185FA5]">
+                      <i className="ti ti-pencil text-[13px]"/>
+                    </button>
+                    <button onClick={()=>deleteCheck(item)} className="text-[#E2E8F0] hover:text-[#E24B4A]">
+                      <i className="ti ti-trash text-[14px]"/>
+                    </button>
+                  </div>
+                  {/* 사진 영역 (사진 있을 때만) */}
+                  {checkPhotos.length > 0 && (
+                    <div className="flex gap-2 px-3 pb-3 flex-wrap">
+                      {checkPhotos.map(([key, p])=>(
+                        <div key={key} className="relative w-[72px] h-[72px] rounded-[6px] overflow-hidden border border-[#E2E8F0] group">
+                          <img src={p.url} alt={p.name} className="w-full h-full object-cover"/>
+                          {!isReadOnly && (
+                            <button onClick={()=>deleteCheckPhoto(item, key)}
+                              className="absolute top-0.5 right-0.5 w-4 h-4 bg-black/50 rounded-full hidden group-hover:flex items-center justify-center">
+                              <i className="ti ti-x text-white text-[9px]"/>
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   )}
-                  {/* 재료 카테고리면 재료 구매 버튼 */}
-                  {(item.category === 'prep' || item.category === 'setup') && (
-                    <a href={getCoupangLink(item.title)} target="_blank" rel="noopener noreferrer"
-                      className="flex-shrink-0 w-6 h-6 rounded flex items-center justify-center text-[#A0AEC0] hover:text-[#E24B4A] transition-colors"
-                      title="재료 구매 (쿠팡)">
-                      <i className="ti ti-shopping-cart text-[15px]"/>
-                    </a>
-                  )}
-                  <button onClick={()=>{if(isReadOnly){showReadOnlyToast();return}setEditingCheckId(item.id);setEditingCheckTitle(item.title)}}
-                    className="text-[#E2E8F0] hover:text-[#185FA5]">
-                    <i className="ti ti-pencil text-[13px]"/>
-                  </button>
-                  <button onClick={()=>deleteCheck(item)} className="text-[#E2E8F0] hover:text-[#E24B4A]">
-                    <i className="ti ti-trash text-[14px]"/>
-                  </button>
                 </div>
-              ))}
+                )
+              })}
+              </div>
             </div>
           )}
 
