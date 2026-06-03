@@ -443,6 +443,7 @@ export default function TimelinePage() {
   const [dragOverSlot, setDragOverSlot] = useState<string | null>(null)
   const dragStartY = useRef(0)
   const dragStartTime = useRef('')
+  const isDraggingHandle = useRef(false)
   // ── 시뮬레이션 ──
   const [simState, setSimState] = useState<'idle'|'scanning'|'done'>('idle')
   const [simIssues, setSimIssues] = useState<SimIssue[]>([])
@@ -636,10 +637,51 @@ export default function TimelinePage() {
   // ── 드래그로 시간 이동 ──
   async function dropCueToSlot(cue: CueWithPart, newTime: string) {
     if (!projectId || newTime === cue.startTime) return
+    console.log('[drag] saving new time:', newTime, 'for:', cue.title)
     await update(dbRef(db, `cueItems/${projectId}/${cue.partId}/${cue.id}`), {
       startTime: newTime,
       updatedAt: new Date().toISOString()
     })
+  }
+
+  function onHandleMouseDown(e: React.MouseEvent, cue: CueWithPart) {
+    e.stopPropagation()
+    e.preventDefault()
+    console.log('[drag] handle mousedown:', cue.title)
+    isDraggingHandle.current = true
+    dragStartY.current = e.clientY
+    dragStartTime.current = cue.startTime
+    setDragCue(cue)
+
+    function onMouseMove(ev: MouseEvent) {
+      if (!isDraggingHandle.current) return
+      const diffPx = ev.clientY - dragStartY.current
+      const diffMin = Math.round(diffPx / (CUE_H / 5)) * 5
+      const baseMin = timeToMinutes(dragStartTime.current)
+      const newMin = Math.max(0, baseMin + diffMin)
+      const newSlot = minutesToTime(Math.floor(newMin / 5) * 5)
+      console.log('[drag] mousemove diffMin:', diffMin, 'newSlot:', newSlot)
+      setDragOverSlot(newSlot)
+    }
+
+    async function onMouseUp(ev: MouseEvent) {
+      if (!isDraggingHandle.current) return
+      isDraggingHandle.current = false
+      const diffPx = ev.clientY - dragStartY.current
+      const diffMin = Math.round(diffPx / (CUE_H / 5)) * 5
+      const baseMin = timeToMinutes(dragStartTime.current)
+      const newMin = Math.max(0, baseMin + diffMin)
+      const newTime = minutesToTime(Math.floor(newMin / 5) * 5)
+      console.log('[drag] mouseup newTime:', newTime)
+      await dropCueToSlot(cue, newTime)
+      setDragCue(null)
+      setDragOverSlot(null)
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseup', onMouseUp)
+    }
+
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('mouseup', onMouseUp)
   }
 
   // date 필드 있는 큐는 selectedDate와 일치할 때만 표시, 없으면 항상 표시
@@ -895,11 +937,8 @@ export default function TimelinePage() {
                   <div key={part.id} style={{width:COL_W,minWidth:COL_W,height:totalH}} className="flex-shrink-0 relative border-l border-[#E2E8F0]">
                     {timeSlots.map(slot=>(
                       <div key={slot}
-                        style={{top:slotTops.get(slot)??0,height:getSlotH(slot), zIndex: dragCue ? 20 : 0}}
-                        className={`absolute left-0 right-0 ${slot.endsWith(':00') ? 'border-b-2 border-[#CBD5E1]' : slot.endsWith(':30') ? 'border-b border-[#E2E8F0]' : 'border-b border-[#F8FAFC]'} ${dragCue && dragOverSlot===`${part.id}__${slot}` ? 'bg-[#E6F1FB]' : ''}`}
-                        onDragOver={e=>{ e.preventDefault(); e.dataTransfer.dropEffect='move'; console.log('[drag] over slot:', slot); setDragOverSlot(`${part.id}__${slot}`) }}
-                        onDragLeave={()=>setDragOverSlot(null)}
-                        onDrop={async e=>{ e.preventDefault(); console.log('[drag] drop on slot:', slot, 'dragCue:', dragCue?.title); if(dragCue) { await dropCueToSlot(dragCue, slot); setDragCue(null); setDragOverSlot(null) } }}
+                        style={{top:slotTops.get(slot)??0,height:getSlotH(slot), zIndex: 0}}
+                        className={`absolute left-0 right-0 ${slot.endsWith(':00') ? 'border-b-2 border-[#CBD5E1]' : slot.endsWith(':30') ? 'border-b border-[#E2E8F0]' : 'border-b border-[#F8FAFC]'} ${dragCue && dragOverSlot===slot ? 'bg-[#E6F1FB]' : ''}`}
                       />
                     ))}
                     {timeSlots.map(slot=>{
@@ -928,13 +967,11 @@ export default function TimelinePage() {
                             }`}>
                             {/* 드래그 핸들 */}
                             <div
-                              draggable
-                              onDragStart={e=>{ e.stopPropagation(); console.log('[drag] start:', cue.title, cue.startTime); setDragCue(cue); dragStartY.current=e.clientY; dragStartTime.current=cue.startTime }}
-                              onDragEnd={()=>{ console.log('[drag] end'); setDragCue(null); setDragOverSlot(null) }}
+                              onMouseDown={e=>onHandleMouseDown(e, cue)}
                               onClick={e=>e.stopPropagation()}
-                              className="absolute top-0 right-0 bottom-0 w-5 flex items-center justify-center cursor-ns-resize text-[#CBD5E1] hover:text-[#94A3B8] z-10"
+                              className="absolute top-0 right-0 bottom-0 w-6 flex items-center justify-center cursor-ns-resize text-[#CBD5E1] hover:text-[#185FA5] z-10 select-none"
                               style={{touchAction:'none'}}>
-                              <i className="ti ti-arrows-up-down text-[12px]"/>
+                              <i className="ti ti-arrows-up-down text-[13px]"/>
                             </div>
                             <div className="pr-4">
                               <div className="font-bold leading-tight whitespace-pre-wrap line-clamp-2"
