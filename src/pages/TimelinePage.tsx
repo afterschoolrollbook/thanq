@@ -438,6 +438,11 @@ export default function TimelinePage() {
   const [showAddCue, setShowAddCue] = useState(false)
   const [notices, setNotices] = useState<Notice[]>([])
   const calendarRef = useRef<HTMLDivElement>(null)
+  // ── 카드 드래그 ──
+  const [dragCue, setDragCue] = useState<CueWithPart | null>(null)
+  const [dragOverSlot, setDragOverSlot] = useState<string | null>(null)
+  const dragStartY = useRef(0)
+  const dragStartTime = useRef('')
   // ── 시뮬레이션 ──
   const [simState, setSimState] = useState<'idle'|'scanning'|'done'>('idle')
   const [simIssues, setSimIssues] = useState<SimIssue[]>([])
@@ -627,6 +632,16 @@ export default function TimelinePage() {
   }
 
   const visibleParts = selectedPartId ? parts.filter(p=>p.id===selectedPartId) : parts
+
+  // ── 드래그로 시간 이동 ──
+  async function dropCueToSlot(cue: CueWithPart, newTime: string) {
+    if (!projectId || newTime === cue.startTime) return
+    await update(dbRef(db, `cueItems/${projectId}/${cue.partId}/${cue.id}`), {
+      startTime: newTime,
+      updatedAt: new Date().toISOString()
+    })
+  }
+
   // date 필드 있는 큐는 selectedDate와 일치할 때만 표시, 없으면 항상 표시
   const filteredCues = allCues.filter(c=>
     (!selectedPartId || c.partId===selectedPartId) &&
@@ -879,7 +894,13 @@ export default function TimelinePage() {
                 {visibleParts.map(part=>(
                   <div key={part.id} style={{width:COL_W,minWidth:COL_W,height:totalH}} className="flex-shrink-0 relative border-l border-[#E2E8F0]">
                     {timeSlots.map(slot=>(
-                      <div key={slot} style={{top:slotTops.get(slot)??0,height:getSlotH(slot)}} className={`absolute left-0 right-0 ${slot.endsWith(':00') ? 'border-b-2 border-[#CBD5E1]' : slot.endsWith(':30') ? 'border-b border-[#E2E8F0]' : 'border-b border-[#F8FAFC]'}`}/>
+                      <div key={slot}
+                        style={{top:slotTops.get(slot)??0,height:getSlotH(slot)}}
+                        className={`absolute left-0 right-0 ${slot.endsWith(':00') ? 'border-b-2 border-[#CBD5E1]' : slot.endsWith(':30') ? 'border-b border-[#E2E8F0]' : 'border-b border-[#F8FAFC]'} ${dragCue && dragOverSlot===`${part.id}__${slot}` ? 'bg-[#E6F1FB]' : ''}`}
+                        onDragOver={e=>{ e.preventDefault(); setDragOverSlot(`${part.id}__${slot}`) }}
+                        onDragLeave={()=>setDragOverSlot(null)}
+                        onDrop={async e=>{ e.preventDefault(); if(dragCue) { await dropCueToSlot(dragCue, slot); setDragCue(null); setDragOverSlot(null) } }}
+                      />
                     ))}
                     {timeSlots.map(slot=>{
                       const cues = (partSlotCues.get(`${part.id}__${slot}`)??[]).sort((a,b)=>timeToMinutes(a.startTime)-timeToMinutes(b.startTime))
@@ -889,9 +910,14 @@ export default function TimelinePage() {
                         const allDone = total>0 && done===total
                         const hasPending = total>0 && done<total
                         return (
-                          <div key={cue.id} onClick={()=>setActiveCue(cue)}
+                          <div key={cue.id}
+                            draggable
+                            onDragStart={e=>{ e.stopPropagation(); setDragCue(cue); dragStartY.current=e.clientY; dragStartTime.current=cue.startTime }}
+                            onDragEnd={()=>{ setDragCue(null); setDragOverSlot(null) }}
+                            onClick={()=>{ if(!dragCue) setActiveCue(cue) }}
                             style={{
                               position:'absolute',top:slotTop+PAD/2+idx*CUE_H,height:CUE_H-4,left:3,right:3,
+                              opacity: dragCue?.id===cue.id ? 0.4 : 1,
                               // cardColor가 있으면 배경을 해당 색상의 연한 버전으로
                               ...(cue.cardColor ? {
                                 background: cue.cardColor + '18',
