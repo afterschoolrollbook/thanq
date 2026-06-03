@@ -340,7 +340,7 @@ export function CueModal({ cue, projectId, onClose, isReadOnly = false, myPartNa
             <div className="flex gap-2">
               <textarea className="flex-1 text-[15px] font-bold border-b-2 border-[#185FA5] outline-none pb-0.5 resize-none bg-transparent"
                 value={title} onChange={e=>setTitle(e.target.value)} rows={3}
-                onKeyDown={e=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();saveTitle()} if(e.key==='Escape') setEditingTitle(false) }}
+                onKeyDown={e=>{ if(e.key==='Enter'&&e.shiftKey){ return } if(e.key==='Enter'){e.preventDefault();saveTitle()} if(e.key==='Escape') setEditingTitle(false) }}
                 autoFocus/>
               <button onClick={saveTitle} className="text-[#185FA5] text-[12px] font-semibold">저장</button>
               <button onClick={()=>setEditingTitle(false)} className="text-[#A0AEC0] text-[12px]">취소</button>
