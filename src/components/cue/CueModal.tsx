@@ -344,8 +344,8 @@ export function CueModal({ cue, projectId, onClose, isReadOnly = false, myPartNa
                 placeholder="제목 입력 (Enter = 줄바꿈)"
                 autoFocus/>
               <div className="flex gap-2">
-                <button onClick={saveTitle} className="flex-1 h-[36px] bg-[#185FA5] text-white rounded-[8px] text-[13px] font-semibold">저장</button>
-                <button onClick={()=>setEditingTitle(false)} className="flex-1 h-[36px] border border-[#E2E8F0] text-[#A0AEC0] rounded-[8px] text-[13px]">취소</button>
+                <button type="button" onClick={saveTitle} className="flex-1 h-[36px] bg-[#185FA5] text-white rounded-[8px] text-[13px] font-semibold">저장</button>
+                <button type="button" onClick={()=>setEditingTitle(false)} className="flex-1 h-[36px] border border-[#E2E8F0] text-[#A0AEC0] rounded-[8px] text-[13px]">취소</button>
               </div>
             </div>
           ) : (
