@@ -911,10 +911,7 @@ export default function TimelinePage() {
                         const hasPending = total>0 && done<total
                         return (
                           <div key={cue.id}
-                            draggable
-                            onDragStart={e=>{ e.stopPropagation(); setDragCue(cue); dragStartY.current=e.clientY; dragStartTime.current=cue.startTime }}
-                            onDragEnd={()=>{ setDragCue(null); setDragOverSlot(null) }}
-                            onClick={()=>{ if(!dragCue) setActiveCue(cue) }}
+                            onClick={()=>setActiveCue(cue)}
                             style={{
                               position:'absolute',top:slotTop+PAD/2+idx*CUE_H,height:CUE_H-4,left:3,right:3,
                               opacity: dragCue?.id===cue.id ? 0.4 : 1,
@@ -929,7 +926,17 @@ export default function TimelinePage() {
                                 ? 'border-[#E24B4A] shadow-[0_0_0_2px_#E24B4A44]'
                                 : cue.cardColor ? 'hover:shadow-md' : 'border-[#E2E8F0] hover:border-[#185FA5] hover:shadow-md'
                             }`}>
-                            <div>
+                            {/* 드래그 핸들 */}
+                            <div
+                              draggable
+                              onDragStart={e=>{ e.stopPropagation(); setDragCue(cue); dragStartY.current=e.clientY; dragStartTime.current=cue.startTime }}
+                              onDragEnd={()=>{ setDragCue(null); setDragOverSlot(null) }}
+                              onClick={e=>e.stopPropagation()}
+                              className="absolute top-0 right-0 bottom-0 w-5 flex items-center justify-center cursor-grab active:cursor-grabbing text-[#CBD5E1] hover:text-[#94A3B8] z-10"
+                              style={{touchAction:'none'}}>
+                              <i className="ti ti-grip-vertical text-[12px]"/>
+                            </div>
+                            <div className="pr-4">
                               <div className="font-bold leading-tight truncate"
                                 style={{
                                   fontSize:Math.max(9,Math.round(11*zoom))+'px',
