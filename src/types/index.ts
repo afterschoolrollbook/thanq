@@ -113,6 +113,7 @@ export interface CheckItem {
   dueDate?: string
   assignee?: string
   createdAt: string
+  photos?: Record<string, { url: string; name: string; uploadedAt: string }>  // 체크항목별 사진
 }
 
 // ─── 이슈 / 메모 ──────────────────────────────────────────
