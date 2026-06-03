@@ -937,7 +937,7 @@ export default function TimelinePage() {
                               <i className="ti ti-grip-vertical text-[12px]"/>
                             </div>
                             <div className="pr-4">
-                              <div className="font-bold leading-tight truncate"
+                              <div className="font-bold leading-tight whitespace-pre-wrap line-clamp-2"
                                 style={{
                                   fontSize:Math.max(9,Math.round(11*zoom))+'px',
                                   color: cue.cardColor ?? '#1A1A2E'
