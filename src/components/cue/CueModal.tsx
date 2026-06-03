@@ -338,17 +338,17 @@ export function CueModal({ cue, projectId, onClose, isReadOnly = false, myPartNa
           {/* 제목 편집 */}
           {editingTitle ? (
             <div className="flex gap-2">
-              <input className="flex-1 text-[15px] font-bold border-b-2 border-[#185FA5] outline-none pb-0.5"
-                value={title} onChange={e=>setTitle(e.target.value)}
-                onKeyDown={e=>{ if(e.key==='Enter') saveTitle(); if(e.key==='Escape') setEditingTitle(false) }}
+              <textarea className="flex-1 text-[15px] font-bold border-b-2 border-[#185FA5] outline-none pb-0.5 resize-none bg-transparent"
+                value={title} onChange={e=>setTitle(e.target.value)} rows={3}
+                onKeyDown={e=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();saveTitle()} if(e.key==='Escape') setEditingTitle(false) }}
                 autoFocus/>
               <button onClick={saveTitle} className="text-[#185FA5] text-[12px] font-semibold">저장</button>
               <button onClick={()=>setEditingTitle(false)} className="text-[#A0AEC0] text-[12px]">취소</button>
             </div>
           ) : (
-            <div className="flex items-center gap-2 group cursor-pointer" onClick={()=>{ if(isReadOnly){showReadOnlyToast();return} setEditingTitle(true)}}>
-              <div className="text-[15px] font-bold text-[#1A1A2E]">{title}</div>
-              <i className="ti ti-pencil text-[#A0AEC0] text-[13px] opacity-0 group-hover:opacity-100 transition-opacity"/>
+            <div className="flex items-start gap-2 group cursor-pointer" onClick={()=>{ if(isReadOnly){showReadOnlyToast();return} setEditingTitle(true)}}>
+              <div className="text-[15px] font-bold text-[#1A1A2E] whitespace-pre-wrap flex-1">{title}</div>
+              <i className="ti ti-pencil text-[#A0AEC0] text-[13px] opacity-0 group-hover:opacity-100 transition-opacity mt-0.5 flex-shrink-0"/>
             </div>
           )}
 
