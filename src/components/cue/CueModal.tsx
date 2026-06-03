@@ -337,13 +337,16 @@ export function CueModal({ cue, projectId, onClose, isReadOnly = false, myPartNa
 
           {/* 제목 편집 */}
           {editingTitle ? (
-            <div className="flex gap-2">
-              <textarea className="flex-1 text-[15px] font-bold border-b-2 border-[#185FA5] outline-none pb-0.5 resize-none bg-transparent"
-                value={title} onChange={e=>setTitle(e.target.value)} rows={3}
+            <div className="flex flex-col gap-2">
+              <textarea className="w-full text-[15px] font-bold border-2 border-[#185FA5] rounded-[8px] outline-none p-2 resize-none bg-transparent"
+                value={title} onChange={e=>setTitle(e.target.value)} rows={4}
                 onKeyDown={e=>{ if(e.key==='Escape') setEditingTitle(false) }}
+                placeholder="제목 입력 (Enter = 줄바꿈)"
                 autoFocus/>
-              <button onClick={saveTitle} className="text-[#185FA5] text-[12px] font-semibold">저장</button>
-              <button onClick={()=>setEditingTitle(false)} className="text-[#A0AEC0] text-[12px]">취소</button>
+              <div className="flex gap-2">
+                <button onClick={saveTitle} className="flex-1 h-[36px] bg-[#185FA5] text-white rounded-[8px] text-[13px] font-semibold">저장</button>
+                <button onClick={()=>setEditingTitle(false)} className="flex-1 h-[36px] border border-[#E2E8F0] text-[#A0AEC0] rounded-[8px] text-[13px]">취소</button>
+              </div>
             </div>
           ) : (
             <div className="flex items-start gap-2 group cursor-pointer" onClick={()=>{ if(isReadOnly){showReadOnlyToast();return} setEditingTitle(true)}}>
