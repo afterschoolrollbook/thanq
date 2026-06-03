@@ -895,11 +895,11 @@ export default function TimelinePage() {
                   <div key={part.id} style={{width:COL_W,minWidth:COL_W,height:totalH}} className="flex-shrink-0 relative border-l border-[#E2E8F0]">
                     {timeSlots.map(slot=>(
                       <div key={slot}
-                        style={{top:slotTops.get(slot)??0,height:getSlotH(slot)}}
+                        style={{top:slotTops.get(slot)??0,height:getSlotH(slot), zIndex: dragCue ? 20 : 0}}
                         className={`absolute left-0 right-0 ${slot.endsWith(':00') ? 'border-b-2 border-[#CBD5E1]' : slot.endsWith(':30') ? 'border-b border-[#E2E8F0]' : 'border-b border-[#F8FAFC]'} ${dragCue && dragOverSlot===`${part.id}__${slot}` ? 'bg-[#E6F1FB]' : ''}`}
-                        onDragOver={e=>{ e.preventDefault(); setDragOverSlot(`${part.id}__${slot}`) }}
+                        onDragOver={e=>{ e.preventDefault(); e.dataTransfer.dropEffect='move'; console.log('[drag] over slot:', slot); setDragOverSlot(`${part.id}__${slot}`) }}
                         onDragLeave={()=>setDragOverSlot(null)}
-                        onDrop={async e=>{ e.preventDefault(); if(dragCue) { await dropCueToSlot(dragCue, slot); setDragCue(null); setDragOverSlot(null) } }}
+                        onDrop={async e=>{ e.preventDefault(); console.log('[drag] drop on slot:', slot, 'dragCue:', dragCue?.title); if(dragCue) { await dropCueToSlot(dragCue, slot); setDragCue(null); setDragOverSlot(null) } }}
                       />
                     ))}
                     {timeSlots.map(slot=>{
@@ -929,12 +929,12 @@ export default function TimelinePage() {
                             {/* 드래그 핸들 */}
                             <div
                               draggable
-                              onDragStart={e=>{ e.stopPropagation(); setDragCue(cue); dragStartY.current=e.clientY; dragStartTime.current=cue.startTime }}
-                              onDragEnd={()=>{ setDragCue(null); setDragOverSlot(null) }}
+                              onDragStart={e=>{ e.stopPropagation(); console.log('[drag] start:', cue.title, cue.startTime); setDragCue(cue); dragStartY.current=e.clientY; dragStartTime.current=cue.startTime }}
+                              onDragEnd={()=>{ console.log('[drag] end'); setDragCue(null); setDragOverSlot(null) }}
                               onClick={e=>e.stopPropagation()}
-                              className="absolute top-0 right-0 bottom-0 w-5 flex items-center justify-center cursor-grab active:cursor-grabbing text-[#CBD5E1] hover:text-[#94A3B8] z-10"
+                              className="absolute top-0 right-0 bottom-0 w-5 flex items-center justify-center cursor-ns-resize text-[#CBD5E1] hover:text-[#94A3B8] z-10"
                               style={{touchAction:'none'}}>
-                              <i className="ti ti-grip-vertical text-[12px]"/>
+                              <i className="ti ti-arrows-up-down text-[12px]"/>
                             </div>
                             <div className="pr-4">
                               <div className="font-bold leading-tight whitespace-pre-wrap line-clamp-2"
