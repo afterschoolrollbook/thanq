@@ -339,9 +339,8 @@ export function CueModal({ cue, projectId, onClose, isReadOnly = false, myPartNa
           {editingTitle ? (
             <div className="flex flex-col gap-2">
               <textarea className="w-full text-[15px] font-bold border-2 border-[#185FA5] rounded-[8px] outline-none p-2 resize-none bg-transparent"
-                value={title} onChange={e=>setTitle(e.target.value)} rows={4}
-                onKeyDown={e=>{ if(e.key==='Escape') setEditingTitle(false) }}
-                placeholder="제목 입력 (Enter = 줄바꿈)"
+                value={title} onChange={e=>{ console.log('[title] onChange, value:', JSON.stringify(e.target.value)); setTitle(e.target.value) }} rows={4}
+                onKeyDown={e=>{ console.log('[title] keyDown:', e.key, 'shift:', e.shiftKey); if(e.key==='Escape') setEditingTitle(false) }}
                 autoFocus/>
               <div className="flex gap-2">
                 <button type="button" onClick={saveTitle} className="flex-1 h-[36px] bg-[#185FA5] text-white rounded-[8px] text-[13px] font-semibold">저장</button>
